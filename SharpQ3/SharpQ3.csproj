@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <OutputType>exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Quake3Sharp.CGame\Quake3Sharp.CGame.csproj" />
+        <ProjectReference Include="..\Quake3Sharp.Engine\Quake3Sharp.Engine.csproj" />
+        <ProjectReference Include="..\Quake3Sharp.Game\Quake3Sharp.Game.csproj" />
+        <ProjectReference Include="..\Quake3Sharp.Ui\Quake3Sharp.Ui.csproj" />
+    </ItemGroup>
+
+</Project>
