@@ -21,1233 +21,2400 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 //
 // q_shared.c -- stateless support routines that are included in each code dll
-#include "q_shared.h"
 
-float Com_Clamp( float min, float max, float value ) {
-	if ( value < min ) {
-		return min;
+
+// q_shared.h -- included first by ALL program modules.
+// A user mod should never modify this file
+
+using System;
+
+//======================= WIN32 DEFINES =================================
+#define MAC_STATIC
+#define LittleShort
+#define LittleLong
+#define LittleFloat
+
+
+#if DEBUG
+#if BSPC
+#else
+#define HUNK_DEBUG
+#endif
+#endif
+
+public static class QShared
+{ 
+	public const string Q3_VERSION = "Q3 1.32b C# edition";
+	// 1.32 released 7-10-2002
+
+	public const int MAX_TEAMNAME = 32;
+
+	/**********************************************************************
+	  VM Considerations
+
+	  The VM can not use the standard system headers because we aren't really
+	  using the compiler they were meant for.  We use bg_lib.h which contains
+	  prototypes for the functions we define for our own use in bg_lib.c.
+
+	  When writing mods, please add needed headers HERE, do not start including
+	  stuff like <stdio.h> in the various .c files that make up each of the VMs
+	  since you will be including system headers files can will have issues.
+
+	  Remember, if you use a C library function that is not defined in bg_lib.c,
+	  you will have to add your own version for support in the VM.
+
+	 **********************************************************************/
+
+	#if Q3_VM
+	typedef int intptr_t;
+	#endif
+
+	private const string CPUSTRING = "generic";
+
+	static short BigShort( short l ) { return ShortSwap( l ); }
+	static int BigLong( int l ) { LongSwap( l ); }
+	static float BigFloat(const float* l ) { FloatSwap( l ); }
+
+
+	public const char PATH_SEP = '\\';
+
+	typedef unsigned char 		byte;
+
+	typedef enum { qfalse, qtrue }
+	qboolean;
+
+	typedef int qhandle_t;
+	typedef int sfxHandle_t;
+	typedef int fileHandle_t;
+	typedef int clipHandle_t;
+
+
+	public const int MAX_QINT = 0x7fffffff;
+	public const int MIN_QINT = ( -MAX_QINT - 1 );
+
+	// angle indexes
+	public const int PITCH = 0;   // up / down
+	public const int YAW = 1;    // left / right
+	public const int ROLL = 2;	// fall over
+
+	// the game guarantees that no string from the network will ever
+	// exceed MAX_STRING_CHARS
+	public const int MAX_STRING_CHARS = 1024;   // max length of a string passed to Cmd_TokenizeString
+	public const int MAX_STRING_TOKENS = 1024;   // max tokens resulting from Cmd_TokenizeString
+	public const int MAX_TOKEN_CHARS = 1024;// max length of an individual token
+
+	public const int MAX_INFO_STRING = 1024;
+	public const int MAX_INFO_KEY = 1024;
+	public const int MAX_INFO_VALUE = 1024;
+
+	public const int BIG_INFO_STRING = 8192; // used for system info key only
+	public const int BIG_INFO_KEY = 8192;
+	public const int BIG_INFO_VALUE = 8192;
+
+
+	public const int MAX_QPATH =		64; // max length of a quake game pathname
+#if PATH_MAX
+	public const int MAX_OSPATH	 =		PATH_MAX;
+#else
+	public const int MAX_OSPATH = 256;     // max length of a filesystem pathname
+	#endif
+
+	public const int MAX_NAME_LENGTH = 32;      // max length of a client name
+
+	public const int MAX_SAY_TEXT = 150;
+
+	// paramters for command buffer stuffing
+	public enum cbufExec_t
+	{
+		EXEC_NOW,           // don't return until completed, a VM should NEVER use this,
+							// because some commands might cause the VM to be unloaded...
+		EXEC_INSERT,        // insert at current position, but don't run yet
+		EXEC_APPEND         // add to end of the command buffer (normal case)
 	}
-	if ( value > max ) {
-		return max;
+
+	//
+	// these aren't needed by any of the VMs.  put in another header?
+	//
+	public const int MAX_MAP_AREA_BYTES = 32;	// bit vector of area visibility
+
+	// print levels from renderer (FIXME: set up for game / cgame?)
+	public enum printParm_t 
+	{
+		PRINT_ALL,
+		PRINT_DEVELOPER,        // only print when "developer 1"
+		PRINT_WARNING,
+		PRINT_ERROR
 	}
-	return value;
-}
+
+	// parameters to the main Error routine
+	public enum errorParm_t
+	{
+		ERR_FATAL,                  // exit the entire game with a popup window
+		ERR_DROP,                   // print to console and disconnect from game
+		ERR_SERVERDISCONNECT,       // don't kill server
+		ERR_DISCONNECT,             // client disconnected from the server
+		ERR_NEED_CD                 // pop up the need-cd dialog
+	}
 
 
-/*
-============
-COM_SkipPath
-============
-*/
-char *COM_SkipPath (char *pathname)
-{
-	char	*last;
+	// font rendering values used by ui and cgame
+
+	public const int PROP_GAP_WIDTH	= 3;
+	public const int PROP_SPACE_WIDTH = 8;
+	public const int PROP_HEIGHT = 27;
+	public const double PROP_SMALL_SIZE_SCALE = 0.75;
+
+	public const int BLINK_DIVISOR = 200;
+	public const int PULSE_DIVISOR = 75;
+
+	public const int UI_LEFT = 0x00000000; // default
+	public const int UI_CENTER = 0x00000001;
+	public const int UI_RIGHT = 0x00000002;
+	public const int UI_FORMATMASK = 0x00000007;
+	public const int UI_SMALLFONT = 0x00000010;
+	public const int UI_BIGFONT = 0x00000020; // default
+	public const int UI_GIANTFONT = 0x00000040;
+	public const int UI_DROPSHADOW = 0x00000800;
+	public const int UI_BLINK = 0x00001000;
+	public const int UI_INVERSE = 0x00002000;
+	public const int UI_PULSE = 0x00004000;
+
+	public enum ha_pref
+	{
+		h_high,
+		h_low,
+		h_dontcare
+	}
+
+	#if HUNK_DEBUG
+	#define Hunk_Alloc( size, preference )				Hunk_AllocDebug(size, preference, #size, __FILE__, __LINE__)
+	void* Hunk_AllocDebug( int size, ha_pref preference, char* label, char* file, int line );
+	#else
+	void* Hunk_Alloc( int size, ha_pref preference );
+	#endif
+
+	#define Snd_Memset Com_Memset
+
+	#if !( defined __VECTORC )
+	void Com_Memset( void* dest, const int val, const size_t count );
+	void Com_Memcpy( void* dest, const void* src, const size_t count );
+	#else
+	#define Com_Memset memset
+	#define Com_Memcpy memcpy
+	#endif
+
+	public const int CIN_system = 1;
+	public const int CIN_loop = 2;
+	public const int CIN_hold = 4;
+	public const int CIN_silent = 8;
+	public const int CIN_shader = 16;
+
+	/*
+	==============================================================
+
+	MATHLIB
+
+	==============================================================
+	*/
+
+
+	typedef float vec_t;
+	typedef vec_t vec2_t[2];
+	typedef vec_t vec3_t[3];
+	typedef vec_t vec4_t[4];
+	typedef vec_t vec5_t[5];
+
+	typedef int fixed4_t;
+	typedef int fixed8_t;
+	typedef int fixed16_t;
+
+	#ifndef M_PI
+	#define M_PI		3.14159265358979323846f	// matches value in gcc v2 math.h
+	#endif
+
+	#define NUMVERTEXNORMALS	162
+	extern vec3_t bytedirs[NUMVERTEXNORMALS];
+
+	// all drawing is done to a 640*480 virtual screen size
+	// and will be automatically scaled to the real resolution
+	public const int SCREEN_WIDTH = 640;
+	public const int SCREEN_HEIGHT = 480;
+
+	public const int TINYCHAR_WIDTH = ( SMALLCHAR_WIDTH);
+	public const int TINYCHAR_HEIGHT = ( SMALLCHAR_HEIGHT / 2 );
+
+	public const int SMALLCHAR_WIDTH = 8;
+	public const int SMALLCHAR_HEIGHT = 16;
+
+	public const int BIGCHAR_WIDTH = 16;
+	public const int BIGCHAR_HEIGHT = 16;
+
+	public const int GIANTCHAR_WIDTH = 32;
+	public const int GIANTCHAR_HEIGHT = 48;
+
+	extern vec4_t colorBlack;
+	extern vec4_t colorRed;
+	extern vec4_t colorGreen;
+	extern vec4_t colorBlue;
+	extern vec4_t colorYellow;
+	extern vec4_t colorMagenta;
+	extern vec4_t colorCyan;
+	extern vec4_t colorWhite;
+	extern vec4_t colorLtGrey;
+	extern vec4_t colorMdGrey;
+	extern vec4_t colorDkGrey;
+
+	#define Q_COLOR_ESCAPE	'^'
+	#define Q_IsColorString(p)	( p && *(p) == Q_COLOR_ESCAPE && *((p)+1) && *((p)+1) != Q_COLOR_ESCAPE )
+
+	#define COLOR_BLACK		'0'
+	#define COLOR_RED		'1'
+	#define COLOR_GREEN		'2'
+	#define COLOR_YELLOW	'3'
+	#define COLOR_BLUE		'4'
+	#define COLOR_CYAN		'5'
+	#define COLOR_MAGENTA	'6'
+	#define COLOR_WHITE		'7'
+	#define ColorIndex(c)	( ( (c) - '0' ) & 7 )
+
+	#define S_COLOR_BLACK	"^0"
+	#define S_COLOR_RED		"^1"
+	#define S_COLOR_GREEN	"^2"
+	#define S_COLOR_YELLOW	"^3"
+	#define S_COLOR_BLUE	"^4"
+	#define S_COLOR_CYAN	"^5"
+	#define S_COLOR_MAGENTA	"^6"
+	#define S_COLOR_WHITE	"^7"
+
+	extern vec4_t g_color_table[8];
+
+	#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
+	#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
+
+	#define DEG2RAD( a ) ( ( (a) * M_PI ) / 180.0F )
+	#define RAD2DEG( a ) ( ( (a) * 180.0f ) / M_PI )
+
+	struct cplane_s;
+
+	extern vec3_t vec3_origin;
+	extern vec3_t axisDefault[3];
+
+	#define nanmask (255<<23)
+
+	#define IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
+
+	#if idppc
+
+	static inline float Q_rsqrt( float number )
+	{
+		float x = 0.5f * number;
+		float y;
+	# ifdef __GNUC__            
+		asm( "frsqrte %0,%1" : "=f"( y ) : "f"( number ));
+	#else
+			y = __frsqrte( number );
+	#endif
+	return y * ( 1.5f - ( x * y * y ) );
+		}
+
+	#ifdef __GNUC__            
+	static inline float Q_fabs( float x )
+	{
+		float abs_x;
+
+		asm( "fabs %0,%1" : "=f"( abs_x ) : "f"( x ));
+	return abs_x;
+	}
+	#else
+	#define Q_fabs __fabsf
+	#endif
+
+	#else
+	float Q_fabs( float f );
+	float Q_rsqrt( float f );       // reciprocal square root
+	#endif
+
+	#define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
+
+	signed char ClampChar( int i );
+	signed short ClampShort( int i );
+
+	// this isn't a real cheap function to call!
+	int DirToByte( vec3_t dir );
+	void ByteToDir( int b, vec3_t dir );
+
+	#if 1
+
+	#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
+	#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
+	#define VectorAdd(a,b,c)		((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
+	#define VectorCopy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
+	#define VectorScale(v, s, o)	((o)[0]=(v)[0]*(s),(o)[1]=(v)[1]*(s),(o)[2]=(v)[2]*(s))
+	#define VectorMA(v, s, b, o)	((o)[0]=(v)[0]+(b)[0]*(s),(o)[1]=(v)[1]+(b)[1]*(s),(o)[2]=(v)[2]+(b)[2]*(s))
+
+	#else
+
+	#define DotProduct(x,y)			_DotProduct(x,y)
+	#define VectorSubtract(a,b,c)	_VectorSubtract(a,b,c)
+	#define VectorAdd(a,b,c)		_VectorAdd(a,b,c)
+	#define VectorCopy(a,b)			_VectorCopy(a,b)
+	#define VectorScale(v, s, o)	_VectorScale(v,s,o)
+	#define VectorMA(v, s, b, o)	_VectorMA(v,s,b,o)
+
+	#endif
+
+	# ifdef __LCC__
+	# ifdef VectorCopy
+	#undef VectorCopy
+	// this is a little hack to get more efficient copies in our interpreter
+	typedef struct {
+		float v[3];
+	} vec3struct_t;
+	#define VectorCopy(a,b)	(*(vec3struct_t *)b=*(vec3struct_t *)a)
+	#define ID_INLINE static
+	#endif
+	#endif
+
+	#define VectorClear(a)			((a)[0]=(a)[1]=(a)[2]=0)
+	#define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
+	#define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
+	#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
+
+	#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
+	// just in case you do't want to use the macros
+	vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
+	void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
+	void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
+	void _VectorCopy( const vec3_t in, vec3_t out );
+	void _VectorScale( const vec3_t in, float scale, vec3_t out );
+	void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc );
+
+	unsigned ColorBytes3( float r, float g, float b );
+	unsigned ColorBytes4( float r, float g, float b, float a );
+
+	float NormalizeColor( const vec3_t in, vec3_t out );
+
+	float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
+	void ClearBounds( vec3_t mins, vec3_t maxs );
+	void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
+
+	#ifndef __LCC__
+	static int VectorCompare( const vec3_t v1, const vec3_t v2 )
+	{
+		if ( v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2] )
+		{
+			return 0;
+		}
+		return 1;
+	}
+
+	static vec_t VectorLength( const vec3_t v ) {
+		return ( vec_t ) sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+	}
+
+	static vec_t VectorLengthSquared( const vec3_t v ) {
+		return ( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+	}
+
+	static vec_t Distance( const vec3_t p1, const vec3_t p2 ) {
+		vec3_t v;
+
+		VectorSubtract( p2, p1, v );
+		return VectorLength( v );
+	}
+
+	static vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 ) {
+		vec3_t v;
+
+		VectorSubtract( p2, p1, v );
+		return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	}
+
+	// fast vector normalize routine that does not check to make sure
+	// that length != 0, nor does it return length, uses rsqrt approximation
+	static void VectorNormalizeFast( vec3_t v )
+	{
+		float ilength;
+
+		ilength = Q_rsqrt( DotProduct( v, v ) );
+
+		v[0] *= ilength;
+		v[1] *= ilength;
+		v[2] *= ilength;
+	}
+
+	static void VectorInverse( vec3_t v )
+	{
+		v[0] = -v[0];
+		v[1] = -v[1];
+		v[2] = -v[2];
+	}
+
+	static void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
+	{
+		cross[0] = v1[1] * v2[2] - v1[2] * v2[1];
+		cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
+		cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
+	}
+
+	#else
+	int VectorCompare( const vec3_t v1, const vec3_t v2 );
+
+	vec_t VectorLength( const vec3_t v );
+
+	vec_t VectorLengthSquared( const vec3_t v );
+
+	vec_t Distance( const vec3_t p1, const vec3_t p2 );
+
+	vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
+
+	void VectorNormalizeFast( vec3_t v );
+
+	void VectorInverse( vec3_t v );
+
+	void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
+
+	#endif
+
+	vec_t VectorNormalize( vec3_t v );      // returns vector length
+	vec_t VectorNormalize2( const vec3_t v, vec3_t out );
+	void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out );
+	void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
+	int Q_log2( int val );
+
+	float Q_acos( float c );
+
+	int Q_rand( int* seed );
+	float Q_random( int* seed );
+	float Q_crandom( int* seed );
+
+	#define random()	((rand () & 0x7fff) / ((float)0x7fff))
+	#define crandom()	(2.0 * (random() - 0.5))
+
+	void vectoangles( const vec3_t value1, vec3_t angles );
+	void AnglesToAxis( const vec3_t angles, vec3_t axis[3] );
+
+	void AxisClear( vec3_t axis[3] );
+	void AxisCopy( vec3_t in[3], vec3_t out[3] );
+
+	void SetPlaneSignbits( struct cplane_s *out );
+	int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *plane);
+
+	float AngleMod( float a );
+	float LerpAngle( float from, float to, float frac );
+	float AngleSubtract( float a1, float a2 );
+	void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
+
+	float AngleNormalize360( float angle );
+	float AngleNormalize180( float angle );
+	float AngleDelta( float angle1, float angle2 );
+
+	qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
+	void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
+	void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
+	void RotateAroundDirection( vec3_t axis[3], float yaw );
+	void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
+	// perpendicular vector could be replaced by this
+
+	//int	PlaneTypeForNormal (vec3_t normal);
+
+	void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3]);
+	void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
+	void PerpendicularVector( vec3_t dst, const vec3_t src );
+
+
+	//=============================================
+
+	float Com_Clamp( float min, float max, float value );
+
+	char* COM_SkipPath( char* pathname );
+	void COM_StripExtension( const char*in, char*out );
+	void COM_DefaultExtension( char* path, int maxSize, const char* extension );
+
+	void COM_BeginParseSession( const char* name );
+	int COM_GetCurrentParseLine( void );
+	char* COM_Parse( char** data_p );
+	char* COM_ParseExt( char** data_p, qboolean allowLineBreak );
+	int COM_Compress( char* data_p );
+	void COM_ParseError( char* format, ... );
+	void COM_ParseWarning( char* format, ... );
+	//int		COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
+
+	#define MAX_TOKENLENGTH		1024
+
+	# ifndef TT_STRING
+	//token types
+	#define TT_STRING					1			// string
+	#define TT_LITERAL					2			// literal
+	#define TT_NUMBER					3			// number
+	#define TT_NAME						4			// name
+	#define TT_PUNCTUATION				5			// punctuation
+	#endif
+
+	typedef struct pc_token_s
+	{
+		int type;
+		int subtype;
+		int intvalue;
+		float floatvalue;
+		char string[MAX_TOKENLENGTH];
+	}
+	pc_token_t;
+
+	// data is an in/out parm, returns a parsed out token
+
+	void COM_MatchToken( char** buf_p, char* match );
+
+	void SkipBracedSection( char** program );
+	void SkipRestOfLine( char** data );
+
+	void Parse1DMatrix( char** buf_p, int x, float* m );
+	void Parse2DMatrix( char** buf_p, int y, int x, float* m );
+	void Parse3DMatrix( char** buf_p, int z, int y, int x, float* m );
+
+	void QDECL Com_sprintf (char *dest, int size, const char *fmt, ...);
+
+
+	// mode parm for FS_FOpenFile
+	typedef enum {
+		FS_READ,
+		FS_WRITE,
+		FS_APPEND,
+		FS_APPEND_SYNC
+	}
+	fsMode_t;
+
+	typedef enum {
+		FS_SEEK_CUR,
+		FS_SEEK_END,
+		FS_SEEK_SET
+	}
+	fsOrigin_t;
+
+	//=============================================
+
+	int Q_isprint( int c );
+	int Q_islower( int c );
+	int Q_isupper( int c );
+	int Q_isalpha( int c );
+
+	// portable case insensitive compare
+	int Q_stricmp(const char* s1, const char* s2 );
+	int Q_strncmp(const char* s1, const char* s2, int n );
+	int Q_stricmpn(const char* s1, const char* s2, int n );
+	char* Q_strlwr( char* s1 );
+	char* Q_strupr( char* s1 );
+	char* Q_strrchr( const char* string, int c );
+
+	// buffer size safe library replacements
+	void Q_strncpyz( char* dest, const char* src, int destsize );
+	void Q_strcat( char* dest, int size, const char* src );
+
+	// strlen that discounts Quake color sequences
+	int Q_PrintStrlen( const char*string );
+	// removes color sequences from string
+	char* Q_CleanStr( char*string );
+
+	//=============================================
+
+	// 64-bit integers for global rankings interface
+	// implemented as a struct for qvm compatibility
+	typedef struct
+	{
+		byte b0;
+	byte b1;
+	byte b2;
+	byte b3;
+	byte b4;
+	byte b5;
+	byte b6;
+	byte b7;
+	} qint64;
+
+	//=============================================
+	/*
+	short	BigShort(short l);
+	short	LittleShort(short l);
+	int		BigLong (int l);
+	int		LittleLong (int l);
+	qint64  BigLong64 (qint64 l);
+	qint64  LittleLong64 (qint64 l);
+	float	BigFloat (const float *l);
+	float	LittleFloat (const float *l);
+
+	void	Swap_Init (void);
+	*/
+	char* QDECL va(char *format, ...);
+
+	//=============================================
+
+	//
+	// key / value info strings
+	//
+	char* Info_ValueForKey( const char* s, const char* key );
+	void Info_RemoveKey( char* s, const char* key );
+	void Info_RemoveKey_big( char* s, const char* key );
+	void Info_SetValueForKey( char* s, const char* key, const char* value );
+	void Info_SetValueForKey_Big( char* s, const char* key, const char* value );
+	qboolean Info_Validate( const char* s );
+	void Info_NextPair( const char** s, char* key, char* value );
+
+	// this is only here so the functions in q_shared.c and bg_*.c can link
+	void QDECL Com_Error( int level, const char *error, ... );
+	void QDECL Com_Printf( const char *msg, ... );
+
+
+	/*
+	==========================================================
+
+	CVARS (console variables)
+
+	Many variables can be used for cheating purposes, so when
+	cheats is zero, force all unspecified variables to their
+	default values.
+	==========================================================
+	*/
+
+	#define CVAR_ARCHIVE		1	// set to cause it to be saved to vars.rc
+	// used for system variables, not for player
+	// specific configurations
+	#define CVAR_USERINFO		2	// sent to server on connect or change
+	#define CVAR_SERVERINFO		4	// sent in response to front end requests
+	#define CVAR_SYSTEMINFO		8	// these cvars will be duplicated on all clients
+	#define CVAR_INIT			16	// don't allow change from console at all,
+	// but can be set from the command line
+	#define CVAR_LATCH			32	// will only change when C code next does
+	// a Cvar_Get(), so it can't be changed
+	// without proper initialization.  modified
+	// will be set, even though the value hasn't
+	// changed yet
+	#define CVAR_ROM			64	// display only, cannot be set by user at all
+	#define CVAR_USER_CREATED	128	// created by a set command
+	#define CVAR_TEMP			256	// can be set even when cheats are disabled, but is not archived
+	#define CVAR_CHEAT			512	// can not be changed if cheats are disabled
+	#define CVAR_NORESTART		1024	// do not clear when a cvar_restart is issued
+
+	// nothing outside the Cvar_*() functions should modify these fields!
+	// Used more like a class
+	public class cvar_t
+	{
+		string name;
+		string @string;
+		string resetString;      // cvar_restart will reset to this value
+		string latchedString;        // for CVAR_LATCH vars
+		int flags;
+		bool modified;          // set each time the cvar is changed
+		int modificationCount;  // incremented each time the cvar is changed
+		float value;                // atof( string )
+		int integer;            // atoi( string )
+		cvar_t next;
+		cvar_t hashNext;
+	};
+
+	#define MAX_CVAR_VALUE_STRING	256
+
+	typedef int cvarHandle_t;
+
+	// the modules that run in the virtual machine can't access the cvar_t directly,
+	// so they must ask for structured updates
+	typedef struct {
+		cvarHandle_t handle;
+	int modificationCount;
+	float value;
+	int integer;
+	char string[MAX_CVAR_VALUE_STRING];
+	} vmCvar_t;
+
+	/*
+	==============================================================
+
+	COLLISION DETECTION
+
+	==============================================================
+	*/
+
+	# include "surfaceflags.h"			// shared with the q3map utility
+
+	// plane types are used to speed some tests
+	// 0-2 are axial planes
+	#define PLANE_X			0
+	#define PLANE_Y			1
+	#define PLANE_Z			2
+	#define PLANE_NON_AXIAL	3
+
+
+	/*
+	=================
+	PlaneTypeForNormal
+	=================
+	*/
+
+	#define PlaneTypeForNormal(x) (x[0] == 1.0 ? PLANE_X : (x[1] == 1.0 ? PLANE_Y : (x[2] == 1.0 ? PLANE_Z : PLANE_NON_AXIAL) ) )
+
+	// plane_t structure
+	// !!! if this is changed, it must be changed in asm code too !!!
+	typedef struct cplane_s
+	{
+		vec3_t normal;
+		float dist;
+		byte type;          // for fast side tests: 0,1,2 = axial, 3 = nonaxial
+		byte signbits;      // signx + (signy<<1) + (signz<<2), used as lookup during collision
+		byte pad[2];
+	}
+	cplane_t;
+
+
+	// a trace is returned when a box is swept through the world
+	typedef struct {
+		qboolean allsolid;  // if true, plane is not valid
+	qboolean startsolid;    // if true, the initial point was in a solid area
+	float fraction; // time completed, 1.0 = didn't hit anything
+	vec3_t endpos;      // final position
+	cplane_t plane;     // surface normal at impact, transformed to world space
+	int surfaceFlags;   // surface hit
+	int contents;   // contents on other side of surface hit
+	int entityNum;	// entity the contacted sirface is a part of
+	} trace_t;
+
+	// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
+	// or ENTITYNUM_NONE, ENTITYNUM_WORLD
+
+
+	// markfragments are returned by CM_MarkFragments()
+	typedef struct {
+		int firstPoint;
+	int numPoints;
+	} markFragment_t;
+
+
+
+	typedef struct {
+		vec3_t origin;
+	vec3_t axis[3];
+	} orientation_t;
+
+	//=====================================================================
+
+
+	// in order from highest priority to lowest
+	// if none of the catchers are active, bound key strings will be executed
+	#define KEYCATCH_CONSOLE		0x0001
+	#define KEYCATCH_UI					0x0002
+	#define KEYCATCH_MESSAGE		0x0004
+	#define KEYCATCH_CGAME			0x0008
+
+
+	// sound channels
+	// channel 0 never willingly overrides
+	// other channels will allways override a playing sound on that channel
+	typedef enum {
+		CHAN_AUTO,
+		CHAN_LOCAL,     // menu sounds, etc
+		CHAN_WEAPON,
+		CHAN_VOICE,
+		CHAN_ITEM,
+		CHAN_BODY,
+		CHAN_LOCAL_SOUND,   // chat messages, etc
+		CHAN_ANNOUNCER      // announcer voices, etc
+	}
+	soundChannel_t;
+
+
+	/*
+	========================================================================
+
+	  ELEMENTS COMMUNICATED ACROSS THE NET
+
+	========================================================================
+	*/
+
+	#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
+	#define SHORT2ANGLE(x)	((x)*(360.0/65536))
+
+	#define SNAPFLAG_RATE_DELAYED	1
+	#define SNAPFLAG_NOT_ACTIVE		2	// snapshot used during connection and for zombies
+	#define SNAPFLAG_SERVERCOUNT	4	// toggled every map_restart so transitions can be detected
+
+	//
+	// per-level limits
+	//
+	#define MAX_CLIENTS			64		// absolute limit
+	#define MAX_LOCATIONS		64
+
+	#define GENTITYNUM_BITS		10		// don't need to send any more
+	#define MAX_GENTITIES		(1<<GENTITYNUM_BITS)
+
+	// entitynums are communicated with GENTITY_BITS, so any reserved
+	// values that are going to be communcated over the net need to
+	// also be in this range
+	#define ENTITYNUM_NONE		(MAX_GENTITIES-1)
+	#define ENTITYNUM_WORLD		(MAX_GENTITIES-2)
+	#define ENTITYNUM_MAX_NORMAL	(MAX_GENTITIES-2)
+
+
+	#define MAX_MODELS			256		// these are sent over the net as 8 bits
+	#define MAX_SOUNDS			256		// so they cannot be blindly increased
+
+
+	#define MAX_CONFIGSTRINGS	1024
+
+	// these are the only configstrings that the system reserves, all the
+	// other ones are strictly for servergame to clientgame communication
+	#define CS_SERVERINFO		0		// an info string with all the serverinfo cvars
+	#define CS_SYSTEMINFO		1		// an info string for server system to client system configuration (timescale, etc)
+
+	#define RESERVED_CONFIGSTRINGS	2	// game can't modify below this, only the system can
+
+	#define MAX_GAMESTATE_CHARS	16000
+	typedef struct {
+		int stringOffsets[MAX_CONFIGSTRINGS];
+	char stringData[MAX_GAMESTATE_CHARS];
+	int dataCount;
+	} gameState_t;
+
+	//=========================================================
+
+	// bit field limits
+	#define MAX_STATS				16
+	#define MAX_PERSISTANT			16
+	#define MAX_POWERUPS			16
+	#define MAX_WEAPONS				16		
+
+	#define MAX_PS_EVENTS			2
+
+	#define PS_PMOVEFRAMECOUNTBITS	6
+
+	// playerState_t is the information needed by both the client and server
+	// to predict player motion and actions
+	// nothing outside of pmove should modify these, or some degree of prediction error
+	// will occur
+
+	// you can't add anything to this without modifying the code in msg.c
+
+	// playerState_t is a full superset of entityState_t as it is used by players,
+	// so if a playerState_t is transmitted, the entityState_t can be fully derived
+	// from it.
+	typedef struct playerState_s
+	{
+		int commandTime;    // cmd->serverTime of last executed command
+		int pm_type;
+		int bobCycle;       // for view bobbing and footstep generation
+		int pm_flags;       // ducked, jump_held, etc
+		int pm_time;
+
+		vec3_t origin;
+		vec3_t velocity;
+		int weaponTime;
+		int gravity;
+		int speed;
+		int delta_angles[3];    // add to command angles to get view direction
+								// changed by spawns, rotating objects, and teleporters
+
+		int groundEntityNum;// ENTITYNUM_NONE = in air
+
+		int legsTimer;      // don't change low priority animations until this runs out
+		int legsAnim;       // mask off ANIM_TOGGLEBIT
+
+		int torsoTimer;     // don't change low priority animations until this runs out
+		int torsoAnim;      // mask off ANIM_TOGGLEBIT
+
+		int movementDir;    // a number 0 to 7 that represents the reletive angle
+							// of movement to the view angle (axial and diagonals)
+							// when at rest, the value will remain unchanged
+							// used to twist the legs during strafing
+
+		vec3_t grapplePoint;    // location of grapple to pull towards if PMF_GRAPPLE_PULL
+
+		int eFlags;         // copied to entityState_t->eFlags
+
+		int eventSequence;  // pmove generated events
+		int events[MAX_PS_EVENTS];
+		int eventParms[MAX_PS_EVENTS];
+
+		int externalEvent;  // events set on player from another source
+		int externalEventParm;
+		int externalEventTime;
+
+		int clientNum;      // ranges from 0 to MAX_CLIENTS-1
+		int weapon;         // copied to entityState_t->weapon
+		int weaponstate;
+
+		vec3_t viewangles;      // for fixed views
+		int viewheight;
+
+		// damage feedback
+		int damageEvent;    // when it changes, latch the other parms
+		int damageYaw;
+		int damagePitch;
+		int damageCount;
+
+		int stats[MAX_STATS];
+		int persistant[MAX_PERSISTANT]; // stats that aren't cleared on death
+		int powerups[MAX_POWERUPS]; // level.time that the powerup runs out
+		int ammo[MAX_WEAPONS];
+
+		int generic1;
+		int loopSound;
+		int jumppad_ent;    // jumppad entity hit this frame
+
+		// not communicated over the net at all
+		int ping;           // server to game info for scoreboard
+		int pmove_framecount;   // FIXME: don't transmit over the network
+		int jumppad_frame;
+		int entityEventSequence;
+	}
+	playerState_t;
+
+
+	//====================================================================
+
+
+	//
+	// usercmd_t->button bits, many of which are generated by the client system,
+	// so they aren't game/cgame only definitions
+	//
+	#define BUTTON_ATTACK		1
+	#define BUTTON_TALK			2			// displays talk balloon and disables actions
+	#define BUTTON_USE_HOLDABLE	4
+	#define BUTTON_GESTURE		8
+	#define BUTTON_WALKING		16			// walking can't just be infered from MOVE_RUN
+	// because a key pressed late in the frame will
+	// only generate a small move value for that frame
+	// walking will use different animations and
+	// won't generate footsteps
+	#define BUTTON_AFFIRMATIVE	32
+	#define BUTTON_NEGATIVE		64
+
+	#define BUTTON_GETFLAG		128
+	#define BUTTON_GUARDBASE	256
+	#define BUTTON_PATROL		512
+	#define BUTTON_FOLLOWME		1024
+
+	#define BUTTON_ANY			2048			// any key whatsoever
+
+	#define MOVE_RUN			120			// if forwardmove or rightmove are >= MOVE_RUN,
+	// then BUTTON_WALKING should be set
+
+	// usercmd_t is sent to the server each client frame
+	typedef struct usercmd_s
+	{
+		int serverTime;
+		int angles[3];
+		int buttons;
+		byte weapon;           // weapon 
+		signed char forwardmove, rightmove, upmove;
+	}
+	usercmd_t;
+
+	//===================================================================
+
+	// if entityState->solid == SOLID_BMODEL, modelindex is an inline model number
+	#define SOLID_BMODEL	0xffffff
+
+	typedef enum {
+		TR_STATIONARY,
+		TR_INTERPOLATE,             // non-parametric, but interpolate between snapshots
+		TR_LINEAR,
+		TR_LINEAR_STOP,
+		TR_SINE,                    // value = base + sin( time / duration ) * delta
+		TR_GRAVITY
+	}
+	trType_t;
+
+	typedef struct {
+		trType_t trType;
+	int trTime;
+	int trDuration;         // if non 0, trTime + trDuration = stop time
+	vec3_t trBase;
+	vec3_t trDelta;			// velocity, etc
+	} trajectory_t;
+
+	// entityState_t is the information conveyed from the server
+	// in an update message about entities that the client will
+	// need to render in some way
+	// Different eTypes may use the information in different ways
+	// The messages are delta compressed, so it doesn't really matter if
+	// the structure size is fairly large
+
+	typedef struct entityState_s
+	{
+		int number;         // entity index
+		int eType;          // entityType_t
+		int eFlags;
+
+		trajectory_t pos;   // for calculating position
+		trajectory_t apos;  // for calculating angles
+
+		int time;
+		int time2;
+
+		vec3_t origin;
+		vec3_t origin2;
+
+		vec3_t angles;
+		vec3_t angles2;
+
+		int otherEntityNum; // shotgun sources, etc
+		int otherEntityNum2;
+
+		int groundEntityNum;    // -1 = in air
+
+		int constantLight;  // r + (g<<8) + (b<<16) + (intensity<<24)
+		int loopSound;      // constantly loop this sound
+
+		int modelindex;
+		int modelindex2;
+		int clientNum;      // 0 to (MAX_CLIENTS - 1), for players and corpses
+		int frame;
+
+		int solid;          // for client side prediction, trap_linkentity sets this properly
+
+		int event;          // impulse events -- muzzle flashes, footsteps, etc
+		int eventParm;
+
+		// for players
+		int powerups;       // bit flags
+		int weapon;         // determines weapon and flash model, etc
+		int legsAnim;       // mask off ANIM_TOGGLEBIT
+		int torsoAnim;      // mask off ANIM_TOGGLEBIT
+
+		int generic1;
+	}
+	entityState_t;
+
+	typedef enum {
+		CA_UNINITIALIZED,
+		CA_DISCONNECTED,    // not talking to a server
+		CA_AUTHORIZING,     // not used any more, was checking cd key 
+		CA_CONNECTING,      // sending request packets to the server
+		CA_CHALLENGING,     // sending challenge packets to the server
+		CA_CONNECTED,       // netchan_t established, getting gamestate
+		CA_LOADING,         // only during cgame initialization, never during main loop
+		CA_PRIMED,          // got gamestate, waiting for first frame
+		CA_ACTIVE,          // game views should be displayed
+		CA_CINEMATIC        // playing a cinematic or a static pic, not connected to a server
+	}
+	connstate_t;
+
+	// font support 
+
+	#define GLYPH_START 0
+	#define GLYPH_END 255
+	#define GLYPH_CHARSTART 32
+	#define GLYPH_CHAREND 127
+	#define GLYPHS_PER_FONT GLYPH_END - GLYPH_START + 1
+	typedef struct {
+	  int height;       // number of scan lines
+	int top;          // top of glyph in buffer
+	int bottom;       // bottom of glyph in buffer
+	int pitch;        // width for copying
+	int xSkip;        // x adjustment
+	int imageWidth;   // width of actual image
+	int imageHeight;  // height of actual image
+	float s;          // x offset in image where glyph starts
+	float t;          // y offset in image where glyph starts
+	float s2;
+	float t2;
+	qhandle_t glyph;  // handle to the shader with the glyph
+	char shaderName[32];
+	} glyphInfo_t;
+
+	typedef struct {
+	  glyphInfo_t glyphs[GLYPHS_PER_FONT];
+	float glyphScale;
+	char name[MAX_QPATH];
+	} fontInfo_t;
+
+	#define Square(x) ((x)*(x))
+
+	// real time
+	//=============================================
+
+
+	typedef struct qtime_s
+	{
+		int tm_sec;     /* seconds after the minute - [0,59] */
+		int tm_min;     /* minutes after the hour - [0,59] */
+		int tm_hour;    /* hours since midnight - [0,23] */
+		int tm_mday;    /* day of the month - [1,31] */
+		int tm_mon;     /* months since January - [0,11] */
+		int tm_year;    /* years since 1900 */
+		int tm_wday;    /* days since Sunday - [0,6] */
+		int tm_yday;    /* days since January 1 - [0,365] */
+		int tm_isdst;   /* daylight savings time flag */
+	}
+	qtime_t;
+
+
+	// server browser sources
+	// TTimo: AS_MPLAYER is no longer used
+	#define AS_LOCAL			0
+	#define AS_MPLAYER		1
+	#define AS_GLOBAL			2
+	#define AS_FAVORITES	3
+
+
+	// cinematic states
+	typedef enum {
+		FMV_IDLE,
+		FMV_PLAY,       // play
+		FMV_EOF,        // all other conditions, i.e. stop/EOF/abort
+		FMV_ID_BLT,
+		FMV_ID_IDLE,
+		FMV_LOOPED,
+		FMV_ID_WAIT
+	}
+	e_status;
+
+	typedef enum _flag_status
+	{
+		FLAG_ATBASE = 0,
+		FLAG_TAKEN,         // CTF
+		FLAG_TAKEN_RED,     // One Flag CTF
+		FLAG_TAKEN_BLUE,    // One Flag CTF
+		FLAG_DROPPED
+	}
+	flagStatus_t;
+
+
+
+	#define MAX_GLOBAL_SERVERS				4096
+	#define MAX_OTHER_SERVERS					128
+	#define MAX_PINGREQUESTS					32
+	#define MAX_SERVERSTATUSREQUESTS	16
+
+	#define SAY_ALL		0
+	#define SAY_TEAM	1
+	#define SAY_TELL	2
+
+	#define CDKEY_LEN 16
+	#define CDCHKSUM_LEN 2
+
+	float Com_Clamp( float min, float max, float value ) {
+		if ( value < min ) {
+			return min;
+		}
+		if ( value > max ) {
+			return max;
+		}
+		return value;
+	}
+
+
+	/*
+	============
+	COM_SkipPath
+	============
+	*/
+	char *COM_SkipPath (char *pathname)
+	{
+		char	*last;
 	
-	last = pathname;
-	while (*pathname)
-	{
-		if (*pathname=='/')
-			last = pathname+1;
-		pathname++;
-	}
-	return last;
-}
-
-/*
-============
-COM_StripExtension
-============
-*/
-void COM_StripExtension( const char *in, char *out ) {
-	while ( *in && *in != '.' ) {
-		*out++ = *in++;
-	}
-	*out = 0;
-}
-
-
-/*
-==================
-COM_DefaultExtension
-==================
-*/
-void COM_DefaultExtension (char *path, int maxSize, const char *extension ) {
-	char	oldPath[MAX_QPATH];
-	char    *src;
-
-//
-// if path doesn't have a .EXT, append extension
-// (extension should include the .)
-//
-	src = path + (int)strlen(path) - 1;
-
-	while (*src != '/' && src != path) {
-		if ( *src == '.' ) {
-			return;                 // it has an extension
+		last = pathname;
+		while (*pathname)
+		{
+			if (*pathname=='/')
+				last = pathname+1;
+			pathname++;
 		}
-		src--;
+		return last;
 	}
 
-	Q_strncpyz( oldPath, path, sizeof( oldPath ) );
-	Com_sprintf( path, maxSize, "%s%s", oldPath, extension );
-}
-
-/*
-============================================================================
-
-					BYTE ORDER FUNCTIONS
-
-============================================================================
-*/
-/*
-// can't just use function pointers, or dll linkage can
-// mess up when qcommon is included in multiple places
-static short	(*_BigShort) (short l);
-static short	(*_LittleShort) (short l);
-static int		(*_BigLong) (int l);
-static int		(*_LittleLong) (int l);
-static qint64	(*_BigLong64) (qint64 l);
-static qint64	(*_LittleLong64) (qint64 l);
-static float	(*_BigFloat) (const float *l);
-static float	(*_LittleFloat) (const float *l);
-
-short	BigShort(short l){return _BigShort(l);}
-short	LittleShort(short l) {return _LittleShort(l);}
-int		BigLong (int l) {return _BigLong(l);}
-int		LittleLong (int l) {return _LittleLong(l);}
-qint64 	BigLong64 (qint64 l) {return _BigLong64(l);}
-qint64 	LittleLong64 (qint64 l) {return _LittleLong64(l);}
-float	BigFloat (const float *l) {return _BigFloat(l);}
-float	LittleFloat (const float *l) {return _LittleFloat(l);}
-*/
-
-short   ShortSwap (short l)
-{
-	byte    b1,b2;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-
-	return (b1<<8) + b2;
-}
-
-short	ShortNoSwap (short l)
-{
-	return l;
-}
-
-int    LongSwap (int l)
-{
-	byte    b1,b2,b3,b4;
-
-	b1 = l&255;
-	b2 = (l>>8)&255;
-	b3 = (l>>16)&255;
-	b4 = (l>>24)&255;
-
-	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
-}
-
-int	LongNoSwap (int l)
-{
-	return l;
-}
-
-qint64 Long64Swap (qint64 ll)
-{
-	qint64	result;
-
-	result.b0 = ll.b7;
-	result.b1 = ll.b6;
-	result.b2 = ll.b5;
-	result.b3 = ll.b4;
-	result.b4 = ll.b3;
-	result.b5 = ll.b2;
-	result.b6 = ll.b1;
-	result.b7 = ll.b0;
-
-	return result;
-}
-
-qint64 Long64NoSwap (qint64 ll)
-{
-	return ll;
-}
-
-typedef union {
-    float	f;
-    unsigned int i;
-} _FloatByteUnion;
-
-float FloatSwap (const float *f) {
-	const _FloatByteUnion *in;
-	_FloatByteUnion out;
-
-	in = (_FloatByteUnion *)f;
-	out.i = LongSwap(in->i);
-
-	return out.f;
-}
-
-float FloatNoSwap (const float *f)
-{
-	return *f;
-}
-
-/*
-================
-Swap_Init
-================
-*/
-/*
-void Swap_Init (void)
-{
-	byte	swaptest[2] = {1,0};
-
-// set the byte swapping variables in a portable manner	
-	if ( *(short *)swaptest == 1)
-	{
-		_BigShort = ShortSwap;
-		_LittleShort = ShortNoSwap;
-		_BigLong = LongSwap;
-		_LittleLong = LongNoSwap;
-		_BigLong64 = Long64Swap;
-		_LittleLong64 = Long64NoSwap;
-		_BigFloat = FloatSwap;
-		_LittleFloat = FloatNoSwap;
-	}
-	else
-	{
-		_BigShort = ShortNoSwap;
-		_LittleShort = ShortSwap;
-		_BigLong = LongNoSwap;
-		_LittleLong = LongSwap;
-		_BigLong64 = Long64NoSwap;
-		_LittleLong64 = Long64Swap;
-		_BigFloat = FloatNoSwap;
-		_LittleFloat = FloatSwap;
-	}
-
-}
-*/
-
-/*
-============================================================================
-
-PARSING
-
-============================================================================
-*/
-
-static	char	com_token[MAX_TOKEN_CHARS];
-static	char	com_parsename[MAX_TOKEN_CHARS];
-static	int		com_lines;
-
-void COM_BeginParseSession( const char *name )
-{
-	com_lines = 0;
-	Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
-}
-
-int COM_GetCurrentParseLine( void )
-{
-	return com_lines;
-}
-
-char *COM_Parse( char **data_p )
-{
-	return COM_ParseExt( data_p, qtrue );
-}
-
-void COM_ParseError( char *format, ... )
-{
-	va_list argptr;
-	static char string[4096];
-
-	va_start (argptr, format);
-	vsprintf (string, format, argptr);
-	va_end (argptr);
-
-	Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, string);
-}
-
-void COM_ParseWarning( char *format, ... )
-{
-	va_list argptr;
-	static char string[4096];
-
-	va_start (argptr, format);
-	vsprintf (string, format, argptr);
-	va_end (argptr);
-
-	Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, string);
-}
-
-/*
-==============
-COM_Parse
-
-Parse a token out of a string
-Will never return NULL, just empty strings
-
-If "allowLineBreaks" is qtrue then an empty
-string will be returned if the next token is
-a newline.
-==============
-*/
-static char *SkipWhitespace( char *data, qboolean *hasNewLines ) {
-	int c;
-
-	while( (c = *data) <= ' ') {
-		if( !c ) {
-			return NULL;
+	/*
+	============
+	COM_StripExtension
+	============
+	*/
+	void COM_StripExtension( const char *in, char *out ) {
+		while ( *in && *in != '.' ) {
+			*out++ = *in++;
 		}
-		if( c == '\n' ) {
-			com_lines++;
-			*hasNewLines = qtrue;
-		}
-		data++;
+		*out = 0;
 	}
 
-	return data;
-}
 
-int COM_Compress( char *data_p ) {
-	char *in, *out;
-	int c;
-	qboolean newline = qfalse, whitespace = qfalse;
+	/*
+	==================
+	COM_DefaultExtension
+	==================
+	*/
+	void COM_DefaultExtension (char *path, int maxSize, const char *extension ) {
+		char	oldPath[MAX_QPATH];
+		char    *src;
 
-	in = out = data_p;
-	if (in) {
-		while ((c = *in) != 0) {
-			// skip double slash comments
-			if ( c == '/' && in[1] == '/' ) {
-				while (*in && *in != '\n') {
-					in++;
-				}
-			// skip /* */ comments
-			} else if ( c == '/' && in[1] == '*' ) {
-				while ( *in && ( *in != '*' || in[1] != '/' ) ) 
-					in++;
-				if ( *in ) 
-					in += 2;
-                        // record when we hit a newline
-                        } else if ( c == '\n' || c == '\r' ) {
-                            newline = qtrue;
-                            in++;
-                        // record when we hit whitespace
-                        } else if ( c == ' ' || c == '\t') {
-                            whitespace = qtrue;
-                            in++;
-                        // an actual token
-			} else {
-                            // if we have a pending newline, emit it (and it counts as whitespace)
-                            if (newline) {
-                                *out++ = '\n';
-                                newline = qfalse;
-                                whitespace = qfalse;
-                            } if (whitespace) {
-                                *out++ = ' ';
-                                whitespace = qfalse;
-                            }
+	//
+	// if path doesn't have a .EXT, append extension
+	// (extension should include the .)
+	//
+		src = path + (int)strlen(path) - 1;
+
+		while (*src != '/' && src != path) {
+			if ( *src == '.' ) {
+				return;                 // it has an extension
+			}
+			src--;
+		}
+
+		Q_strncpyz( oldPath, path, sizeof( oldPath ) );
+		Com_sprintf( path, maxSize, "%s%s", oldPath, extension );
+	}
+
+	/*
+	============================================================================
+
+						BYTE ORDER FUNCTIONS
+
+	============================================================================
+	*/
+	/*
+	// can't just use function pointers, or dll linkage can
+	// mess up when qcommon is included in multiple places
+	static short	(*_BigShort) (short l);
+	static short	(*_LittleShort) (short l);
+	static int		(*_BigLong) (int l);
+	static int		(*_LittleLong) (int l);
+	static qint64	(*_BigLong64) (qint64 l);
+	static qint64	(*_LittleLong64) (qint64 l);
+	static float	(*_BigFloat) (const float *l);
+	static float	(*_LittleFloat) (const float *l);
+
+	short	BigShort(short l){return _BigShort(l);}
+	short	LittleShort(short l) {return _LittleShort(l);}
+	int		BigLong (int l) {return _BigLong(l);}
+	int		LittleLong (int l) {return _LittleLong(l);}
+	qint64 	BigLong64 (qint64 l) {return _BigLong64(l);}
+	qint64 	LittleLong64 (qint64 l) {return _LittleLong64(l);}
+	float	BigFloat (const float *l) {return _BigFloat(l);}
+	float	LittleFloat (const float *l) {return _LittleFloat(l);}
+	*/
+
+	short   ShortSwap (short l)
+	{
+		byte    b1,b2;
+
+		b1 = l&255;
+		b2 = (l>>8)&255;
+
+		return (b1<<8) + b2;
+	}
+
+	short	ShortNoSwap (short l)
+	{
+		return l;
+	}
+
+	int    LongSwap (int l)
+	{
+		byte    b1,b2,b3,b4;
+
+		b1 = l&255;
+		b2 = (l>>8)&255;
+		b3 = (l>>16)&255;
+		b4 = (l>>24)&255;
+
+		return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
+	}
+
+	int	LongNoSwap (int l)
+	{
+		return l;
+	}
+
+	qint64 Long64Swap (qint64 ll)
+	{
+		qint64	result;
+
+		result.b0 = ll.b7;
+		result.b1 = ll.b6;
+		result.b2 = ll.b5;
+		result.b3 = ll.b4;
+		result.b4 = ll.b3;
+		result.b5 = ll.b2;
+		result.b6 = ll.b1;
+		result.b7 = ll.b0;
+
+		return result;
+	}
+
+	qint64 Long64NoSwap (qint64 ll)
+	{
+		return ll;
+	}
+
+	typedef union {
+		float	f;
+		unsigned int i;
+	} _FloatByteUnion;
+
+	float FloatSwap (const float *f) {
+		const _FloatByteUnion *in;
+		_FloatByteUnion out;
+
+		in = (_FloatByteUnion *)f;
+		out.i = LongSwap(in->i);
+
+		return out.f;
+	}
+
+	float FloatNoSwap (const float *f)
+	{
+		return *f;
+	}
+
+	/*
+	================
+	Swap_Init
+	================
+	*/
+	/*
+	void Swap_Init (void)
+	{
+		byte	swaptest[2] = {1,0};
+
+	// set the byte swapping variables in a portable manner	
+		if ( *(short *)swaptest == 1)
+		{
+			_BigShort = ShortSwap;
+			_LittleShort = ShortNoSwap;
+			_BigLong = LongSwap;
+			_LittleLong = LongNoSwap;
+			_BigLong64 = Long64Swap;
+			_LittleLong64 = Long64NoSwap;
+			_BigFloat = FloatSwap;
+			_LittleFloat = FloatNoSwap;
+		}
+		else
+		{
+			_BigShort = ShortNoSwap;
+			_LittleShort = ShortSwap;
+			_BigLong = LongNoSwap;
+			_LittleLong = LongSwap;
+			_BigLong64 = Long64NoSwap;
+			_LittleLong64 = Long64Swap;
+			_BigFloat = FloatNoSwap;
+			_LittleFloat = FloatSwap;
+		}
+
+	}
+	*/
+
+	/*
+	============================================================================
+
+	PARSING
+
+	============================================================================
+	*/
+
+	static	char	com_token[MAX_TOKEN_CHARS];
+	static	char	com_parsename[MAX_TOKEN_CHARS];
+	static	int		com_lines;
+
+	void COM_BeginParseSession( const char *name )
+	{
+		com_lines = 0;
+		Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
+	}
+
+	int COM_GetCurrentParseLine( void )
+	{
+		return com_lines;
+	}
+
+	char *COM_Parse( char **data_p )
+	{
+		return COM_ParseExt( data_p, qtrue );
+	}
+
+	void COM_ParseError( char *format, ... )
+	{
+		va_list argptr;
+		static char string[4096];
+
+		va_start (argptr, format);
+		vsprintf (string, format, argptr);
+		va_end (argptr);
+
+		Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, string);
+	}
+
+	void COM_ParseWarning( char *format, ... )
+	{
+		va_list argptr;
+		static char string[4096];
+
+		va_start (argptr, format);
+		vsprintf (string, format, argptr);
+		va_end (argptr);
+
+		Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, string);
+	}
+
+	/*
+	==============
+	COM_Parse
+
+	Parse a token out of a string
+	Will never return NULL, just empty strings
+
+	If "allowLineBreaks" is qtrue then an empty
+	string will be returned if the next token is
+	a newline.
+	==============
+	*/
+	static char *SkipWhitespace( char *data, qboolean *hasNewLines ) {
+		int c;
+
+		while( (c = *data) <= ' ') {
+			if( !c ) {
+				return NULL;
+			}
+			if( c == '\n' ) {
+				com_lines++;
+				*hasNewLines = qtrue;
+			}
+			data++;
+		}
+
+		return data;
+	}
+
+	int COM_Compress( char *data_p ) {
+		char *in, *out;
+		int c;
+		qboolean newline = qfalse, whitespace = qfalse;
+
+		in = out = data_p;
+		if (in) {
+			while ((c = *in) != 0) {
+				// skip double slash comments
+				if ( c == '/' && in[1] == '/' ) {
+					while (*in && *in != '\n') {
+						in++;
+					}
+				// skip /* */ comments
+				} else if ( c == '/' && in[1] == '*' ) {
+					while ( *in && ( *in != '*' || in[1] != '/' ) ) 
+						in++;
+					if ( *in ) 
+						in += 2;
+							// record when we hit a newline
+							} else if ( c == '\n' || c == '\r' ) {
+								newline = qtrue;
+								in++;
+							// record when we hit whitespace
+							} else if ( c == ' ' || c == '\t') {
+								whitespace = qtrue;
+								in++;
+							// an actual token
+				} else {
+								// if we have a pending newline, emit it (and it counts as whitespace)
+								if (newline) {
+									*out++ = '\n';
+									newline = qfalse;
+									whitespace = qfalse;
+								} if (whitespace) {
+									*out++ = ' ';
+									whitespace = qfalse;
+								}
                             
-                            // copy quoted strings unmolested
-                            if (c == '"') {
-                                    *out++ = c;
-                                    in++;
-                                    while (1) {
-                                        c = *in;
-                                        if (c && c != '"') {
-                                            *out++ = c;
-                                            in++;
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                    if (c == '"') {
-                                        *out++ = c;
-                                        in++;
-                                    }
-                            } else {
-                                *out = c;
-                                out++;
-                                in++;
-                            }
+								// copy quoted strings unmolested
+								if (c == '"') {
+										*out++ = c;
+										in++;
+										while (1) {
+											c = *in;
+											if (c && c != '"') {
+												*out++ = c;
+												in++;
+											} else {
+												break;
+											}
+										}
+										if (c == '"') {
+											*out++ = c;
+											in++;
+										}
+								} else {
+									*out = c;
+									out++;
+									in++;
+								}
+				}
 			}
 		}
-	}
-	*out = 0;
-	return out - data_p;
-}
-
-char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
-{
-	int c = 0, len;
-	qboolean hasNewLines = qfalse;
-	char *data;
-
-	data = *data_p;
-	len = 0;
-	com_token[0] = 0;
-
-	// make sure incoming data is valid
-	if ( !data )
-	{
-		*data_p = NULL;
-		return com_token;
+		*out = 0;
+		return out - data_p;
 	}
 
-	while ( 1 )
+	char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
 	{
-		// skip whitespace
-		data = SkipWhitespace( data, &hasNewLines );
+		int c = 0, len;
+		qboolean hasNewLines = qfalse;
+		char *data;
+
+		data = *data_p;
+		len = 0;
+		com_token[0] = 0;
+
+		// make sure incoming data is valid
 		if ( !data )
 		{
 			*data_p = NULL;
 			return com_token;
 		}
-		if ( hasNewLines && !allowLineBreaks )
-		{
-			*data_p = data;
-			return com_token;
-		}
 
-		c = *data;
-
-		// skip double slash comments
-		if ( c == '/' && data[1] == '/' )
+		while ( 1 )
 		{
-			data += 2;
-			while (*data && *data != '\n') {
-				data++;
-			}
-		}
-		// skip /* */ comments
-		else if ( c=='/' && data[1] == '*' ) 
-		{
-			data += 2;
-			while ( *data && ( *data != '*' || data[1] != '/' ) ) 
+			// skip whitespace
+			data = SkipWhitespace( data, &hasNewLines );
+			if ( !data )
 			{
-				data++;
-			}
-			if ( *data ) 
-			{
-				data += 2;
-			}
-		}
-		else
-		{
-			break;
-		}
-	}
-
-	// handle quoted strings
-	if (c == '\"')
-	{
-		data++;
-		while (1)
-		{
-			c = *data++;
-			if (c=='\"' || !c)
-			{
-				com_token[len] = 0;
-				*data_p = ( char * ) data;
+				*data_p = NULL;
 				return com_token;
 			}
+			if ( hasNewLines && !allowLineBreaks )
+			{
+				*data_p = data;
+				return com_token;
+			}
+
+			c = *data;
+
+			// skip double slash comments
+			if ( c == '/' && data[1] == '/' )
+			{
+				data += 2;
+				while (*data && *data != '\n') {
+					data++;
+				}
+			}
+			// skip /* */ comments
+			else if ( c=='/' && data[1] == '*' ) 
+			{
+				data += 2;
+				while ( *data && ( *data != '*' || data[1] != '/' ) ) 
+				{
+					data++;
+				}
+				if ( *data ) 
+				{
+					data += 2;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		// handle quoted strings
+		if (c == '\"')
+		{
+			data++;
+			while (1)
+			{
+				c = *data++;
+				if (c=='\"' || !c)
+				{
+					com_token[len] = 0;
+					*data_p = ( char * ) data;
+					return com_token;
+				}
+				if (len < MAX_TOKEN_CHARS)
+				{
+					com_token[len] = c;
+					len++;
+				}
+			}
+		}
+
+		// parse a regular word
+		do
+		{
 			if (len < MAX_TOKEN_CHARS)
 			{
 				com_token[len] = c;
 				len++;
 			}
-		}
-	}
+			data++;
+			c = *data;
+			if ( c == '\n' )
+				com_lines++;
+		} while (c>32);
 
-	// parse a regular word
-	do
-	{
-		if (len < MAX_TOKEN_CHARS)
+		if (len == MAX_TOKEN_CHARS)
 		{
-			com_token[len] = c;
-			len++;
+	//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
+			len = 0;
 		}
-		data++;
-		c = *data;
-		if ( c == '\n' )
-			com_lines++;
-	} while (c>32);
+		com_token[len] = 0;
 
-	if (len == MAX_TOKEN_CHARS)
-	{
-//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
-		len = 0;
+		*data_p = ( char * ) data;
+		return com_token;
 	}
-	com_token[len] = 0;
-
-	*data_p = ( char * ) data;
-	return com_token;
-}
 
 
-#if 0
-// no longer used
-/*
-===============
-COM_ParseInfos
-===============
-*/
-int COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] ) {
-	char	*token;
-	int		count;
-	char	key[MAX_TOKEN_CHARS];
+	#if 0
+	// no longer used
+	/*
+	===============
+	COM_ParseInfos
+	===============
+	*/
+	int COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] ) {
+		char	*token;
+		int		count;
+		char	key[MAX_TOKEN_CHARS];
 
-	count = 0;
+		count = 0;
 
-	while ( 1 ) {
-		token = COM_Parse( &buf );
-		if ( !token[0] ) {
-			break;
-		}
-		if ( strcmp( token, "{" ) ) {
-			Com_Printf( "Missing { in info file\n" );
-			break;
-		}
-
-		if ( count == max ) {
-			Com_Printf( "Max infos exceeded\n" );
-			break;
-		}
-
-		infos[count][0] = 0;
 		while ( 1 ) {
-			token = COM_ParseExt( &buf, qtrue );
+			token = COM_Parse( &buf );
 			if ( !token[0] ) {
-				Com_Printf( "Unexpected end of info file\n" );
 				break;
 			}
-			if ( !strcmp( token, "}" ) ) {
+			if ( strcmp( token, "{" ) ) {
+				Com_Printf( "Missing { in info file\n" );
 				break;
 			}
-			Q_strncpyz( key, token, sizeof( key ) );
 
-			token = COM_ParseExt( &buf, qfalse );
-			if ( !token[0] ) {
-				strcpy( token, "<NULL>" );
+			if ( count == max ) {
+				Com_Printf( "Max infos exceeded\n" );
+				break;
 			}
-			Info_SetValueForKey( infos[count], key, token );
+
+			infos[count][0] = 0;
+			while ( 1 ) {
+				token = COM_ParseExt( &buf, qtrue );
+				if ( !token[0] ) {
+					Com_Printf( "Unexpected end of info file\n" );
+					break;
+				}
+				if ( !strcmp( token, "}" ) ) {
+					break;
+				}
+				Q_strncpyz( key, token, sizeof( key ) );
+
+				token = COM_ParseExt( &buf, qfalse );
+				if ( !token[0] ) {
+					strcpy( token, "<NULL>" );
+				}
+				Info_SetValueForKey( infos[count], key, token );
+			}
+			count++;
 		}
-		count++;
+
+		return count;
 	}
-
-	return count;
-}
-#endif
+	#endif
 
 
-/*
-==================
-COM_MatchToken
-==================
-*/
-void COM_MatchToken( char **buf_p, char *match ) {
-	char	*token;
+	/*
+	==================
+	COM_MatchToken
+	==================
+	*/
+	void COM_MatchToken( char **buf_p, char *match ) {
+		char	*token;
 
-	token = COM_Parse( buf_p );
-	if ( strcmp( token, match ) ) {
-		Com_Error( ERR_DROP, "MatchToken: %s != %s", token, match );
-	}
-}
-
-
-/*
-=================
-SkipBracedSection
-
-The next token should be an open brace.
-Skips until a matching close brace is found.
-Internal brace depths are properly skipped.
-=================
-*/
-void SkipBracedSection (char **program) {
-	char			*token;
-	int				depth;
-
-	depth = 0;
-	do {
-		token = COM_ParseExt( program, qtrue );
-		if( token[1] == 0 ) {
-			if( token[0] == '{' ) {
-				depth++;
-			}
-			else if( token[0] == '}' ) {
-				depth--;
-			}
-		}
-	} while( depth && *program );
-}
-
-/*
-=================
-SkipRestOfLine
-=================
-*/
-void SkipRestOfLine ( char **data ) {
-	char	*p;
-	int		c;
-
-	p = *data;
-	while ( (c = *p++) != 0 ) {
-		if ( c == '\n' ) {
-			com_lines++;
-			break;
+		token = COM_Parse( buf_p );
+		if ( strcmp( token, match ) ) {
+			Com_Error( ERR_DROP, "MatchToken: %s != %s", token, match );
 		}
 	}
 
-	*data = p;
-}
 
+	/*
+	=================
+	SkipBracedSection
 
-void Parse1DMatrix (char **buf_p, int x, float *m) {
-	char	*token;
-	int		i;
+	The next token should be an open brace.
+	Skips until a matching close brace is found.
+	Internal brace depths are properly skipped.
+	=================
+	*/
+	void SkipBracedSection (char **program) {
+		char			*token;
+		int				depth;
 
-	COM_MatchToken( buf_p, "(" );
-
-	for (i = 0 ; i < x ; i++) {
-		token = COM_Parse(buf_p);
-		m[i] = atof(token);
+		depth = 0;
+		do {
+			token = COM_ParseExt( program, qtrue );
+			if( token[1] == 0 ) {
+				if( token[0] == '{' ) {
+					depth++;
+				}
+				else if( token[0] == '}' ) {
+					depth--;
+				}
+			}
+		} while( depth && *program );
 	}
 
-	COM_MatchToken( buf_p, ")" );
-}
+	/*
+	=================
+	SkipRestOfLine
+	=================
+	*/
+	void SkipRestOfLine ( char **data ) {
+		char	*p;
+		int		c;
 
-void Parse2DMatrix (char **buf_p, int y, int x, float *m) {
-	int		i;
+		p = *data;
+		while ( (c = *p++) != 0 ) {
+			if ( c == '\n' ) {
+				com_lines++;
+				break;
+			}
+		}
 
-	COM_MatchToken( buf_p, "(" );
-
-	for (i = 0 ; i < y ; i++) {
-		Parse1DMatrix (buf_p, x, m + i * x);
+		*data = p;
 	}
 
-	COM_MatchToken( buf_p, ")" );
-}
 
-void Parse3DMatrix (char **buf_p, int z, int y, int x, float *m) {
-	int		i;
+	void Parse1DMatrix (char **buf_p, int x, float *m) {
+		char	*token;
+		int		i;
 
-	COM_MatchToken( buf_p, "(" );
+		COM_MatchToken( buf_p, "(" );
 
-	for (i = 0 ; i < z ; i++) {
-		Parse2DMatrix (buf_p, y, x, m + i * x*y);
+		for (i = 0 ; i < x ; i++) {
+			token = COM_Parse(buf_p);
+			m[i] = atof(token);
+		}
+
+		COM_MatchToken( buf_p, ")" );
 	}
 
-	COM_MatchToken( buf_p, ")" );
-}
+	void Parse2DMatrix (char **buf_p, int y, int x, float *m) {
+		int		i;
+
+		COM_MatchToken( buf_p, "(" );
+
+		for (i = 0 ; i < y ; i++) {
+			Parse1DMatrix (buf_p, x, m + i * x);
+		}
+
+		COM_MatchToken( buf_p, ")" );
+	}
+
+	void Parse3DMatrix (char **buf_p, int z, int y, int x, float *m) {
+		int		i;
+
+		COM_MatchToken( buf_p, "(" );
+
+		for (i = 0 ; i < z ; i++) {
+			Parse2DMatrix (buf_p, y, x, m + i * x*y);
+		}
+
+		COM_MatchToken( buf_p, ")" );
+	}
 
 
-/*
-============================================================================
+	/*
+	============================================================================
 
-					LIBRARY REPLACEMENT FUNCTIONS
+						LIBRARY REPLACEMENT FUNCTIONS
 
-============================================================================
-*/
+	============================================================================
+	*/
 
-int Q_isprint( int c )
-{
-	if ( c >= 0x20 && c <= 0x7E )
-		return ( 1 );
-	return ( 0 );
-}
-
-int Q_islower( int c )
-{
-	if (c >= 'a' && c <= 'z')
-		return ( 1 );
-	return ( 0 );
-}
-
-int Q_isupper( int c )
-{
-	if (c >= 'A' && c <= 'Z')
-		return ( 1 );
-	return ( 0 );
-}
-
-int Q_isalpha( int c )
-{
-	if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
-		return ( 1 );
-	return ( 0 );
-}
-
-char* Q_strrchr( const char* string, int c )
-{
-	char cc = c;
-	char *s;
-	char *sp=(char *)0;
-
-	s = (char*)string;
-
-	while (*s)
+	int Q_isprint( int c )
 	{
-		if (*s == cc)
+		if ( c >= 0x20 && c <= 0x7E )
+			return ( 1 );
+		return ( 0 );
+	}
+
+	int Q_islower( int c )
+	{
+		if (c >= 'a' && c <= 'z')
+			return ( 1 );
+		return ( 0 );
+	}
+
+	int Q_isupper( int c )
+	{
+		if (c >= 'A' && c <= 'Z')
+			return ( 1 );
+		return ( 0 );
+	}
+
+	int Q_isalpha( int c )
+	{
+		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
+			return ( 1 );
+		return ( 0 );
+	}
+
+	char* Q_strrchr( const char* string, int c )
+	{
+		char cc = c;
+		char *s;
+		char *sp=(char *)0;
+
+		s = (char*)string;
+
+		while (*s)
+		{
+			if (*s == cc)
+				sp = s;
+			s++;
+		}
+		if (cc == 0)
 			sp = s;
-		s++;
+
+		return sp;
 	}
-	if (cc == 0)
-		sp = s;
 
-	return sp;
-}
-
-/*
-=============
-Q_strncpyz
+	/*
+	=============
+	Q_strncpyz
  
-Safe strncpy that ensures a trailing zero
-=============
-*/
-void Q_strncpyz( char *dest, const char *src, int destsize ) {
-  // bk001129 - also NULL dest
-  if ( !dest ) {
-    Com_Error( ERR_FATAL, "Q_strncpyz: NULL dest" );
-  }
-	if ( !src ) {
-		Com_Error( ERR_FATAL, "Q_strncpyz: NULL src" );
-	}
-	if ( destsize < 1 ) {
-		Com_Error(ERR_FATAL,"Q_strncpyz: destsize < 1" ); 
-	}
+	Safe strncpy that ensures a trailing zero
+	=============
+	*/
+	void Q_strncpyz( char *dest, const char *src, int destsize ) {
+	  // bk001129 - also NULL dest
+	  if ( !dest ) {
+		Com_Error( ERR_FATAL, "Q_strncpyz: NULL dest" );
+	  }
+		if ( !src ) {
+			Com_Error( ERR_FATAL, "Q_strncpyz: NULL src" );
+		}
+		if ( destsize < 1 ) {
+			Com_Error(ERR_FATAL,"Q_strncpyz: destsize < 1" ); 
+		}
 
-	strncpy( dest, src, destsize-1 );
-  dest[destsize-1] = 0;
-}
+		strncpy( dest, src, destsize-1 );
+	  dest[destsize-1] = 0;
+	}
                  
-int Q_stricmpn (const char *s1, const char *s2, int n) {
-	int		c1, c2;
+	int Q_stricmpn (const char *s1, const char *s2, int n) {
+		int		c1, c2;
 
-	// bk001129 - moved in 1.17 fix not in id codebase
-        if ( s1 == NULL ) {
-           if ( s2 == NULL )
-             return 0;
-           else
-             return -1;
-        }
-        else if ( s2==NULL )
-          return 1;
+		// bk001129 - moved in 1.17 fix not in id codebase
+			if ( s1 == NULL ) {
+			   if ( s2 == NULL )
+				 return 0;
+			   else
+				 return -1;
+			}
+			else if ( s2==NULL )
+			  return 1;
 
 
 	
-	do {
-		c1 = *s1++;
-		c2 = *s2++;
+		do {
+			c1 = *s1++;
+			c2 = *s2++;
 
-		if (!n--) {
-			return 0;		// strings are equal until end point
-		}
+			if (!n--) {
+				return 0;		// strings are equal until end point
+			}
 		
-		if (c1 != c2) {
-			if (c1 >= 'a' && c1 <= 'z') {
-				c1 -= ('a' - 'A');
+			if (c1 != c2) {
+				if (c1 >= 'a' && c1 <= 'z') {
+					c1 -= ('a' - 'A');
+				}
+				if (c2 >= 'a' && c2 <= 'z') {
+					c2 -= ('a' - 'A');
+				}
+				if (c1 != c2) {
+					return c1 < c2 ? -1 : 1;
+				}
 			}
-			if (c2 >= 'a' && c2 <= 'z') {
-				c2 -= ('a' - 'A');
+		} while (c1);
+	
+		return 0;		// strings are equal
+	}
+
+	int Q_strncmp (const char *s1, const char *s2, int n) {
+		int		c1, c2;
+	
+		do {
+			c1 = *s1++;
+			c2 = *s2++;
+
+			if (!n--) {
+				return 0;		// strings are equal until end point
 			}
+		
 			if (c1 != c2) {
 				return c1 < c2 ? -1 : 1;
 			}
-		}
-	} while (c1);
+		} while (c1);
 	
-	return 0;		// strings are equal
-}
-
-int Q_strncmp (const char *s1, const char *s2, int n) {
-	int		c1, c2;
-	
-	do {
-		c1 = *s1++;
-		c2 = *s2++;
-
-		if (!n--) {
-			return 0;		// strings are equal until end point
-		}
-		
-		if (c1 != c2) {
-			return c1 < c2 ? -1 : 1;
-		}
-	} while (c1);
-	
-	return 0;		// strings are equal
-}
-
-int Q_stricmp (const char *s1, const char *s2) {
-	return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
-}
-
-
-char *Q_strlwr( char *s1 ) {
-    char	*s;
-
-    s = s1;
-	while ( *s ) {
-		*s = tolower(*s);
-		s++;
-	}
-    return s1;
-}
-
-char *Q_strupr( char *s1 ) {
-    char	*s;
-
-    s = s1;
-	while ( *s ) {
-		*s = toupper(*s);
-		s++;
-	}
-    return s1;
-}
-
-
-// never goes past bounds or leaves without a terminating 0
-void Q_strcat( char *dest, int size, const char *src ) {
-	int		l1;
-
-	l1 = (int)strlen( dest );
-	if ( l1 >= size ) {
-		Com_Error( ERR_FATAL, "Q_strcat: already overflowed" );
-	}
-	Q_strncpyz( dest + l1, src, size - l1 );
-}
-
-
-int Q_PrintStrlen( const char *string ) {
-	int			len;
-	const char	*p;
-
-	if( !string ) {
-		return 0;
+		return 0;		// strings are equal
 	}
 
-	len = 0;
-	p = string;
-	while( *p ) {
-		if( Q_IsColorString( p ) ) {
-			p += 2;
-			continue;
-		}
-		p++;
-		len++;
+	int Q_stricmp (const char *s1, const char *s2) {
+		return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
 	}
 
-	return len;
-}
 
+	char *Q_strlwr( char *s1 ) {
+		char	*s;
 
-char *Q_CleanStr( char *string ) {
-	char*	d;
-	char*	s;
-	int		c;
-
-	s = string;
-	d = string;
-	while ((c = *s) != 0 ) {
-		if ( Q_IsColorString( s ) ) {
+		s = s1;
+		while ( *s ) {
+			*s = tolower(*s);
 			s++;
-		}		
-		else if ( c >= 0x20 && c <= 0x7E ) {
-			*d++ = c;
 		}
-		s++;
+		return s1;
 	}
-	*d = '\0';
 
-	return string;
-}
+	char *Q_strupr( char *s1 ) {
+		char	*s;
 
-
-void QDECL Com_sprintf( char *dest, int size, const char *fmt, ...) {
-	int		len;
-	va_list		argptr;
-	char	bigbuffer[32000];	// big, but small enough to fit in PPC stack
-
-	va_start (argptr,fmt);
-	len = vsprintf (bigbuffer,fmt,argptr);
-	va_end (argptr);
-	if ( len >= sizeof( bigbuffer ) ) {
-		Com_Error( ERR_FATAL, "Com_sprintf: overflowed bigbuffer" );
+		s = s1;
+		while ( *s ) {
+			*s = toupper(*s);
+			s++;
+		}
+		return s1;
 	}
-	if (len >= size) {
-		Com_Printf ("Com_sprintf: overflow of %i in %i\n", len, size);
-#ifdef	_DEBUG
-		__debugbreak();
-#endif
+
+
+	// never goes past bounds or leaves without a terminating 0
+	void Q_strcat( char *dest, int size, const char *src ) {
+		int		l1;
+
+		l1 = (int)strlen( dest );
+		if ( l1 >= size ) {
+			Com_Error( ERR_FATAL, "Q_strcat: already overflowed" );
+		}
+		Q_strncpyz( dest + l1, src, size - l1 );
 	}
-	Q_strncpyz (dest, bigbuffer, size );
-}
 
 
-/*
-============
-va
+	int Q_PrintStrlen( const char *string ) {
+		int			len;
+		const char	*p;
 
-does a varargs printf into a temp buffer, so I don't need to have
-varargs versions of all text functions.
-FIXME: make this buffer size safe someday
-============
-*/
-char	* QDECL va( char *format, ... ) {
-	va_list		argptr;
-	static char		string[2][32000];	// in case va is called by nested functions
-	static int		index = 0;
-	char	*buf;
+		if( !string ) {
+			return 0;
+		}
 
-	buf = string[index & 1];
-	index++;
+		len = 0;
+		p = string;
+		while( *p ) {
+			if( Q_IsColorString( p ) ) {
+				p += 2;
+				continue;
+			}
+			p++;
+			len++;
+		}
 
-	va_start (argptr, format);
-	vsprintf (buf, format,argptr);
-	va_end (argptr);
-
-	return buf;
-}
+		return len;
+	}
 
 
-/*
-=====================================================================
+	char *Q_CleanStr( char *string ) {
+		char*	d;
+		char*	s;
+		int		c;
 
-  INFO STRINGS
+		s = string;
+		d = string;
+		while ((c = *s) != 0 ) {
+			if ( Q_IsColorString( s ) ) {
+				s++;
+			}		
+			else if ( c >= 0x20 && c <= 0x7E ) {
+				*d++ = c;
+			}
+			s++;
+		}
+		*d = '\0';
 
-=====================================================================
-*/
+		return string;
+	}
 
-/*
-===============
-Info_ValueForKey
 
-Searches the string for the given
-key and returns the associated value, or an empty string.
-FIXME: overflow check?
-===============
-*/
-char *Info_ValueForKey( const char *s, const char *key ) {
-	char	pkey[BIG_INFO_KEY];
-	static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
-											// work without stomping on each other
-	static	int	valueindex = 0;
-	char	*o;
+	void QDECL Com_sprintf( char *dest, int size, const char *fmt, ...) {
+		int		len;
+		va_list		argptr;
+		char	bigbuffer[32000];	// big, but small enough to fit in PPC stack
+
+		va_start (argptr,fmt);
+		len = vsprintf (bigbuffer,fmt,argptr);
+		va_end (argptr);
+		if ( len >= sizeof( bigbuffer ) ) {
+			Com_Error( ERR_FATAL, "Com_sprintf: overflowed bigbuffer" );
+		}
+		if (len >= size) {
+			Com_Printf ("Com_sprintf: overflow of %i in %i\n", len, size);
+	#ifdef	_DEBUG
+			__debugbreak();
+	#endif
+		}
+		Q_strncpyz (dest, bigbuffer, size );
+	}
+
+
+	/*
+	============
+	va
+
+	does a varargs printf into a temp buffer, so I don't need to have
+	varargs versions of all text functions.
+	FIXME: make this buffer size safe someday
+	============
+	*/
+	char	* QDECL va( char *format, ... ) {
+		va_list		argptr;
+		static char		string[2][32000];	// in case va is called by nested functions
+		static int		index = 0;
+		char	*buf;
+
+		buf = string[index & 1];
+		index++;
+
+		va_start (argptr, format);
+		vsprintf (buf, format,argptr);
+		va_end (argptr);
+
+		return buf;
+	}
+
+
+	/*
+	=====================================================================
+
+	  INFO STRINGS
+
+	=====================================================================
+	*/
+
+	/*
+	===============
+	Info_ValueForKey
+
+	Searches the string for the given
+	key and returns the associated value, or an empty string.
+	FIXME: overflow check?
+	===============
+	*/
+	char *Info_ValueForKey( const char *s, const char *key ) {
+		char	pkey[BIG_INFO_KEY];
+		static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
+												// work without stomping on each other
+		static	int	valueindex = 0;
+		char	*o;
 	
-	if ( !s || !key ) {
+		if ( !s || !key ) {
+			return "";
+		}
+
+		if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring" );
+		}
+
+		valueindex ^= 1;
+		if (*s == '\\')
+			s++;
+		while (1)
+		{
+			o = pkey;
+			while (*s != '\\')
+			{
+				if (!*s)
+					return "";
+				*o++ = *s++;
+			}
+			*o = 0;
+			s++;
+
+			o = value[valueindex];
+
+			while (*s != '\\' && *s)
+			{
+				*o++ = *s++;
+			}
+			*o = 0;
+
+			if (!Q_stricmp (key, pkey) )
+				return value[valueindex];
+
+			if (!*s)
+				break;
+			s++;
+		}
+
 		return "";
 	}
 
-	if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
-		Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring" );
-	}
 
-	valueindex ^= 1;
-	if (*s == '\\')
-		s++;
-	while (1)
-	{
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s)
-				return "";
+	/*
+	===================
+	Info_NextPair
+
+	Used to itterate through all the key/value pairs in an info string
+	===================
+	*/
+	void Info_NextPair( const char **head, char *key, char *value ) {
+		char	*o;
+		const char	*s;
+
+		s = *head;
+
+		if ( *s == '\\' ) {
+			s++;
+		}
+		key[0] = 0;
+		value[0] = 0;
+
+		o = key;
+		while ( *s != '\\' ) {
+			if ( !*s ) {
+				*o = 0;
+				*head = s;
+				return;
+			}
 			*o++ = *s++;
 		}
 		*o = 0;
 		s++;
 
-		o = value[valueindex];
-
-		while (*s != '\\' && *s)
-		{
+		o = value;
+		while ( *s != '\\' && *s ) {
 			*o++ = *s++;
 		}
 		*o = 0;
 
-		if (!Q_stricmp (key, pkey) )
-			return value[valueindex];
-
-		if (!*s)
-			break;
-		s++;
+		*head = s;
 	}
 
-	return "";
-}
 
+	/*
+	===================
+	Info_RemoveKey
+	===================
+	*/
+	void Info_RemoveKey( char *s, const char *key ) {
+		char	*start;
+		char	pkey[MAX_INFO_KEY];
+		char	value[MAX_INFO_VALUE];
+		char	*o;
 
-/*
-===================
-Info_NextPair
+		if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
+			Com_Error( ERR_DROP, "Info_RemoveKey: oversize infostring" );
+		}
 
-Used to itterate through all the key/value pairs in an info string
-===================
-*/
-void Info_NextPair( const char **head, char *key, char *value ) {
-	char	*o;
-	const char	*s;
+		if (strchr (key, '\\')) {
+			return;
+		}
 
-	s = *head;
-
-	if ( *s == '\\' ) {
-		s++;
-	}
-	key[0] = 0;
-	value[0] = 0;
-
-	o = key;
-	while ( *s != '\\' ) {
-		if ( !*s ) {
+		while (1)
+		{
+			start = s;
+			if (*s == '\\')
+				s++;
+			o = pkey;
+			while (*s != '\\')
+			{
+				if (!*s)
+					return;
+				*o++ = *s++;
+			}
 			*o = 0;
-			*head = s;
-			return;
-		}
-		*o++ = *s++;
-	}
-	*o = 0;
-	s++;
-
-	o = value;
-	while ( *s != '\\' && *s ) {
-		*o++ = *s++;
-	}
-	*o = 0;
-
-	*head = s;
-}
-
-
-/*
-===================
-Info_RemoveKey
-===================
-*/
-void Info_RemoveKey( char *s, const char *key ) {
-	char	*start;
-	char	pkey[MAX_INFO_KEY];
-	char	value[MAX_INFO_VALUE];
-	char	*o;
-
-	if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
-		Com_Error( ERR_DROP, "Info_RemoveKey: oversize infostring" );
-	}
-
-	if (strchr (key, '\\')) {
-		return;
-	}
-
-	while (1)
-	{
-		start = s;
-		if (*s == '\\')
 			s++;
-		o = pkey;
-		while (*s != '\\')
-		{
+
+			o = value;
+			while (*s != '\\' && *s)
+			{
+				if (!*s)
+					return;
+				*o++ = *s++;
+			}
+			*o = 0;
+
+			if (!strcmp (key, pkey) )
+			{
+				strcpy (start, s);	// remove this part
+				return;
+			}
+
 			if (!*s)
 				return;
-			*o++ = *s++;
 		}
-		*o = 0;
-		s++;
 
-		o = value;
-		while (*s != '\\' && *s)
-		{
-			if (!*s)
-				return;
-			*o++ = *s++;
+	}
+
+	/*
+	===================
+	Info_RemoveKey_Big
+	===================
+	*/
+	void Info_RemoveKey_Big( char *s, const char *key ) {
+		char	*start;
+		char	pkey[BIG_INFO_KEY];
+		char	value[BIG_INFO_VALUE];
+		char	*o;
+
+		if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			Com_Error( ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
 		}
-		*o = 0;
 
-		if (!strcmp (key, pkey) )
-		{
-			strcpy (start, s);	// remove this part
+		if (strchr (key, '\\')) {
 			return;
 		}
 
-		if (!*s)
-			return;
-	}
-
-}
-
-/*
-===================
-Info_RemoveKey_Big
-===================
-*/
-void Info_RemoveKey_Big( char *s, const char *key ) {
-	char	*start;
-	char	pkey[BIG_INFO_KEY];
-	char	value[BIG_INFO_VALUE];
-	char	*o;
-
-	if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
-		Com_Error( ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
-	}
-
-	if (strchr (key, '\\')) {
-		return;
-	}
-
-	while (1)
-	{
-		start = s;
-		if (*s == '\\')
+		while (1)
+		{
+			start = s;
+			if (*s == '\\')
+				s++;
+			o = pkey;
+			while (*s != '\\')
+			{
+				if (!*s)
+					return;
+				*o++ = *s++;
+			}
+			*o = 0;
 			s++;
-		o = pkey;
-		while (*s != '\\')
-		{
+
+			o = value;
+			while (*s != '\\' && *s)
+			{
+				if (!*s)
+					return;
+				*o++ = *s++;
+			}
+			*o = 0;
+
+			if (!strcmp (key, pkey) )
+			{
+				strcpy (start, s);	// remove this part
+				return;
+			}
+
 			if (!*s)
 				return;
-			*o++ = *s++;
 		}
-		*o = 0;
-		s++;
 
-		o = value;
-		while (*s != '\\' && *s)
-		{
-			if (!*s)
-				return;
-			*o++ = *s++;
+	}
+
+
+
+
+	/*
+	==================
+	Info_Validate
+
+	Some characters are illegal in info strings because they
+	can mess up the server's parsing
+	==================
+	*/
+	qboolean Info_Validate( const char *s ) {
+		if ( strchr( s, '\"' ) ) {
+			return qfalse;
 		}
-		*o = 0;
+		if ( strchr( s, ';' ) ) {
+			return qfalse;
+		}
+		return qtrue;
+	}
 
-		if (!strcmp (key, pkey) )
+	/*
+	==================
+	Info_SetValueForKey
+
+	Changes or adds a key/value pair
+	==================
+	*/
+	void Info_SetValueForKey( char *s, const char *key, const char *value ) {
+		char	newi[MAX_INFO_STRING];
+
+		if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
+			Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
+		}
+
+		if (strchr (key, '\\') || strchr (value, '\\'))
 		{
-			strcpy (start, s);	// remove this part
+			Com_Printf ("Can't use keys or values with a \\\n");
 			return;
 		}
 
-		if (!*s)
+		if (strchr (key, ';') || strchr (value, ';'))
+		{
+			Com_Printf ("Can't use keys or values with a semicolon\n");
 			return;
+		}
+
+		if (strchr (key, '\"') || strchr (value, '\"'))
+		{
+			Com_Printf ("Can't use keys or values with a \"\n");
+			return;
+		}
+
+		Info_RemoveKey (s, key);
+		if (!value || !strlen(value))
+			return;
+
+		Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
+
+		if (strlen(newi) + (int)strlen(s) > MAX_INFO_STRING)
+		{
+			Com_Printf ("Info string length exceeded\n");
+			return;
+		}
+
+		strcat (newi, s);
+		strcpy (s, newi);
 	}
 
+	/*
+	==================
+	Info_SetValueForKey_Big
+
+	Changes or adds a key/value pair
+	==================
+	*/
+	void Info_SetValueForKey_Big( char *s, const char *key, const char *value ) {
+		char	newi[BIG_INFO_STRING];
+
+		if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
+		}
+
+		if (strchr (key, '\\') || strchr (value, '\\'))
+		{
+			Com_Printf ("Can't use keys or values with a \\\n");
+			return;
+		}
+
+		if (strchr (key, ';') || strchr (value, ';'))
+		{
+			Com_Printf ("Can't use keys or values with a semicolon\n");
+			return;
+		}
+
+		if (strchr (key, '\"') || strchr (value, '\"'))
+		{
+			Com_Printf ("Can't use keys or values with a \"\n");
+			return;
+		}
+
+		Info_RemoveKey_Big (s, key);
+		if (!value || !strlen(value))
+			return;
+
+		Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
+
+		if (strlen(newi) + (int)strlen(s) > BIG_INFO_STRING)
+		{
+			Com_Printf ("BIG Info string length exceeded\n");
+			return;
+		}
+
+		strcat (s, newi);
+	}
 }
-
-
-
-
-/*
-==================
-Info_Validate
-
-Some characters are illegal in info strings because they
-can mess up the server's parsing
-==================
-*/
-qboolean Info_Validate( const char *s ) {
-	if ( strchr( s, '\"' ) ) {
-		return qfalse;
-	}
-	if ( strchr( s, ';' ) ) {
-		return qfalse;
-	}
-	return qtrue;
-}
-
-/*
-==================
-Info_SetValueForKey
-
-Changes or adds a key/value pair
-==================
-*/
-void Info_SetValueForKey( char *s, const char *key, const char *value ) {
-	char	newi[MAX_INFO_STRING];
-
-	if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
-		Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
-	}
-
-	if (strchr (key, '\\') || strchr (value, '\\'))
-	{
-		Com_Printf ("Can't use keys or values with a \\\n");
-		return;
-	}
-
-	if (strchr (key, ';') || strchr (value, ';'))
-	{
-		Com_Printf ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-
-	if (strchr (key, '\"') || strchr (value, '\"'))
-	{
-		Com_Printf ("Can't use keys or values with a \"\n");
-		return;
-	}
-
-	Info_RemoveKey (s, key);
-	if (!value || !strlen(value))
-		return;
-
-	Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
-
-	if (strlen(newi) + (int)strlen(s) > MAX_INFO_STRING)
-	{
-		Com_Printf ("Info string length exceeded\n");
-		return;
-	}
-
-	strcat (newi, s);
-	strcpy (s, newi);
-}
-
-/*
-==================
-Info_SetValueForKey_Big
-
-Changes or adds a key/value pair
-==================
-*/
-void Info_SetValueForKey_Big( char *s, const char *key, const char *value ) {
-	char	newi[BIG_INFO_STRING];
-
-	if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
-		Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
-	}
-
-	if (strchr (key, '\\') || strchr (value, '\\'))
-	{
-		Com_Printf ("Can't use keys or values with a \\\n");
-		return;
-	}
-
-	if (strchr (key, ';') || strchr (value, ';'))
-	{
-		Com_Printf ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-
-	if (strchr (key, '\"') || strchr (value, '\"'))
-	{
-		Com_Printf ("Can't use keys or values with a \"\n");
-		return;
-	}
-
-	Info_RemoveKey_Big (s, key);
-	if (!value || !strlen(value))
-		return;
-
-	Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
-
-	if (strlen(newi) + (int)strlen(s) > BIG_INFO_STRING)
-	{
-		Com_Printf ("BIG Info string length exceeded\n");
-		return;
-	}
-
-	strcat (s, newi);
-}
-
 
 
 

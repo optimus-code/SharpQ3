@@ -22,8 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // common.c -- misc functions used in client and server
 
 using SprintfNET;
+using System.IO;
 
-public static class Common
+public partial class Com
 { 
 	private static int[] demo_protocols = new []{ 66, 67, 68, 0 };
 
@@ -40,34 +41,34 @@ public static class Common
 	private static jmp_buf abortframe;      // an ERR_DROP occured, exit the entire frame
 
 
-	private static FILE* debuglogfile;
+	private static FileStream debuglogfile;
 	private static static fileHandle_t logfile;
 	private static fileHandle_t com_journalFile;            // events are written here
 	private static fileHandle_t com_journalDataFile;        // config files are written here
 
-	private static cvar_t* com_viewlog;
-	private static cvar_t* com_speeds;
-	private static cvar_t* com_developer;
-	private static cvar_t* com_dedicated;
-	private static cvar_t* com_timescale;
-	private static cvar_t* com_fixedtime;
-	private static cvar_t* com_dropsim;     // 0.0 to 1.0, simulated packet drops
-	private static cvar_t* com_journal;
-	private static cvar_t* com_maxfps;
-	private static cvar_t* com_timedemo;
-	private static cvar_t* com_sv_running;
-	private static cvar_t* com_cl_running;
-	private static cvar_t* com_logfile;     // 1 = buffer log, 2 = flush after each print
-	private static cvar_t* com_showtrace;
-	private static cvar_t* com_version;
-	private static cvar_t* com_blood;
-	private static cvar_t* com_buildScript; // for automated data building scripts
-	private static cvar_t* com_introPlayed;
-	private static cvar_t* cl_paused;
-	private static cvar_t* sv_paused;
-	private static cvar_t* com_cameraMode;
+	private static cvar_t com_viewlog;
+	private static cvar_t com_speeds;
+	private static cvar_t com_developer;
+	private static cvar_t com_dedicated;
+	private static cvar_t com_timescale;
+	private static cvar_t com_fixedtime;
+	private static cvar_t com_dropsim;     // 0.0 to 1.0, simulated packet drops
+	private static cvar_t com_journal;
+	private static cvar_t com_maxfps;
+	private static cvar_t com_timedemo;
+	private static cvar_t com_sv_running;
+	private static cvar_t com_cl_running;
+	private static cvar_t com_logfile;     // 1 = buffer log, 2 = flush after each print
+	private static cvar_t com_showtrace;
+	private static cvar_t com_version;
+	private static cvar_t com_blood;
+	private static cvar_t com_buildScript; // for automated data building scripts
+	private static cvar_t com_introPlayed;
+	private static cvar_t cl_paused;
+	private static cvar_t sv_paused;
+	private static cvar_t com_cameraMode;
 #if DEBUG
-	private static cvar_t	*com_noErrorInterrupt;
+	private static cvar_t	com_noErrorInterrupt;
 #endif
 
 	// com_speeds times
