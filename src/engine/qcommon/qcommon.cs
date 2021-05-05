@@ -525,17 +525,6 @@ public static class QCommon
 		huff_t		decompressor;
 	}
 
-	void	Huff_Compress(msg_t *buf, int offset);
-	void	Huff_Decompress(msg_t *buf, int offset);
-	void	Huff_Init(huffman_t *huff);
-	void	Huff_addRef(huff_t* huff, byte ch);
-	int		Huff_Receive (node_t *node, int *ch, byte *fin);
-	void	Huff_transmit (huff_t *huff, int ch, byte *fout);
-	void	Huff_offsetReceive (node_t *node, int *ch, byte *fin, int *offset);
-	void	Huff_offsetTransmit (huff_t *huff, int ch, byte *fout, int *offset);
-	void	Huff_putBit( int bit, byte *fout, int *offset);
-	int		Huff_getBit( byte *fout, int *offset);
-
 	public static huffman_t clientHuffTables;
 
 	public const int SV_ENCODE_START = 4;

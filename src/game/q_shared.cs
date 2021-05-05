@@ -236,15 +236,9 @@ public static class QShared
 		public float x, y, z, w, n;
 	}
 
-	typedef int fixed4_t;
-	typedef int fixed8_t;
-	typedef int fixed16_t;
+	public const float M_PI = 3.14159265358979323846f;    // matches value in gcc v2 math.h
 
-	#ifndef M_PI
-	#define M_PI		3.14159265358979323846f	// matches value in gcc v2 math.h
-	#endif
-
-	#define NUMVERTEXNORMALS	162
+	public const int NUMVERTEXNORMALS = 162;
 	extern vec3_t bytedirs[NUMVERTEXNORMALS];
 
 	// all drawing is done to a 640*480 virtual screen size
@@ -276,42 +270,58 @@ public static class QShared
 	public static vec4_t colorMdGrey;
 	public static vec4_t colorDkGrey;
 
-	public char Q_COLOR_ESCAPE = '^';
-	#define Q_IsColorString(p)	( p && *(p) == Q_COLOR_ESCAPE && *((p)+1) && *((p)+1) != Q_COLOR_ESCAPE )
+	public const char Q_COLOR_ESCAPE = '^';
 
-	public char COLOR_BLACK	= '0';
-	public char COLOR_RED = '1';
-	public char COLOR_GREEN = '2';
-	public char COLOR_YELLOW = '3';
-	public char COLOR_BLUE = '4';
-	public char COLOR_CYAN = '5';
-	public char COLOR_MAGENTA = '6';
-	public char COLOR_WHITE = '7';
+	public static bool Q_IsColorString( string p, int index ) 
+	{
+		if ( index + 2 >= p.Length )
+			return false;
+
+		var subText = p.Substring( index, 2 );
+
+		return subText.StartsWith( Q_COLOR_ESCAPE ) && !subText.EndsWith( Q_COLOR_ESCAPE );
+	}
+
+	public const char COLOR_BLACK	= '0';
+	public const char COLOR_RED = '1';
+	public const char COLOR_GREEN = '2';
+	public const char COLOR_YELLOW = '3';
+	public const char COLOR_BLUE = '4';
+	public const char COLOR_CYAN = '5';
+	public const char COLOR_MAGENTA = '6';
+	public const char COLOR_WHITE = '7';
 	#define ColorIndex(c)	( ( (c) - '0' ) & 7 )
 
-	public string S_COLOR_BLACK = "^0";
-	public string S_COLOR_RED = "^1";
-	public string S_COLOR_GREEN = "^2";
-	public string S_COLOR_YELLOW = "^3";
-	public string S_COLOR_BLUE = "^4";
-	public string S_COLOR_CYAN = "^5";
-	public string S_COLOR_MAGENTA = "^6";
-	public string S_COLOR_WHITE = "^7";
+	public const string S_COLOR_BLACK = "^0";
+	public const string S_COLOR_RED = "^1";
+	public const string S_COLOR_GREEN = "^2";
+	public const string S_COLOR_YELLOW = "^3";
+	public const string S_COLOR_BLUE = "^4";
+	public const string S_COLOR_CYAN = "^5";
+	public const string S_COLOR_MAGENTA = "^6";
+	public const string S_COLOR_WHITE = "^7";
 
 	public static vec4_t g_color_table[8];
 
 	#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
 	#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
 
-	#define DEG2RAD( a ) ( ( (a) * M_PI ) / 180.0F )
-	#define RAD2DEG( a ) ( ( (a) * 180.0f ) / M_PI )
+	public static float DEG2RAD( float a ) 
+	{
+		return ( ( a ) * M_PI ) / 180.0F;
+	}
+
+	public static float RAD2DEG( float a )
+	{
+		return ( ( a ) * 180.0f ) / M_PI;
+	}
 
 	struct cplane_s;
 
 	public static vec3_t vec3_origin;
 	public static vec3_t axisDefault[3];
 
-	#define nanmask (255<<23)
+	public const int nanmask = (255 << 23);
 
 	#define IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
 
@@ -342,20 +352,11 @@ public static class QShared
 	#endif
 
 	#else
-	float Q_fabs( float f );
-	float Q_rsqrt( float f );       // reciprocal square root
 	#endif
 
 	#define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
 
-	signed char ClampChar( int i );
-	signed short ClampShort( int i );
-
-	// this isn't a real cheap function to call!
-	int DirToByte( vec3_t dir );
-	void ByteToDir( int b, vec3_t dir );
-
-	#if 1
+	#if true
 
 	#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
 	#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
@@ -379,9 +380,11 @@ public static class QShared
 	# ifdef VectorCopy
 	#undef VectorCopy
 	// this is a little hack to get more efficient copies in our interpreter
-	typedef struct {
+	public struct vec3struct_t 
+	{
 		float v[3];
-	} vec3struct_t;
+	}
+
 	#define VectorCopy(a,b)	(*(vec3struct_t *)b=*(vec3struct_t *)a)
 	#define ID_INLINE static
 	#endif
@@ -393,39 +396,8 @@ public static class QShared
 	#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
 	#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
-	// just in case you do't want to use the macros
-	float _DotProduct( const vec3_t v1, const vec3_t v2 );
-	void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
-	void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
-	void _VectorCopy( const vec3_t in, vec3_t out );
-	void _VectorScale( const vec3_t in, float scale, vec3_t out );
-	void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc );
-
-	unsigned ColorBytes3( float r, float g, float b );
-	unsigned ColorBytes4( float r, float g, float b, float a );
-
-	float NormalizeColor( const vec3_t in, vec3_t out );
-
-	float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
-	void ClearBounds( vec3_t mins, vec3_t maxs );
-	void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 
 #if __LCC__
-	int VectorCompare( const vec3_t v1, const vec3_t v2 );
-
-	float VectorLength( const vec3_t v );
-
-	float VectorLengthSquared( const vec3_t v );
-
-	float Distance( const vec3_t p1, const vec3_t p2 );
-
-	float DistanceSquared( const vec3_t p1, const vec3_t p2 );
-
-	void VectorNormalizeFast( vec3_t v );
-
-	void VectorInverse( vec3_t v );
-
-	void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
 #else
 	static int VectorCompare( const vec3_t v1, const vec3_t v2 )
 	{
@@ -490,68 +462,9 @@ public static class QShared
 	}
 #endif
 
-	float VectorNormalize( vec3_t v );      // returns vector length
-	float VectorNormalize2( const vec3_t v, vec3_t out );
-	void Vector4Scale( const vec4_t in, float scale, vec4_t out );
-	void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
-	int Q_log2( int val );
-
-	float Q_acos( float c );
-
-	int Q_rand( int* seed );
-	float Q_random( int* seed );
-	float Q_crandom( int* seed );
-
 	#define random()	((rand () & 0x7fff) / ((float)0x7fff))
 	#define crandom()	(2.0 * (random() - 0.5))
 
-	void vectoangles( const vec3_t value1, vec3_t angles );
-	void AnglesToAxis( const vec3_t angles, vec3_t axis[3] );
-
-	void AxisClear( vec3_t axis[3] );
-	void AxisCopy( vec3_t in[3], vec3_t out[3] );
-
-	void SetPlaneSignbits( struct cplane_s *out );
-	int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *plane);
-
-	float AngleMod( float a );
-	float LerpAngle( float from, float to, float frac );
-	float AngleSubtract( float a1, float a2 );
-	void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
-
-	float AngleNormalize360( float angle );
-	float AngleNormalize180( float angle );
-	float AngleDelta( float angle1, float angle2 );
-
-	bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-	void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
-	void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
-	void RotateAroundDirection( vec3_t axis[3], float yaw );
-	void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
-	// perpendicular vector could be replaced by this
-
-	//int	PlaneTypeForNormal (vec3_t normal);
-
-	void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3]);
-	void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
-	void PerpendicularVector( vec3_t dst, const vec3_t src );
-
-
-	//=============================================
-
-	float Com_Clamp( float min, float max, float value );
-
-	char* COM_SkipPath( char* pathname );
-	void COM_StripExtension( const char*in, char*out );
-	void COM_DefaultExtension( char* path, int maxSize, const char* extension );
-
-	void COM_BeginParseSession( const char* name );
-	int COM_GetCurrentParseLine( );
-	char* COM_Parse( char** data_p );
-	char* COM_ParseExt( char** data_p, bool allowLineBreak );
-	int COM_Compress( char* data_p );
-	void COM_ParseError( char* format, ... );
-	void COM_ParseWarning( char* format, ... );
 	//int		COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
 
 	public const int MAX_TOKENLENGTH = 1024;
@@ -566,7 +479,7 @@ public static class QShared
 	public const int TT_PUNCTUATION = 5;		// punctuation
 #endif
 
-	typedef struct pc_token_s
+	public struct pc_token_t
 	{
 		int type;
 		int subtype;
@@ -574,21 +487,6 @@ public static class QShared
 		float floatvalue;
 		char string[MAX_TOKENLENGTH];
 	}
-	pc_token_t;
-
-	// data is an in/out parm, returns a parsed out token
-
-	void COM_MatchToken( char** buf_p, char* match );
-
-	void SkipBracedSection( char** program );
-	void SkipRestOfLine( char** data );
-
-	void Parse1DMatrix( char** buf_p, int x, float* m );
-	void Parse2DMatrix( char** buf_p, int y, int x, float* m );
-	void Parse3DMatrix( char** buf_p, int z, int y, int x, float* m );
-
-	void QDECL Com_sprintf (char *dest, int size, const char *fmt, ...);
-
 
 	// mode parm for FS_FOpenFile
 	public enum fsMode_t
@@ -608,76 +506,19 @@ public static class QShared
 
 	//=============================================
 
-	int Q_isprint( int c );
-	int Q_islower( int c );
-	int Q_isupper( int c );
-	int Q_isalpha( int c );
-
-	// portable case insensitive compare
-	int Q_stricmp(const char* s1, const char* s2 );
-	int Q_strncmp(const char* s1, const char* s2, int n );
-	int Q_stricmpn(const char* s1, const char* s2, int n );
-	char* Q_strlwr( char* s1 );
-	char* Q_strupr( char* s1 );
-	char* Q_strrchr( const char* string, int c );
-
-	// buffer size safe library replacements
-	void Q_strncpyz( char* dest, const char* src, int destsize );
-	void Q_strcat( char* dest, int size, const char* src );
-
-	// strlen that discounts Quake color sequences
-	int Q_PrintStrlen( const char*string );
-	// removes color sequences from string
-	char* Q_CleanStr( char*string );
-
-	//=============================================
-
 	// 64-bit integers for global rankings interface
 	// implemented as a struct for qvm compatibility
-	typedef struct
+	public struct qint64
 	{
 		byte b0;
-	byte b1;
-	byte b2;
-	byte b3;
-	byte b4;
-	byte b5;
-	byte b6;
-	byte b7;
-	} qint64;
-
-	//=============================================
-	/*
-	short	BigShort(short l);
-	short	LittleShort(short l);
-	int		BigLong (int l);
-	int		LittleLong (int l);
-	qint64  BigLong64 (qint64 l);
-	qint64  LittleLong64 (qint64 l);
-	float	BigFloat (const float *l);
-	float	LittleFloat (const float *l);
-
-	void	Swap_Init (void);
-	*/
-	char* QDECL va(char *format, ...);
-
-	//=============================================
-
-	//
-	// key / value info strings
-	//
-	char* Info_ValueForKey( const char* s, const char* key );
-	void Info_RemoveKey( char* s, const char* key );
-	void Info_RemoveKey_big( char* s, const char* key );
-	void Info_SetValueForKey( char* s, const char* key, const char* value );
-	void Info_SetValueForKey_Big( char* s, const char* key, const char* value );
-	bool Info_Validate( const char* s );
-	void Info_NextPair( const char** s, char* key, char* value );
-
-	// this is only here so the functions in q_shared.c and bg_*.c can link
-	void QDECL Com_Error( int level, const char *error, ... );
-	void QDECL Com_Printf( const char *msg, ... );
-
+		byte b1;
+		byte b2;
+		byte b3;
+		byte b4;
+		byte b5;
+		byte b6;
+		byte b7;
+	}
 
 	/*
 	==========================================================
@@ -732,13 +573,14 @@ public static class QShared
 
 	// the modules that run in the virtual machine can't access the cvar_t directly,
 	// so they must ask for structured updates
-	typedef struct {
+	public struct vmCvar_t
+	{
 		cvarHandle_t handle;
-	int modificationCount;
-	float value;
-	int integer;
-	char string[MAX_CVAR_VALUE_STRING];
-	} vmCvar_t;
+		int modificationCount;
+		float value;
+		int integer;
+		char string[MAX_CVAR_VALUE_STRING];
+	}
 
 	/*
 	==============================================================
@@ -766,7 +608,7 @@ public static class QShared
 
 	// plane_t structure
 	// !!! if this is changed, it must be changed in asm code too !!!
-	typedef struct cplane_s
+	public struct cplane_t
 	{
 		vec3_t normal;
 		float dist;
@@ -774,53 +616,53 @@ public static class QShared
 		byte signbits;      // signx + (signy<<1) + (signz<<2), used as lookup during collision
 		byte pad[2];
 	}
-	cplane_t;
-
 
 	// a trace is returned when a box is swept through the world
-	typedef struct {
+	public struct trace_t
+	{
 		bool allsolid;  // if true, plane is not valid
-	bool startsolid;    // if true, the initial point was in a solid area
-	float fraction; // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;      // final position
-	cplane_t plane;     // surface normal at impact, transformed to world space
-	int surfaceFlags;   // surface hit
-	int contents;   // contents on other side of surface hit
-	int entityNum;	// entity the contacted sirface is a part of
-	} trace_t;
+		bool startsolid;    // if true, the initial point was in a solid area
+		float fraction; // time completed, 1.0 = didn't hit anything
+		vec3_t endpos;      // final position
+		cplane_t plane;     // surface normal at impact, transformed to world space
+		int surfaceFlags;   // surface hit
+		int contents;   // contents on other side of surface hit
+		int entityNum;	// entity the contacted sirface is a part of
+	}
 
 	// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
 	// or ENTITYNUM_NONE, ENTITYNUM_WORLD
 
 
 	// markfragments are returned by CM_MarkFragments()
-	typedef struct {
+	public struct markFragment_t
+	{
 		int firstPoint;
-	int numPoints;
-	} markFragment_t;
+		int numPoints;
+	} ;
 
-
-
-	typedef struct {
+	public struct orientation_t
+	{
 		vec3_t origin;
-	vec3_t axis[3];
-	} orientation_t;
+		vec3_t axis[3];
+	}
 
 	//=====================================================================
 
 
 	// in order from highest priority to lowest
 	// if none of the catchers are active, bound key strings will be executed
-	#define KEYCATCH_CONSOLE		0x0001
-	#define KEYCATCH_UI					0x0002
-	#define KEYCATCH_MESSAGE		0x0004
-	#define KEYCATCH_CGAME			0x0008
+	public const int KEYCATCH_CONSOLE = 0x0001;
+	public const int KEYCATCH_UI = 0x0002;
+	public const int KEYCATCH_MESSAGE = 0x0004;
+	public const int KEYCATCH_CGAME = 0x0008;
 
 
 	// sound channels
 	// channel 0 never willingly overrides
 	// other channels will allways override a playing sound on that channel
-	typedef enum {
+	public enum soundChannel_t 
+	{
 		CHAN_AUTO,
 		CHAN_LOCAL,     // menu sounds, etc
 		CHAN_WEAPON,
@@ -830,8 +672,6 @@ public static class QShared
 		CHAN_LOCAL_SOUND,   // chat messages, etc
 		CHAN_ANNOUNCER      // announcer voices, etc
 	}
-	soundChannel_t;
-
 
 	/*
 	========================================================================
@@ -844,58 +684,59 @@ public static class QShared
 	#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
 	#define SHORT2ANGLE(x)	((x)*(360.0/65536))
 
-	#define SNAPFLAG_RATE_DELAYED	1
-	#define SNAPFLAG_NOT_ACTIVE		2	// snapshot used during connection and for zombies
-	#define SNAPFLAG_SERVERCOUNT	4	// toggled every map_restart so transitions can be detected
+	public const int SNAPFLAG_RATE_DELAYED = 1;
+	public const int SNAPFLAG_NOT_ACTIVE = 2 ;  // snapshot used during connection and for zombies
+	public const int SNAPFLAG_SERVERCOUNT = 4;	// toggled every map_restart so transitions can be detected
 
 	//
 	// per-level limits
 	//
-	#define MAX_CLIENTS			64		// absolute limit
-	#define MAX_LOCATIONS		64
+	public const int MAX_CLIENTS = 64;   // absolute limit
+	public const int MAX_LOCATIONS = 64;
 
-	#define GENTITYNUM_BITS		10		// don't need to send any more
-	#define MAX_GENTITIES		(1<<GENTITYNUM_BITS)
+	public const int GENTITYNUM_BITS = 10;     // don't need to send any more
+	public const int MAX_GENTITIES = ( 1 << GENTITYNUM_BITS );
 
 	// entitynums are communicated with GENTITY_BITS, so any reserved
 	// values that are going to be communcated over the net need to
 	// also be in this range
-	#define ENTITYNUM_NONE		(MAX_GENTITIES-1)
-	#define ENTITYNUM_WORLD		(MAX_GENTITIES-2)
-	#define ENTITYNUM_MAX_NORMAL	(MAX_GENTITIES-2)
+	public const int ENTITYNUM_NONE = ( MAX_GENTITIES-1);
+	public const int ENTITYNUM_WORLD = ( MAX_GENTITIES - 2 );
+	public const int ENTITYNUM_MAX_NORMAL = ( MAX_GENTITIES - 2 );
 
 
-	#define MAX_MODELS			256		// these are sent over the net as 8 bits
-	#define MAX_SOUNDS			256		// so they cannot be blindly increased
+	public const int MAX_MODELS = 256;   // these are sent over the net as 8 bits
+	public const int MAX_SOUNDS = 256;   // so they cannot be blindly increased
 
 
-	#define MAX_CONFIGSTRINGS	1024
+	public const int MAX_CONFIGSTRINGS = 1024;
 
 	// these are the only configstrings that the system reserves, all the
 	// other ones are strictly for servergame to clientgame communication
-	#define CS_SERVERINFO		0		// an info string with all the serverinfo cvars
-	#define CS_SYSTEMINFO		1		// an info string for server system to client system configuration (timescale, etc)
+	public const int CS_SERVERINFO = 0 ;      // an info string with all the serverinfo cvars
+	public const int CS_SYSTEMINFO = 1;       // an info string for server system to client system configuration (timescale, etc)
 
-	#define RESERVED_CONFIGSTRINGS	2	// game can't modify below this, only the system can
+	public const int RESERVED_CONFIGSTRINGS = 2;  // game can't modify below this, only the system can
 
-	#define MAX_GAMESTATE_CHARS	16000
-	typedef struct {
+	public const int MAX_GAMESTATE_CHARS = 16000;
+	public struct gameState_t
+	{
 		int stringOffsets[MAX_CONFIGSTRINGS];
-	char stringData[MAX_GAMESTATE_CHARS];
-	int dataCount;
-	} gameState_t;
+		char stringData[MAX_GAMESTATE_CHARS];
+		int dataCount;
+	}
 
 	//=========================================================
 
 	// bit field limits
-	#define MAX_STATS				16
-	#define MAX_PERSISTANT			16
-	#define MAX_POWERUPS			16
-	#define MAX_WEAPONS				16		
+	public const int MAX_STATS = 16;
+	public const int MAX_PERSISTANT = 16;
+	public const int MAX_POWERUPS = 16;
+	public const int MAX_WEAPONS = 16;
 
-	#define MAX_PS_EVENTS			2
+	public const int MAX_PS_EVENTS = 2;
 
-	#define PS_PMOVEFRAMECOUNTBITS	6
+	public const int PS_PMOVEFRAMECOUNTBITS = 6;
 
 	// playerState_t is the information needed by both the client and server
 	// to predict player motion and actions
@@ -907,7 +748,7 @@ public static class QShared
 	// playerState_t is a full superset of entityState_t as it is used by players,
 	// so if a playerState_t is transmitted, the entityState_t can be fully derived
 	// from it.
-	typedef struct playerState_s
+	public struct playerState_t
 	{
 		int commandTime;    // cmd->serverTime of last executed command
 		int pm_type;
@@ -976,7 +817,6 @@ public static class QShared
 		int jumppad_frame;
 		int entityEventSequence;
 	}
-	playerState_t;
 
 
 	//====================================================================
@@ -986,30 +826,30 @@ public static class QShared
 	// usercmd_t->button bits, many of which are generated by the client system,
 	// so they aren't game/cgame only definitions
 	//
-	#define BUTTON_ATTACK		1
-	#define BUTTON_TALK			2			// displays talk balloon and disables actions
-	#define BUTTON_USE_HOLDABLE	4
-	#define BUTTON_GESTURE		8
-	#define BUTTON_WALKING		16			// walking can't just be infered from MOVE_RUN
-	// because a key pressed late in the frame will
-	// only generate a small move value for that frame
-	// walking will use different animations and
-	// won't generate footsteps
-	#define BUTTON_AFFIRMATIVE	32
-	#define BUTTON_NEGATIVE		64
+	public const int BUTTON_ATTACK = 1;
+	public const int BUTTON_TALK = 2;         // displays talk balloon and disables actions
+	public const int BUTTON_USE_HOLDABLE = 4;
+	public const int BUTTON_GESTURE = 8;
+	public const int BUTTON_WALKING = 16;       // walking can't just be infered from MOVE_RUN
+												// because a key pressed late in the frame will
+												// only generate a small move value for that frame
+												// walking will use different animations and
+												// won't generate footsteps
+	public const int BUTTON_AFFIRMATIVE = 32;
+	public const int BUTTON_NEGATIVE = 64;
 
-	#define BUTTON_GETFLAG		128
-	#define BUTTON_GUARDBASE	256
-	#define BUTTON_PATROL		512
-	#define BUTTON_FOLLOWME		1024
+	public const int BUTTON_GETFLAG = 128;
+	public const int BUTTON_GUARDBASE = 256;
+	public const int BUTTON_PATROL = 512;
+	public const int BUTTON_FOLLOWME = 1024;
 
-	#define BUTTON_ANY			2048			// any key whatsoever
+	public const int BUTTON_ANY = 2048;     // any key whatsoever
 
-	#define MOVE_RUN			120			// if forwardmove or rightmove are >= MOVE_RUN,
+	public const int MOVE_RUN = 120;	// if forwardmove or rightmove are >= MOVE_RUN,
 	// then BUTTON_WALKING should be set
 
 	// usercmd_t is sent to the server each client frame
-	typedef struct usercmd_s
+	public struct usercmd_t
 	{
 		int serverTime;
 		int angles[3];
@@ -1017,14 +857,14 @@ public static class QShared
 		byte weapon;           // weapon 
 		signed char forwardmove, rightmove, upmove;
 	}
-	usercmd_t;
 
 	//===================================================================
 
 	// if entityState->solid == SOLID_BMODEL, modelindex is an inline model number
-	#define SOLID_BMODEL	0xffffff
+	public const int SOLID_BMODEL = 0xffffff;
 
-	typedef enum {
+	public enum trType_t
+	{
 		TR_STATIONARY,
 		TR_INTERPOLATE,             // non-parametric, but interpolate between snapshots
 		TR_LINEAR,
@@ -1032,15 +872,15 @@ public static class QShared
 		TR_SINE,                    // value = base + sin( time / duration ) * delta
 		TR_GRAVITY
 	}
-	trType_t;
 
-	typedef struct {
+	public struct trajectory_t
+	{
 		trType_t trType;
-	int trTime;
-	int trDuration;         // if non 0, trTime + trDuration = stop time
-	vec3_t trBase;
-	vec3_t trDelta;			// velocity, etc
-	} trajectory_t;
+		int trTime;
+		int trDuration;         // if non 0, trTime + trDuration = stop time
+		vec3_t trBase;
+		vec3_t trDelta;			// velocity, etc
+	}
 
 	// entityState_t is the information conveyed from the server
 	// in an update message about entities that the client will
@@ -1049,7 +889,7 @@ public static class QShared
 	// The messages are delta compressed, so it doesn't really matter if
 	// the structure size is fairly large
 
-	typedef struct entityState_s
+	public struct entityState_t
 	{
 		int number;         // entity index
 		int eType;          // entityType_t
@@ -1093,9 +933,9 @@ public static class QShared
 
 		int generic1;
 	}
-	entityState_t;
 
-	typedef enum {
+	public enum connstate_t
+	{
 		CA_UNINITIALIZED,
 		CA_DISCONNECTED,    // not talking to a server
 		CA_AUTHORIZING,     // not used any more, was checking cd key 
@@ -1107,36 +947,38 @@ public static class QShared
 		CA_ACTIVE,          // game views should be displayed
 		CA_CINEMATIC        // playing a cinematic or a static pic, not connected to a server
 	}
-	connstate_t;
 
-	// font support 
+// font support 
 
-	#define GLYPH_START 0
-	#define GLYPH_END 255
-	#define GLYPH_CHARSTART 32
-	#define GLYPH_CHAREND 127
-	#define GLYPHS_PER_FONT GLYPH_END - GLYPH_START + 1
-	typedef struct {
-	  int height;       // number of scan lines
-	int top;          // top of glyph in buffer
-	int bottom;       // bottom of glyph in buffer
-	int pitch;        // width for copying
-	int xSkip;        // x adjustment
-	int imageWidth;   // width of actual image
-	int imageHeight;  // height of actual image
-	float s;          // x offset in image where glyph starts
-	float t;          // y offset in image where glyph starts
-	float s2;
-	float t2;
-	qhandle_t glyph;  // handle to the shader with the glyph
-	char shaderName[32];
-	} glyphInfo_t;
+	public const int GLYPH_START = 0;
+	public const int GLYPH_END = 255;
+	public const int GLYPH_CHARSTART = 32;
+	public const int GLYPH_CHAREND = 127;
+	public const int GLYPHS_PER_FONT = GLYPH_END - GLYPH_START + 1;
 
-	typedef struct {
-	  glyphInfo_t glyphs[GLYPHS_PER_FONT];
-	float glyphScale;
-	char name[MAX_QPATH];
-	} fontInfo_t;
+	public struct glyphInfo_t
+	{
+		int height;       // number of scan lines
+		int top;          // top of glyph in buffer
+		int bottom;       // bottom of glyph in buffer
+		int pitch;        // width for copying
+		int xSkip;        // x adjustment
+		int imageWidth;   // width of actual image
+		int imageHeight;  // height of actual image
+		float s;          // x offset in image where glyph starts
+		float t;          // y offset in image where glyph starts
+		float s2;
+		float t2;
+		qhandle_t glyph;  // handle to the shader with the glyph
+		char shaderName[32];
+	}
+
+	public struct fontInfo_t
+	{
+		glyphInfo_t glyphs[GLYPHS_PER_FONT];
+		float glyphScale;
+		char name[MAX_QPATH];
+	}
 
 	#define Square(x) ((x)*(x))
 
@@ -1144,7 +986,7 @@ public static class QShared
 	//=============================================
 
 
-	typedef struct qtime_s
+	public struct qtime_t
 	{
 		int tm_sec;     /* seconds after the minute - [0,59] */
 		int tm_min;     /* minutes after the hour - [0,59] */
@@ -1156,19 +998,18 @@ public static class QShared
 		int tm_yday;    /* days since January 1 - [0,365] */
 		int tm_isdst;   /* daylight savings time flag */
 	}
-	qtime_t;
 
 
 	// server browser sources
 	// TTimo: AS_MPLAYER is no longer used
-	#define AS_LOCAL			0
-	#define AS_MPLAYER		1
-	#define AS_GLOBAL			2
-	#define AS_FAVORITES	3
-
+	public const int AS_LOCAL = 0;
+	public const int AS_MPLAYER = 1;
+	public const int AS_GLOBAL = 2;
+	public const int AS_FAVORITES = 3;
 
 	// cinematic states
-	typedef enum {
+	public enum e_status
+	{
 		FMV_IDLE,
 		FMV_PLAY,       // play
 		FMV_EOF,        // all other conditions, i.e. stop/EOF/abort
@@ -1177,9 +1018,8 @@ public static class QShared
 		FMV_LOOPED,
 		FMV_ID_WAIT
 	}
-	e_status;
 
-	typedef enum _flag_status
+	public enum flagStatus_t
 	{
 		FLAG_ATBASE = 0,
 		FLAG_TAKEN,         // CTF
@@ -1187,23 +1027,21 @@ public static class QShared
 		FLAG_TAKEN_BLUE,    // One Flag CTF
 		FLAG_DROPPED
 	}
-	flagStatus_t;
 
+	public const int MAX_GLOBAL_SERVERS = 4096;
+	public const int MAX_OTHER_SERVERS = 128;
+	public const int MAX_PINGREQUESTS = 32;
+	public const int MAX_SERVERSTATUSREQUESTS = 16;
 
+	public const int SAY_ALL = 0;
+	public const int SAY_TEAM = 1;
+	public const int SAY_TELL = 2;
 
-	#define MAX_GLOBAL_SERVERS				4096
-	#define MAX_OTHER_SERVERS					128
-	#define MAX_PINGREQUESTS					32
-	#define MAX_SERVERSTATUSREQUESTS	16
+	public const int CDKEY_LEN = 16;
+	public const int CDCHKSUM_LEN = 2;
 
-	#define SAY_ALL		0
-	#define SAY_TEAM	1
-	#define SAY_TELL	2
-
-	#define CDKEY_LEN 16
-	#define CDCHKSUM_LEN 2
-
-	float Com_Clamp( float min, float max, float value ) {
+	public static float Com_Clamp( float min, float max, float value )
+	{
 		if ( value < min ) {
 			return min;
 		}
@@ -1219,7 +1057,7 @@ public static class QShared
 	COM_SkipPath
 	============
 	*/
-	char *COM_SkipPath (char *pathname)
+	public static char *COM_SkipPath (char *pathname)
 	{
 		char	*last;
 	
@@ -1238,7 +1076,7 @@ public static class QShared
 	COM_StripExtension
 	============
 	*/
-	void COM_StripExtension( const char *in, char *out ) {
+	public static void COM_StripExtension( const char *in, char *out ) {
 		while ( *in && *in != '.' ) {
 			*out++ = *in++;
 		}
@@ -1251,7 +1089,7 @@ public static class QShared
 	COM_DefaultExtension
 	==================
 	*/
-	void COM_DefaultExtension (char *path, int maxSize, const char *extension ) {
+	public static void COM_DefaultExtension (char *path, int maxSize, const char *extension ) {
 		char	oldPath[MAX_QPATH];
 		char    *src;
 
@@ -1301,7 +1139,7 @@ public static class QShared
 	float	LittleFloat (const float *l) {return _LittleFloat(l);}
 	*/
 
-	short   ShortSwap (short l)
+	public static short   ShortSwap (short l)
 	{
 		byte    b1,b2;
 
@@ -1311,12 +1149,12 @@ public static class QShared
 		return (b1<<8) + b2;
 	}
 
-	short	ShortNoSwap (short l)
+	public static short	ShortNoSwap (short l)
 	{
 		return l;
 	}
 
-	int    LongSwap (int l)
+	public static int    LongSwap (int l)
 	{
 		byte    b1,b2,b3,b4;
 
@@ -1328,12 +1166,12 @@ public static class QShared
 		return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 	}
 
-	int	LongNoSwap (int l)
+	public static int	LongNoSwap (int l)
 	{
 		return l;
 	}
 
-	qint64 Long64Swap (qint64 ll)
+	public static qint64 Long64Swap (qint64 ll)
 	{
 		qint64	result;
 
@@ -1349,7 +1187,7 @@ public static class QShared
 		return result;
 	}
 
-	qint64 Long64NoSwap (qint64 ll)
+	public static qint64 Long64NoSwap (qint64 ll)
 	{
 		return ll;
 	}
@@ -1359,7 +1197,7 @@ public static class QShared
 		unsigned int i;
 	} _FloatByteUnion;
 
-	float FloatSwap (const float *f) {
+	public static float FloatSwap (const float *f) {
 		const _FloatByteUnion *in;
 		_FloatByteUnion out;
 
@@ -1369,7 +1207,7 @@ public static class QShared
 		return out.f;
 	}
 
-	float FloatNoSwap (const float *f)
+	public static FloatNoSwap (const float *f)
 	{
 		return *f;
 	}
@@ -1419,27 +1257,27 @@ public static class QShared
 	============================================================================
 	*/
 
-	static	char	com_token[MAX_TOKEN_CHARS];
-	static	char	com_parsename[MAX_TOKEN_CHARS];
-	static	int		com_lines;
+	private static	char	com_token[MAX_TOKEN_CHARS];
+	private static	char	com_parsename[MAX_TOKEN_CHARS];
+	private static	int		com_lines;
 
-	void COM_BeginParseSession( const char *name )
+	public static void COM_BeginParseSession( const char *name )
 	{
 		com_lines = 0;
 		Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
 	}
 
-	int COM_GetCurrentParseLine( )
+	public static int COM_GetCurrentParseLine( )
 	{
 		return com_lines;
 	}
 
-	char *COM_Parse( char **data_p )
+	public static char *COM_Parse( char **data_p )
 	{
 		return COM_ParseExt( data_p, qtrue );
 	}
 
-	void COM_ParseError( char *format, ... )
+	public static void COM_ParseError( char *format, ... )
 	{
 		va_list argptr;
 		static char string[4096];
@@ -1451,7 +1289,7 @@ public static class QShared
 		Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, string);
 	}
 
-	void COM_ParseWarning( char *format, ... )
+	public static void COM_ParseWarning( char *format, ... )
 	{
 		va_list argptr;
 		static char string[4096];
@@ -1475,7 +1313,7 @@ public static class QShared
 	a newline.
 	==============
 	*/
-	static char *SkipWhitespace( char *data, bool *hasNewLines ) {
+	public static char *SkipWhitespace( char *data, bool *hasNewLines ) {
 		int c;
 
 		while( (c = *data) <= ' ') {
@@ -1492,7 +1330,7 @@ public static class QShared
 		return data;
 	}
 
-	int COM_Compress( char *data_p ) {
+	public static int COM_Compress( char *data_p ) {
 		char *in, *out;
 		int c;
 		bool newline = qfalse, whitespace = qfalse;
@@ -1560,7 +1398,7 @@ public static class QShared
 		return out - data_p;
 	}
 
-	char *COM_ParseExt( char **data_p, bool allowLineBreaks )
+	public static char *COM_ParseExt( char **data_p, bool allowLineBreaks )
 	{
 		int c = 0, len;
 		bool hasNewLines = qfalse;
@@ -1728,7 +1566,7 @@ public static class QShared
 	COM_MatchToken
 	==================
 	*/
-	void COM_MatchToken( char **buf_p, char *match ) {
+	public static void COM_MatchToken( char **buf_p, char *match ) {
 		char	*token;
 
 		token = COM_Parse( buf_p );
@@ -1747,7 +1585,7 @@ public static class QShared
 	Internal brace depths are properly skipped.
 	=================
 	*/
-	void SkipBracedSection (char **program) {
+	public static void SkipBracedSection (char **program) {
 		char			*token;
 		int				depth;
 
@@ -1770,7 +1608,7 @@ public static class QShared
 	SkipRestOfLine
 	=================
 	*/
-	void SkipRestOfLine ( char **data ) {
+	public static void SkipRestOfLine ( char **data ) {
 		char	*p;
 		int		c;
 
@@ -1786,7 +1624,7 @@ public static class QShared
 	}
 
 
-	void Parse1DMatrix (char **buf_p, int x, float *m) {
+	public static void Parse1DMatrix (char **buf_p, int x, float *m) {
 		char	*token;
 		int		i;
 
@@ -1800,7 +1638,7 @@ public static class QShared
 		COM_MatchToken( buf_p, ")" );
 	}
 
-	void Parse2DMatrix (char **buf_p, int y, int x, float *m) {
+	public static void Parse2DMatrix (char **buf_p, int y, int x, float *m) {
 		int		i;
 
 		COM_MatchToken( buf_p, "(" );
@@ -1812,7 +1650,7 @@ public static class QShared
 		COM_MatchToken( buf_p, ")" );
 	}
 
-	void Parse3DMatrix (char **buf_p, int z, int y, int x, float *m) {
+	public static void Parse3DMatrix (char **buf_p, int z, int y, int x, float *m) {
 		int		i;
 
 		COM_MatchToken( buf_p, "(" );
@@ -1833,35 +1671,35 @@ public static class QShared
 	============================================================================
 	*/
 
-	int Q_isprint( int c )
+	public static int Q_isprint( int c )
 	{
 		if ( c >= 0x20 && c <= 0x7E )
 			return ( 1 );
 		return ( 0 );
 	}
 
-	int Q_islower( int c )
+	public static int Q_islower( int c )
 	{
 		if (c >= 'a' && c <= 'z')
 			return ( 1 );
 		return ( 0 );
 	}
 
-	int Q_isupper( int c )
+	public static int Q_isupper( int c )
 	{
 		if (c >= 'A' && c <= 'Z')
 			return ( 1 );
 		return ( 0 );
 	}
 
-	int Q_isalpha( int c )
+	public static int Q_isalpha( int c )
 	{
 		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 			return ( 1 );
 		return ( 0 );
 	}
 
-	char* Q_strrchr( const char* string, int c )
+	public static char* Q_strrchr( const char* string, int c )
 	{
 		char cc = c;
 		char *s;
@@ -1888,7 +1726,7 @@ public static class QShared
 	Safe strncpy that ensures a trailing zero
 	=============
 	*/
-	void Q_strncpyz( char *dest, const char *src, int destsize ) {
+	public static void Q_strncpyz( char *dest, const char *src, int destsize ) {
 	  // bk001129 - also NULL dest
 	  if ( !dest ) {
 		Com_Error( ERR_FATAL, "Q_strncpyz: NULL dest" );
@@ -1904,7 +1742,7 @@ public static class QShared
 	  dest[destsize-1] = 0;
 	}
                  
-	int Q_stricmpn (const char *s1, const char *s2, int n) {
+	public static int Q_stricmpn (const char *s1, const char *s2, int n) {
 		int		c1, c2;
 
 		// bk001129 - moved in 1.17 fix not in id codebase
@@ -1943,7 +1781,7 @@ public static class QShared
 		return 0;		// strings are equal
 	}
 
-	int Q_strncmp (const char *s1, const char *s2, int n) {
+	public static int Q_strncmp (const char *s1, const char *s2, int n) {
 		int		c1, c2;
 	
 		do {
@@ -1962,12 +1800,12 @@ public static class QShared
 		return 0;		// strings are equal
 	}
 
-	int Q_stricmp (const char *s1, const char *s2) {
+	public static int Q_stricmp (const char *s1, const char *s2) {
 		return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
 	}
 
 
-	char *Q_strlwr( char *s1 ) {
+	public static char *Q_strlwr( char *s1 ) {
 		char	*s;
 
 		s = s1;
@@ -1978,7 +1816,7 @@ public static class QShared
 		return s1;
 	}
 
-	char *Q_strupr( char *s1 ) {
+	public static char *Q_strupr( char *s1 ) {
 		char	*s;
 
 		s = s1;
@@ -1991,7 +1829,7 @@ public static class QShared
 
 
 	// never goes past bounds or leaves without a terminating 0
-	void Q_strcat( char *dest, int size, const char *src ) {
+	public static void Q_strcat( char *dest, int size, const char *src ) {
 		int		l1;
 
 		l1 = (int)strlen( dest );
@@ -2002,7 +1840,7 @@ public static class QShared
 	}
 
 
-	int Q_PrintStrlen( const char *string ) {
+	public static int Q_PrintStrlen( const char *string ) {
 		int			len;
 		const char	*p;
 
@@ -2025,7 +1863,7 @@ public static class QShared
 	}
 
 
-	char *Q_CleanStr( char *string ) {
+	public static char *Q_CleanStr( char *string ) {
 		char*	d;
 		char*	s;
 		int		c;
@@ -2047,7 +1885,7 @@ public static class QShared
 	}
 
 
-	void QDECL Com_sprintf( char *dest, int size, const char *fmt, ...) {
+	public static void Com_sprintf( char *dest, int size, const char *fmt, ...) {
 		int		len;
 		va_list		argptr;
 		char	bigbuffer[32000];	// big, but small enough to fit in PPC stack
@@ -2077,7 +1915,7 @@ public static class QShared
 	FIXME: make this buffer size safe someday
 	============
 	*/
-	char	* QDECL va( char *format, ... ) {
+	public static char	* QDECL va( char *format, ... ) {
 		va_list		argptr;
 		static char		string[2][32000];	// in case va is called by nested functions
 		static int		index = 0;
@@ -2111,7 +1949,7 @@ public static class QShared
 	FIXME: overflow check?
 	===============
 	*/
-	char *Info_ValueForKey( const char *s, const char *key ) {
+	public static char *Info_ValueForKey( const char *s, const char *key ) {
 		char	pkey[BIG_INFO_KEY];
 		static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
 												// work without stomping on each other
@@ -2168,7 +2006,7 @@ public static class QShared
 	Used to itterate through all the key/value pairs in an info string
 	===================
 	*/
-	void Info_NextPair( const char **head, char *key, char *value ) {
+	public static void Info_NextPair( const char **head, char *key, char *value ) {
 		char	*o;
 		const char	*s;
 
@@ -2207,7 +2045,7 @@ public static class QShared
 	Info_RemoveKey
 	===================
 	*/
-	void Info_RemoveKey( char *s, const char *key ) {
+	public static void Info_RemoveKey( char *s, const char *key ) {
 		char	*start;
 		char	pkey[MAX_INFO_KEY];
 		char	value[MAX_INFO_VALUE];
@@ -2262,7 +2100,7 @@ public static class QShared
 	Info_RemoveKey_Big
 	===================
 	*/
-	void Info_RemoveKey_Big( char *s, const char *key ) {
+	public static void Info_RemoveKey_Big( char *s, const char *key ) {
 		char	*start;
 		char	pkey[BIG_INFO_KEY];
 		char	value[BIG_INFO_VALUE];
@@ -2323,7 +2161,7 @@ public static class QShared
 	can mess up the server's parsing
 	==================
 	*/
-	bool Info_Validate( const char *s ) {
+	public static bool Info_Validate( const char *s ) {
 		if ( strchr( s, '\"' ) ) {
 			return qfalse;
 		}
@@ -2340,7 +2178,7 @@ public static class QShared
 	Changes or adds a key/value pair
 	==================
 	*/
-	void Info_SetValueForKey( char *s, const char *key, const char *value ) {
+	public static void Info_SetValueForKey( char *s, const char *key, const char *value ) {
 		char	newi[MAX_INFO_STRING];
 
 		if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
@@ -2388,7 +2226,7 @@ public static class QShared
 	Changes or adds a key/value pair
 	==================
 	*/
-	void Info_SetValueForKey_Big( char *s, const char *key, const char *value ) {
+	public static void Info_SetValueForKey_Big( char *s, const char *key, const char *value ) {
 		char	newi[BIG_INFO_STRING];
 
 		if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
