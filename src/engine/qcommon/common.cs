@@ -708,8 +708,8 @@ public partial class Com
 	==============================================================================
 	*/
 
-	#define	ZONEID	0x1d4a11
-	#define MINFRAGMENT	64
+	public const int ZONEID = 0x1d4a11;
+	public const int MINFRAGMENT = 64;
 
 	typedef struct zonedebug_s {
 		char *label;
@@ -723,7 +723,7 @@ public partial class Com
 		int     tag;            // a tag of 0 is a free block
 		struct memblock_s       *next, *prev;
 		int     id;        		// should be ZONEID
-	#ifdef ZONE_DEBUG
+	#if ZONE_DEBUG
 		zonedebug_t d;
 	#endif
 	} memblock_t;
@@ -782,7 +782,7 @@ public partial class Com
 	Z_AvailableMemory
 	========================
 	*/
-	private static int Z_AvailableMemory( void ) {
+	private static int Z_AvailableMemory( ) {
 		return Z_AvailableZoneMemory( mainzone );
 	}
 
@@ -1527,10 +1527,10 @@ public partial class Com
 		Hunk_Clear();
 
 		Cmd_AddCommand( "meminfo", Com_Meminfo_f );
-	#ifdef ZONE_DEBUG
+	#if ZONE_DEBUG
 		Cmd_AddCommand( "zonelog", Z_LogHeap );
 	#endif
-	#ifdef HUNK_DEBUG
+	#if HUNK_DEBUG
 		Cmd_AddCommand( "hunklog", Hunk_Log );
 		Cmd_AddCommand( "hunksmalllog", Hunk_SmallLog );
 	#endif

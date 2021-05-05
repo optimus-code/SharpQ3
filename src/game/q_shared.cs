@@ -217,12 +217,24 @@ public static class QShared
 	==============================================================
 	*/
 
+	public struct vec2_t
+	{
+		public float x, y;
+	}
 
-	typedef float vec_t;
-	typedef vec_t vec2_t[2];
-	typedef vec_t vec3_t[3];
-	typedef vec_t vec4_t[4];
-	typedef vec_t vec5_t[5];
+	public struct vec3_t
+	{
+		public float x, y, z;
+	}
+
+	public struct vec4_t
+	{
+		public float x, y, z, w;
+	}
+	public struct vec5_t
+	{
+		public float x, y, z, w, n;
+	}
 
 	typedef int fixed4_t;
 	typedef int fixed8_t;
@@ -252,41 +264,41 @@ public static class QShared
 	public const int GIANTCHAR_WIDTH = 32;
 	public const int GIANTCHAR_HEIGHT = 48;
 
-	extern vec4_t colorBlack;
-	extern vec4_t colorRed;
-	extern vec4_t colorGreen;
-	extern vec4_t colorBlue;
-	extern vec4_t colorYellow;
-	extern vec4_t colorMagenta;
-	extern vec4_t colorCyan;
-	extern vec4_t colorWhite;
-	extern vec4_t colorLtGrey;
-	extern vec4_t colorMdGrey;
-	extern vec4_t colorDkGrey;
+	public static vec4_t colorBlack;
+	public static vec4_t colorRed;
+	public static vec4_t colorGreen;
+	public static vec4_t colorBlue;
+	public static vec4_t colorYellow;
+	public static vec4_t colorMagenta;
+	public static vec4_t colorCyan;
+	public static vec4_t colorWhite;
+	public static vec4_t colorLtGrey;
+	public static vec4_t colorMdGrey;
+	public static vec4_t colorDkGrey;
 
-	#define Q_COLOR_ESCAPE	'^'
+	public char Q_COLOR_ESCAPE = '^';
 	#define Q_IsColorString(p)	( p && *(p) == Q_COLOR_ESCAPE && *((p)+1) && *((p)+1) != Q_COLOR_ESCAPE )
 
-	#define COLOR_BLACK		'0'
-	#define COLOR_RED		'1'
-	#define COLOR_GREEN		'2'
-	#define COLOR_YELLOW	'3'
-	#define COLOR_BLUE		'4'
-	#define COLOR_CYAN		'5'
-	#define COLOR_MAGENTA	'6'
-	#define COLOR_WHITE		'7'
+	public char COLOR_BLACK	= '0';
+	public char COLOR_RED = '1';
+	public char COLOR_GREEN = '2';
+	public char COLOR_YELLOW = '3';
+	public char COLOR_BLUE = '4';
+	public char COLOR_CYAN = '5';
+	public char COLOR_MAGENTA = '6';
+	public char COLOR_WHITE = '7';
 	#define ColorIndex(c)	( ( (c) - '0' ) & 7 )
 
-	#define S_COLOR_BLACK	"^0"
-	#define S_COLOR_RED		"^1"
-	#define S_COLOR_GREEN	"^2"
-	#define S_COLOR_YELLOW	"^3"
-	#define S_COLOR_BLUE	"^4"
-	#define S_COLOR_CYAN	"^5"
-	#define S_COLOR_MAGENTA	"^6"
-	#define S_COLOR_WHITE	"^7"
+	public string S_COLOR_BLACK = "^0";
+	public string S_COLOR_RED = "^1";
+	public string S_COLOR_GREEN = "^2";
+	public string S_COLOR_YELLOW = "^3";
+	public string S_COLOR_BLUE = "^4";
+	public string S_COLOR_CYAN = "^5";
+	public string S_COLOR_MAGENTA = "^6";
+	public string S_COLOR_WHITE = "^7";
 
-	extern vec4_t g_color_table[8];
+	public static vec4_t g_color_table[8];
 
 	#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
 	#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
@@ -296,8 +308,8 @@ public static class QShared
 
 	struct cplane_s;
 
-	extern vec3_t vec3_origin;
-	extern vec3_t axisDefault[3];
+	public static vec3_t vec3_origin;
+	public static vec3_t axisDefault[3];
 
 	#define nanmask (255<<23)
 
@@ -382,7 +394,7 @@ public static class QShared
 
 	#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
 	// just in case you do't want to use the macros
-	vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
+	float _DotProduct( const vec3_t v1, const vec3_t v2 );
 	void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
 	void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
 	void _VectorCopy( const vec3_t in, vec3_t out );
@@ -398,7 +410,23 @@ public static class QShared
 	void ClearBounds( vec3_t mins, vec3_t maxs );
 	void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 
-	#ifndef __LCC__
+#if __LCC__
+	int VectorCompare( const vec3_t v1, const vec3_t v2 );
+
+	float VectorLength( const vec3_t v );
+
+	float VectorLengthSquared( const vec3_t v );
+
+	float Distance( const vec3_t p1, const vec3_t p2 );
+
+	float DistanceSquared( const vec3_t p1, const vec3_t p2 );
+
+	void VectorNormalizeFast( vec3_t v );
+
+	void VectorInverse( vec3_t v );
+
+	void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
+#else
 	static int VectorCompare( const vec3_t v1, const vec3_t v2 )
 	{
 		if ( v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2] )
@@ -408,22 +436,26 @@ public static class QShared
 		return 1;
 	}
 
-	static vec_t VectorLength( const vec3_t v ) {
-		return ( vec_t ) sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+	static float VectorLength( const vec3_t v )
+	{
+		return ( float ) sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
 	}
 
-	static vec_t VectorLengthSquared( const vec3_t v ) {
+	static float VectorLengthSquared( const vec3_t v )
+	{
 		return ( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
 	}
 
-	static vec_t Distance( const vec3_t p1, const vec3_t p2 ) {
+	static float Distance( const vec3_t p1, const vec3_t p2 )
+	{
 		vec3_t v;
 
 		VectorSubtract( p2, p1, v );
 		return VectorLength( v );
 	}
 
-	static vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 ) {
+	static float DistanceSquared( const vec3_t p1, const vec3_t p2 )
+	{
 		vec3_t v;
 
 		VectorSubtract( p2, p1, v );
@@ -456,29 +488,11 @@ public static class QShared
 		cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
 		cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
 	}
+#endif
 
-	#else
-	int VectorCompare( const vec3_t v1, const vec3_t v2 );
-
-	vec_t VectorLength( const vec3_t v );
-
-	vec_t VectorLengthSquared( const vec3_t v );
-
-	vec_t Distance( const vec3_t p1, const vec3_t p2 );
-
-	vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-
-	void VectorNormalizeFast( vec3_t v );
-
-	void VectorInverse( vec3_t v );
-
-	void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-
-	#endif
-
-	vec_t VectorNormalize( vec3_t v );      // returns vector length
-	vec_t VectorNormalize2( const vec3_t v, vec3_t out );
-	void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out );
+	float VectorNormalize( vec3_t v );      // returns vector length
+	float VectorNormalize2( const vec3_t v, vec3_t out );
+	void Vector4Scale( const vec4_t in, float scale, vec4_t out );
 	void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
 	int Q_log2( int val );
 
@@ -540,16 +554,17 @@ public static class QShared
 	void COM_ParseWarning( char* format, ... );
 	//int		COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
 
-	#define MAX_TOKENLENGTH		1024
+	public const int MAX_TOKENLENGTH = 1024;
 
-	# ifndef TT_STRING
+#if TT_STRING
+#else
 	//token types
-	#define TT_STRING					1			// string
-	#define TT_LITERAL					2			// literal
-	#define TT_NUMBER					3			// number
-	#define TT_NAME						4			// name
-	#define TT_PUNCTUATION				5			// punctuation
-	#endif
+	public const int TT_STRING = 1;         // string
+	public const int TT_LITERAL = 2;     // literal
+	public const int TT_NUMBER = 3;     // number
+	public const int TT_NAME = 4;    // name
+	public const int TT_PUNCTUATION = 5;		// punctuation
+#endif
 
 	typedef struct pc_token_s
 	{
@@ -576,20 +591,20 @@ public static class QShared
 
 
 	// mode parm for FS_FOpenFile
-	typedef enum {
+	public enum fsMode_t
+	{
 		FS_READ,
 		FS_WRITE,
 		FS_APPEND,
 		FS_APPEND_SYNC
 	}
-	fsMode_t;
 
-	typedef enum {
+	public enum fsOrigin_t
+	{
 		FS_SEEK_CUR,
 		FS_SEEK_END,
 		FS_SEEK_SET
 	}
-	fsOrigin_t;
 
 	//=============================================
 
@@ -675,24 +690,24 @@ public static class QShared
 	==========================================================
 	*/
 
-	#define CVAR_ARCHIVE		1	// set to cause it to be saved to vars.rc
+	public const int CVAR_ARCHIVE =	1;   // set to cause it to be saved to vars.rc
 	// used for system variables, not for player
 	// specific configurations
-	#define CVAR_USERINFO		2	// sent to server on connect or change
-	#define CVAR_SERVERINFO		4	// sent in response to front end requests
-	#define CVAR_SYSTEMINFO		8	// these cvars will be duplicated on all clients
-	#define CVAR_INIT			16	// don't allow change from console at all,
+	public const int CVAR_USERINFO = 2;   // sent to server on connect or change
+	public const int CVAR_SERVERINFO = 4;   // sent in response to front end requests
+	public const int CVAR_SYSTEMINFO = 8;   // these cvars will be duplicated on all clients
+	public const int CVAR_INIT = 16; // don't allow change from console at all,
 	// but can be set from the command line
-	#define CVAR_LATCH			32	// will only change when C code next does
+	public const int CVAR_LATCH = 32;    // will only change when C code next does
 	// a Cvar_Get(), so it can't be changed
 	// without proper initialization.  modified
 	// will be set, even though the value hasn't
 	// changed yet
-	#define CVAR_ROM			64	// display only, cannot be set by user at all
-	#define CVAR_USER_CREATED	128	// created by a set command
-	#define CVAR_TEMP			256	// can be set even when cheats are disabled, but is not archived
-	#define CVAR_CHEAT			512	// can not be changed if cheats are disabled
-	#define CVAR_NORESTART		1024	// do not clear when a cvar_restart is issued
+	public const int CVAR_ROM = 64;  // display only, cannot be set by user at all
+	public const int CVAR_USER_CREATED = 128; // created by a set command
+	public const int CVAR_TEMP = 256; // can be set even when cheats are disabled, but is not archived
+	public const int CVAR_CHEAT = 512; // can not be changed if cheats are disabled
+	public const int CVAR_NORESTART = 1024;	// do not clear when a cvar_restart is issued
 
 	// nothing outside the Cvar_*() functions should modify these fields!
 	// Used more like a class
@@ -711,7 +726,7 @@ public static class QShared
 		cvar_t hashNext;
 	};
 
-	#define MAX_CVAR_VALUE_STRING	256
+	public const int MAX_CVAR_VALUE_STRING = 256;
 
 	typedef int cvarHandle_t;
 
@@ -733,14 +748,12 @@ public static class QShared
 	==============================================================
 	*/
 
-	# include "surfaceflags.h"			// shared with the q3map utility
-
 	// plane types are used to speed some tests
 	// 0-2 are axial planes
-	#define PLANE_X			0
-	#define PLANE_Y			1
-	#define PLANE_Z			2
-	#define PLANE_NON_AXIAL	3
+	public const int PLANE_X = 0;
+	public const int PLANE_Y = 1;
+	public const int PLANE_Z = 2;
+	public const int PLANE_NON_AXIAL = 3;
 
 
 	/*
