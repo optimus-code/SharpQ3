@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{009D0992-A2F8-41DA-A204-93822CB45D6A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3", "src\engine\SharpQ3.csproj", "{1B1B419B-AA61-43BD-9820-C9E742E5065A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.Renderer", "src\engine\renderer\SharpQ3.Renderer.csproj", "{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.BotLib", "src\engine\botlib\SharpQ3.BotLib.csproj", "{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.ClientGame", "src\cgame\SharpQ3.ClientGame.csproj", "{01D9EA19-30FA-479C-8670-CF42586A0ABB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.Game", "src\game\SharpQ3.Game.csproj", "{0E4C59BB-8DE9-4F65-B69C-306070076AC9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.UI", "src\q3_ui\SharpQ3.UI.csproj", "{52556C47-12C4-4C56-AFD3-26B0C416C816}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1B1B419B-AA61-43BD-9820-C9E742E5065A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B1B419B-AA61-43BD-9820-C9E742E5065A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B1B419B-AA61-43BD-9820-C9E742E5065A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B1B419B-AA61-43BD-9820-C9E742E5065A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01D9EA19-30FA-479C-8670-CF42586A0ABB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01D9EA19-30FA-479C-8670-CF42586A0ABB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01D9EA19-30FA-479C-8670-CF42586A0ABB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01D9EA19-30FA-479C-8670-CF42586A0ABB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E4C59BB-8DE9-4F65-B69C-306070076AC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E4C59BB-8DE9-4F65-B69C-306070076AC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E4C59BB-8DE9-4F65-B69C-306070076AC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E4C59BB-8DE9-4F65-B69C-306070076AC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52556C47-12C4-4C56-AFD3-26B0C416C816}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52556C47-12C4-4C56-AFD3-26B0C416C816}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52556C47-12C4-4C56-AFD3-26B0C416C816}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52556C47-12C4-4C56-AFD3-26B0C416C816}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1B1B419B-AA61-43BD-9820-C9E742E5065A} = {009D0992-A2F8-41DA-A204-93822CB45D6A}
+		{E99FB6AF-00F4-4E1E-AB94-C87EACDDFBCA} = {009D0992-A2F8-41DA-A204-93822CB45D6A}
+		{512DC7F4-A733-4AA3-9E8B-8CA2B8046F44} = {009D0992-A2F8-41DA-A204-93822CB45D6A}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {37E6BA17-35C3-46D2-8BB4-DA558ACD9602}
+	EndGlobalSection
+EndGlobal
