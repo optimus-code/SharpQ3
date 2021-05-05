@@ -81,7 +81,7 @@ public static class QShared
 	typedef unsigned char 		byte;
 
 	typedef enum { qfalse, qtrue }
-	qboolean;
+	bool;
 
 	typedef int qhandle_t;
 	typedef int sfxHandle_t;
@@ -523,7 +523,7 @@ public static class QShared
 	float AngleNormalize180( float angle );
 	float AngleDelta( float angle1, float angle2 );
 
-	qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
+	bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
 	void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 	void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 	void RotateAroundDirection( vec3_t axis[3], float yaw );
@@ -546,9 +546,9 @@ public static class QShared
 	void COM_DefaultExtension( char* path, int maxSize, const char* extension );
 
 	void COM_BeginParseSession( const char* name );
-	int COM_GetCurrentParseLine( void );
+	int COM_GetCurrentParseLine( );
 	char* COM_Parse( char** data_p );
-	char* COM_ParseExt( char** data_p, qboolean allowLineBreak );
+	char* COM_ParseExt( char** data_p, bool allowLineBreak );
 	int COM_Compress( char* data_p );
 	void COM_ParseError( char* format, ... );
 	void COM_ParseWarning( char* format, ... );
@@ -671,7 +671,7 @@ public static class QShared
 	void Info_RemoveKey_big( char* s, const char* key );
 	void Info_SetValueForKey( char* s, const char* key, const char* value );
 	void Info_SetValueForKey_Big( char* s, const char* key, const char* value );
-	qboolean Info_Validate( const char* s );
+	bool Info_Validate( const char* s );
 	void Info_NextPair( const char** s, char* key, char* value );
 
 	// this is only here so the functions in q_shared.c and bg_*.c can link
@@ -779,8 +779,8 @@ public static class QShared
 
 	// a trace is returned when a box is swept through the world
 	typedef struct {
-		qboolean allsolid;  // if true, plane is not valid
-	qboolean startsolid;    // if true, the initial point was in a solid area
+		bool allsolid;  // if true, plane is not valid
+	bool startsolid;    // if true, the initial point was in a solid area
 	float fraction; // time completed, 1.0 = didn't hit anything
 	vec3_t endpos;      // final position
 	cplane_t plane;     // surface normal at impact, transformed to world space
@@ -1429,7 +1429,7 @@ public static class QShared
 		Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
 	}
 
-	int COM_GetCurrentParseLine( void )
+	int COM_GetCurrentParseLine( )
 	{
 		return com_lines;
 	}
@@ -1475,7 +1475,7 @@ public static class QShared
 	a newline.
 	==============
 	*/
-	static char *SkipWhitespace( char *data, qboolean *hasNewLines ) {
+	static char *SkipWhitespace( char *data, bool *hasNewLines ) {
 		int c;
 
 		while( (c = *data) <= ' ') {
@@ -1495,7 +1495,7 @@ public static class QShared
 	int COM_Compress( char *data_p ) {
 		char *in, *out;
 		int c;
-		qboolean newline = qfalse, whitespace = qfalse;
+		bool newline = qfalse, whitespace = qfalse;
 
 		in = out = data_p;
 		if (in) {
@@ -1560,10 +1560,10 @@ public static class QShared
 		return out - data_p;
 	}
 
-	char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
+	char *COM_ParseExt( char **data_p, bool allowLineBreaks )
 	{
 		int c = 0, len;
-		qboolean hasNewLines = qfalse;
+		bool hasNewLines = qfalse;
 		char *data;
 
 		data = *data_p;
@@ -2323,7 +2323,7 @@ public static class QShared
 	can mess up the server's parsing
 	==================
 	*/
-	qboolean Info_Validate( const char *s ) {
+	bool Info_Validate( const char *s ) {
 		if ( strchr( s, '\"' ) ) {
 			return qfalse;
 		}
