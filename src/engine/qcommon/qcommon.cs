@@ -27,1035 +27,519 @@ using SprintfNET;
 
 //============================================================================
 public static class QCommon
-//
-// msg.c
-//
+{ 
+	//
+	// msg.c
+	//
 
-typedef struct {
-	bool	allowoverflow;	// if false, do a Com_Error
-	bool	overflowed;		// set to true if the buffer size failed (with allowoverflow set)
-	bool	oob;			// set to true if the buffer size failed (with allowoverflow set)
-	byte	*data;
-	int		maxsize;
-	int		cursize;
-	int		readcount;
-	int		bit;				// for bitwise reads and writes
-} msg_t;
+	public struct msg_t
+	{
+		bool	allowoverflow;	// if false, do a Com_Error
+		bool	overflowed;		// set to true if the buffer size failed (with allowoverflow set)
+		bool	oob;			// set to true if the buffer size failed (with allowoverflow set)
+		byte[]	data;
+		int		maxsize;
+		int		cursize;
+		int		readcount;
+		int		bit;				// for bitwise reads and writes
+	}
 
-void MSG_Init (msg_t *buf, byte *data, int length);
-void MSG_InitOOB( msg_t *buf, byte *data, int length );
-void MSG_Clear (msg_t *buf);
-void MSG_WriteData (msg_t *buf, const void *data, int length);
-void MSG_Bitstream( msg_t *buf );
+	/*
+	==============================================================
 
-// TTimo
-// copy a msg_t in case we need to store it as is for a bit
-// (as I needed this to keep an msg_t from a static var for later use)
-// sets data buffer as MSG_Init does prior to do the copy
-void MSG_Copy(msg_t *buf, byte *data, int length, msg_t *src);
+	NET
 
-struct usercmd_s;
-struct entityState_s;
-struct playerState_s;
+	==============================================================
+	*/
 
-void MSG_WriteBits( msg_t *msg, int value, int bits );
+	public const int PACKET_BACKUP = 32;// number of old messages that must be kept on client and
+	// server for delta comrpession and ping estimation
+	public const int PACKET_MASK = ( PACKET_BACKUP - 1 );
 
-void MSG_WriteChar (msg_t *sb, int c);
-void MSG_WriteByte (msg_t *sb, int c);
-void MSG_WriteShort (msg_t *sb, int c);
-void MSG_WriteLong (msg_t *sb, int c);
-void MSG_WriteFloat (msg_t *sb, float f);
-void MSG_WriteString (msg_t *sb, const char *s);
-void MSG_WriteBigString (msg_t *sb, const char *s);
-void MSG_WriteAngle16 (msg_t *sb, float f);
+	public const int MAX_PACKET_USERCMDS = 32;     // max number of usercmd_t in a packet
 
-void	MSG_BeginReading (msg_t *sb);
-void	MSG_BeginReadingOOB(msg_t *sb);
-
-int		MSG_ReadBits( msg_t *msg, int bits );
-
-int		MSG_ReadChar (msg_t *sb);
-int		MSG_ReadByte (msg_t *sb);
-int		MSG_ReadShort (msg_t *sb);
-int		MSG_ReadLong (msg_t *sb);
-float	MSG_ReadFloat (msg_t *sb);
-char	*MSG_ReadString (msg_t *sb);
-char	*MSG_ReadBigString (msg_t *sb);
-char	*MSG_ReadStringLine (msg_t *sb);
-float	MSG_ReadAngle16 (msg_t *sb);
-void	MSG_ReadData (msg_t *sb, void *buffer, int size);
-
-
-void MSG_WriteDeltaUsercmd( msg_t *msg, struct usercmd_s *from, struct usercmd_s *to );
-void MSG_ReadDeltaUsercmd( msg_t *msg, struct usercmd_s *from, struct usercmd_s *to );
-
-void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
-void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
-
-void MSG_WriteDeltaEntity( msg_t *msg, struct entityState_s *from, struct entityState_s *to
-						   , bool force );
-void MSG_ReadDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, 
-						 int number );
-
-void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct playerState_s *to );
-void MSG_ReadDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct playerState_s *to );
-
-
-void MSG_ReportChangeVectors_f( );
-
-//============================================================================
-
-/*
-==============================================================
-
-NET
-
-==============================================================
-*/
-
-public const int PACKET_BACKUP = 32;// number of old messages that must be kept on client and
-// server for delta comrpession and ping estimation
-public const int PACKET_MASK = ( PACKET_BACKUP - 1 );
-
-public const int MAX_PACKET_USERCMDS = 32;     // max number of usercmd_t in a packet
-
-public const int PORT_ANY = -1;
+	public const int PORT_ANY = -1;
 	
-public const int MAX_RELIABLE_COMMANDS = 64;		// max string commands buffered for restransmit
+	public const int MAX_RELIABLE_COMMANDS = 64;		// max string commands buffered for restransmit
 
-public enum netadrtype_t
-{
-	NA_BOT,
-	NA_BAD,					// an address lookup failed
-	NA_LOOPBACK,
-	NA_BROADCAST,
-	NA_IP,
-	NA_IPX,
-	NA_BROADCAST_IPX
-}
+	public enum netadrtype_t
+	{
+		NA_BOT,
+		NA_BAD,					// an address lookup failed
+		NA_LOOPBACK,
+		NA_BROADCAST,
+		NA_IP,
+		NA_IPX,
+		NA_BROADCAST_IPX
+	}
 
-public enum netsrc_t
-{
-	NS_CLIENT,
-	NS_SERVER
-}
+	public enum netsrc_t
+	{
+		NS_CLIENT,
+		NS_SERVER
+	}
 
-typedef struct {
-	netadrtype_t	type;
+	public struct netadr_t
+	{
+		netadrtype_t	type;
 
-	byte	ip[4];
-	byte	ipx[10];
+		byte	ip[4];
+		byte	ipx[10];
 
-	unsigned short	port;
-} netadr_t;
+		unsigned short	port;
+	}
 
-void		NET_Init( );
-void		NET_Shutdown( );
-void		NET_Restart( );
-void		NET_Config( bool enableNetworking );
+	public const int MAX_MSGLEN = 16384;    // max length of a message, which may
+											// be fragmented into multiple packets
 
-void		NET_SendPacket (netsrc_t sock, int length, const void *data, netadr_t to);
-void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, netadr_t adr, const char *format, ...);
-void		QDECL NET_OutOfBandData( netsrc_t sock, netadr_t adr, byte *format, int len );
-
-bool	NET_CompareAdr (netadr_t a, netadr_t b);
-bool	NET_CompareBaseAdr (netadr_t a, netadr_t b);
-bool	NET_IsLocalAddress (netadr_t adr);
-const char	*NET_AdrToString (netadr_t a);
-bool	NET_StringToAdr ( const char *s, netadr_t *a);
-bool	NET_GetLoopPacket (netsrc_t sock, netadr_t *net_from, msg_t *net_message);
-void		NET_Sleep(int msec);
-
-
-public const int MAX_MSGLEN = 16384;    // max length of a message, which may
-										// be fragmented into multiple packets
-
-public const int MAX_DOWNLOAD_WINDOW = 8;    // max of eight download frames
-public const int MAX_DOWNLOAD_BLKSIZE = 2048;	// 2048 byte block chunks
+	public const int MAX_DOWNLOAD_WINDOW = 8;    // max of eight download frames
+	public const int MAX_DOWNLOAD_BLKSIZE = 2048;	// 2048 byte block chunks
  
 
-/*
-Netchan handles packet fragmentation and out of order / duplicate suppression
-*/
-
-typedef struct {
-	netsrc_t	sock;
-
-	int			dropped;			// between last packet and previous
-
-	netadr_t	remoteAddress;
-	int			qport;				// qport value to write when transmitting
-
-	// sequencing variables
-	int			incomingSequence;
-	int			outgoingSequence;
-
-	// incoming fragment assembly buffer
-	int			fragmentSequence;
-	int			fragmentLength;	
-	byte		fragmentBuffer[MAX_MSGLEN];
-
-	// outgoing fragment buffer
-	// we need to space out the sending of large fragmented messages
-	bool	unsentFragments;
-	int			unsentFragmentStart;
-	int			unsentLength;
-	byte		unsentBuffer[MAX_MSGLEN];
-} netchan_t;
-
-void Netchan_Init( int qport );
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
-
-void Netchan_Transmit( netchan_t *chan, int length, const byte *data );
-void Netchan_TransmitNextFragment( netchan_t *chan );
-
-bool Netchan_Process( netchan_t *chan, msg_t *msg );
-
-
-/*
-==============================================================
-
-PROTOCOL
-
-==============================================================
-*/
-
-public const int PROTOCOL_VERSION = 68;
-// 1.31 - 67
-
-// maintain a list of compatible protocols for demo playing
-// NOTE: that stuff only works with two digits protocols
-public static int[] demo_protocols;
-
-public const string UPDATE_SERVER_NAME = "update.quake3arena.com";
-// override on command line, config files etc.
-# ifndef MASTER_SERVER_NAME
-public const string MASTER_SERVER_NAME = "master.quake3arena.com";
-#endif
-#ifndef AUTHORIZE_SERVER_NAME
-public const string AUTHORIZE_SERVER_NAME = "authorize.quake3arena.com";
-#endif
-
-public const int PORT_MASTER = 27950;
-public const int PORT_UPDATE = 27951;
-#ifndef PORT_AUTHORIZE
-public const int PORT_AUTHORIZE = 27952;
-#endif
-public const int PORT_SERVER = 27960;
-public const int NUM_SERVER_PORTS = 4;	// broadcast scan this many ports after
-// PORT_SERVER so a single machine can
-// run multiple servers
-
-
-// the svc_strings[] array in cl_parse.c should mirror this
-//
-// server to client
-//
-public enum svc_ops_e 
-{
-	svc_bad,
-	svc_nop,
-	svc_gamestate,
-	svc_configstring,			// [short] [string] only in gamestate messages
-	svc_baseline,				// only in gamestate messages
-	svc_serverCommand,			// [string] to be executed by client game module
-	svc_download,				// [short] size [size bytes]
-	svc_snapshot,
-	svc_EOF
-}
-
-
-//
-// client to server
-//
-public enum clc_ops_e 
-{
-	clc_bad,
-	clc_nop, 		
-	clc_move,				// [[usercmd_t]
-	clc_moveNoDelta,		// [[usercmd_t]
-	clc_clientCommand,		// [string] message
-	clc_EOF
-}
+	/*
+	Netchan handles packet fragmentation and out of order / duplicate suppression
+	*/
+
+	public struct netchan_t
+	{
+		netsrc_t	sock;
+
+		int			dropped;			// between last packet and previous
+
+		netadr_t	remoteAddress;
+		int			qport;				// qport value to write when transmitting
+
+		// sequencing variables
+		int			incomingSequence;
+		int			outgoingSequence;
+
+		// incoming fragment assembly buffer
+		int			fragmentSequence;
+		int			fragmentLength;	
+		byte		fragmentBuffer[MAX_MSGLEN];
+
+		// outgoing fragment buffer
+		// we need to space out the sending of large fragmented messages
+		bool	unsentFragments;
+		int			unsentFragmentStart;
+		int			unsentLength;
+		byte		unsentBuffer[MAX_MSGLEN];
+	}
+
+	/*
+	==============================================================
+
+	PROTOCOL
+
+	==============================================================
+	*/
+
+	public const int PROTOCOL_VERSION = 68;
+	// 1.31 - 67
+
+	// maintain a list of compatible protocols for demo playing
+	// NOTE: that stuff only works with two digits protocols
+	public static int[] demo_protocols;
+
+	public const string UPDATE_SERVER_NAME = "update.quake3arena.com";
+	// override on command line, config files etc.
+	#ifndef MASTER_SERVER_NAME
+	public const string MASTER_SERVER_NAME = "master.quake3arena.com";
+	#endif
+	#ifndef AUTHORIZE_SERVER_NAME
+	public const string AUTHORIZE_SERVER_NAME = "authorize.quake3arena.com";
+	#endif
+
+	public const int PORT_MASTER = 27950;
+	public const int PORT_UPDATE = 27951;
+	#ifndef PORT_AUTHORIZE
+	public const int PORT_AUTHORIZE = 27952;
+	#endif
+	public const int PORT_SERVER = 27960;
+	public const int NUM_SERVER_PORTS = 4;	// broadcast scan this many ports after
+	// PORT_SERVER so a single machine can
+	// run multiple servers
+
+
+	// the svc_strings[] array in cl_parse.c should mirror this
+	//
+	// server to client
+	//
+	public enum svc_ops_e 
+	{
+		svc_bad,
+		svc_nop,
+		svc_gamestate,
+		svc_configstring,			// [short] [string] only in gamestate messages
+		svc_baseline,				// only in gamestate messages
+		svc_serverCommand,			// [string] to be executed by client game module
+		svc_download,				// [short] size [size bytes]
+		svc_snapshot,
+		svc_EOF
+	}
+
+
+	//
+	// client to server
+	//
+	public enum clc_ops_e 
+	{
+		clc_bad,
+		clc_nop, 		
+		clc_move,				// [[usercmd_t]
+		clc_moveNoDelta,		// [[usercmd_t]
+		clc_clientCommand,		// [string] message
+		clc_EOF
+	}
+
+	/*
+	==============================================================
+
+	VIRTUAL MACHINE
 
-/*
-==============================================================
+	==============================================================
+	*/
 
-VIRTUAL MACHINE
+	typedef struct vm_s vm_t;
 
-==============================================================
-*/
+	public enum vmInterpret_t
+	{
+		VMI_NATIVE,
+		VMI_BYTECODE
+	}
 
-typedef struct vm_s vm_t;
+	public enum sharedTraps_t
+	{
+		TRAP_MEMSET = 100,
+		TRAP_MEMCPY,
+		TRAP_STRNCPY,
+		TRAP_SIN,
+		TRAP_COS,
+		TRAP_ATAN2,
+		TRAP_SQRT,
+		TRAP_MATRIXMULTIPLY,
+		TRAP_ANGLEVECTORS,
+		TRAP_PERPENDICULARVECTOR,
+		TRAP_FLOOR,
+		TRAP_CEIL,
 
-public enum vmInterpret_t
-{
-	VMI_NATIVE,
-	VMI_BYTECODE
-}
+		TRAP_TESTPRINTINT,
+		TRAP_TESTPRINTFLOAT
+	}
 
-public enum sharedTraps_t
-{
-	TRAP_MEMSET = 100,
-	TRAP_MEMCPY,
-	TRAP_STRNCPY,
-	TRAP_SIN,
-	TRAP_COS,
-	TRAP_ATAN2,
-	TRAP_SQRT,
-	TRAP_MATRIXMULTIPLY,
-	TRAP_ANGLEVECTORS,
-	TRAP_PERPENDICULARVECTOR,
-	TRAP_FLOOR,
-	TRAP_CEIL,
+	/*
+	==============================================================
 
-	TRAP_TESTPRINTINT,
-	TRAP_TESTPRINTFLOAT
-}
+	CMD
 
-void	VM_Init( );
-vm_t	*VM_Create( const char *module, intptr_t (*systemCalls)(intptr_t *), 
-				   vmInterpret_t interpret );
-// module should be bare: "cgame", not "cgame.dll" or "vm/cgame.qvm"
+	Command text buffering and command execution
 
-void	VM_Free( vm_t *vm );
-void	VM_Clear(void);
-vm_t	*VM_Restart( vm_t *vm );
+	==============================================================
+	*/
 
-intptr_t		QDECL VM_Call( vm_t *vm, int callNum, ... );
+	/*
 
-void	VM_Debug( int level );
+	Any number of commands can be added in a frame, from several different sources.
+	Most commands come from either keybindings or console line input, but entire text
+	files can be execed.
 
-void	*VM_ArgPtr( intptr_t intValue );
-void	*VM_ExplicitArgPtr( vm_t *vm, intptr_t intValue );
+	*/
 
+	//===========================================================================
 
-/*
-==============================================================
+	/*
 
-CMD
+	Command execution takes a null terminated string, breaks it into tokens,
+	then searches for a command or variable that matches the first token.
 
-Command text buffering and command execution
+	*/
 
-==============================================================
-*/
+	delegate void xcommand_t( );
 
-/*
 
-Any number of commands can be added in a frame, from several different sources.
-Most commands come from either keybindings or console line input, but entire text
-files can be execed.
+	/*
+	==============================================================
 
-*/
+	CVAR
 
-void Cbuf_Init (void);
-// allocates an initial text buffer that will grow as needed
+	==============================================================
+	*/
 
-void Cbuf_AddText( const char *text );
-// Adds command text at the end of the buffer, does NOT add a final \n
+	/*
 
-void Cbuf_ExecuteText( int exec_when, const char *text );
-// this can be used in place of either Cbuf_AddText or Cbuf_InsertText
+	cvar_t variables are used to hold scalar or string variables that can be changed
+	or displayed at the console or prog code as well as accessed directly
+	in C code.
 
-void Cbuf_Execute (void);
-// Pulls off \n terminated lines of text from the command buffer and sends
-// them through Cmd_ExecuteString.  Stops when the buffer is empty.
-// Normally called once per frame, but may be explicitly invoked.
-// Do not call inside a command function, or current args will be destroyed.
+	The user can access cvars from the console in three ways:
+	r_draworder			prints the current value
+	r_draworder 0		sets the current value to 0
+	set r_draworder 0	as above, but creates the cvar if not present
 
-//===========================================================================
+	Cvars are restricted from having the same names as commands to keep this
+	interface from being ambiguous.
 
-/*
+	The are also occasionally used to communicated information between different
+	modules of the program.
 
-Command execution takes a null terminated string, breaks it into tokens,
-then searches for a command or variable that matches the first token.
+	*/
 
-*/
+	public static	int			cvar_modifiedFlags;
+	// whenever a cvar is modifed, its flags will be OR'd into this, so
+	// a single check can determine if any CVAR_USERINFO, CVAR_SERVERINFO,
+	// etc, variables have been modified since the last check.  The bit
+	// can then be cleared to allow another change detection.
 
-delegate void xcommand_t( );
+	/*
+	==============================================================
 
-void	Cmd_Init (void);
+	FILESYSTEM
 
-void	Cmd_AddCommand( const char *cmd_name, xcommand_t function );
-// called by the init functions of other parts of the program to
-// register commands and functions to call for them.
-// The cmd_name is referenced later, so it should not be in temp memory
-// if function is NULL, the command will be forwarded to the server
-// as a clc_clientCommand instead of executed locally
+	No stdio calls should be used by any part of the game, because
+	we need to deal with all sorts of directory and seperator char
+	issues.
+	==============================================================
+	*/
 
-void	Cmd_RemoveCommand( const char *cmd_name );
+	// referenced flags
+	// these are in loop specific order so don't change the order
+	public const int FS_GENERAL_REF = 0x01;
+	public const int FS_UI_REF = 0x02;
+	public const int FS_CGAME_REF = 0x04;
+	public const int FS_QAGAME_REF = 0x08;
+	// number of id paks that will never be autodownloaded from baseq3
+	public const int NUM_ID_PAKS = 9;
 
-void	Cmd_CommandCompletion( void(*callback)(const char *s) );
-// callback with each valid string
+	public const int MAX_FILE_HANDLES = 64;
 
-int		Cmd_Argc (void);
-char	*Cmd_Argv (int arg);
-void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
-char	*Cmd_Args (void);
-char	*Cmd_ArgsFrom( int arg );
-void	Cmd_ArgsBuffer( char *buffer, int bufferLength );
-char	*Cmd_Cmd (void);
-// The functions that execute commands get their parameters with these
-// functions. Cmd_Argv () will return an empty string, not a NULL
-// if arg > argc, so string operations are allways safe.
+	public const string BASEGAME = "baseq3";
 
-void	Cmd_TokenizeString( const char *text );
-// Takes a null terminated string.  Does not need to be /n terminated.
-// breaks the string up into arg tokens.
+	/*
+	==============================================================
 
-void	Cmd_ExecuteString( const char *text );
-// Parses a single line of text into arguments and tries to execute it
-// as if it was typed at the console
+	Edit fields and command line history/completion
 
+	==============================================================
+	*/
 
-/*
-==============================================================
+	public const int MAX_EDIT_LINE = 256;
+	public struct field_t
+	{
+		int		cursor;
+		int		scroll;
+		int		widthInChars;
+		char	buffer[MAX_EDIT_LINE];
+	}
 
-CVAR
+	/*
+	==============================================================
 
-==============================================================
-*/
+	MISC
 
-/*
+	==============================================================
+	*/
 
-cvar_t variables are used to hold scalar or string variables that can be changed
-or displayed at the console or prog code as well as accessed directly
-in C code.
+	public string Q_vsnprintf( string fmt, params object[] parameters )
+	{
+		return StringFormatter.PrintF( fmt, parameters );
+	}
 
-The user can access cvars from the console in three ways:
-r_draworder			prints the current value
-r_draworder 0		sets the current value to 0
-set r_draworder 0	as above, but creates the cvar if not present
+	// centralizing the declarations for cl_cdkey
+	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=470
+	public static string cl_cdkey;//[34];
 
-Cvars are restricted from having the same names as commands to keep this
-interface from being ambiguous.
+	// returnbed by Sys_GetProcessorId
+	public const int CPUID_GENERIC = 0;        // any unrecognized processor
 
-The are also occasionally used to communicated information between different
-modules of the program.
+	// TTimo
+	// centralized and cleaned, that's the max string you can send to a Com_Printf / Com_DPrintf (above gets truncated)
+	public const int MAXPRINTMSG =	4096;
 
-*/
+	public static cvar_t	com_developer;
+	public static cvar_t	com_dedicated;
+	public static cvar_t	com_speeds;
+	public static cvar_t	com_timescale;
+	public static cvar_t	com_sv_running;
+	public static cvar_t	com_cl_running;
+	public static cvar_t	com_viewlog;           // 0 = hidden, 1 = visible, 2 = minimized
+	public static cvar_t	com_version;
+	public static cvar_t	com_blood;
+	public static cvar_t	com_buildScript;       // for building release pak files
+	public static cvar_t	com_journal;
+	public static cvar_t	com_cameraMode;
 
-cvar_t Cvar_Get( const char *var_name, const char *value, int flags );
-// creates the variable if it doesn't exist, or returns the existing one
-// if it exists, the value will not be changed, but flags will be ORed in
-// that allows variables to be unarchived without needing bitflags
-// if value is "", the value will not override a previously set value.
+	// both client and server must agree to pause
+	public static cvar_t	cl_paused;
+	public static cvar_t	sv_paused;
 
-void	Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
-// basically a slightly modified Cvar_Get for the interpreted modules
+	// com_speeds times
+	public static int		time_game;
+	public static int		time_frontend;
+	public static int		time_backend;       // renderer backend time
 
-void	Cvar_Update( vmCvar_t *vmCvar );
-// updates an interpreted modules' version of a cvar
-
-void 	Cvar_Set( const char *var_name, const char *value );
-// will create the variable with no flags if it doesn't exist
-
-void Cvar_SetLatched( const char *var_name, const char *value);
-// don't set the cvar immediately
-
-void	Cvar_SetValue( const char *var_name, float value );
-// expands value to a string and calls Cvar_Set
-
-float	Cvar_VariableValue( const char *var_name );
-int		Cvar_VariableIntegerValue( const char *var_name );
-// returns 0 if not defined or non numeric
-
-char	*Cvar_VariableString( const char *var_name );
-void	Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize );
-// returns an empty string if not defined
-
-void	Cvar_CommandCompletion( void(*callback)(const char *s) );
-// callback with each valid string
-
-void 	Cvar_Reset( const char *var_name );
-
-void	Cvar_SetCheatState( );
-// reset all testing vars to a safe value
-
-bool Cvar_Command( );
-// called by Cmd_ExecuteString when Cmd_Argv(0) doesn't match a known
-// command.  Returns true if the command was a variable reference that
-// was handled. (print or change)
-
-void 	Cvar_WriteVariables( fileHandle_t f );
-// writes lines containing "set variable value" for all variables
-// with the archive flag set to true.
-
-void	Cvar_Init( );
-
-char	*Cvar_InfoString( int bit );
-char	*Cvar_InfoString_Big( int bit );
-// returns an info string containing all the cvars that have the given bit set
-// in their flags ( CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, etc )
-void	Cvar_InfoStringBuffer( int bit, char *buff, int buffsize );
-
-void	Cvar_Restart_f( );
-
-public static	int			cvar_modifiedFlags;
-// whenever a cvar is modifed, its flags will be OR'd into this, so
-// a single check can determine if any CVAR_USERINFO, CVAR_SERVERINFO,
-// etc, variables have been modified since the last check.  The bit
-// can then be cleared to allow another change detection.
-
-/*
-==============================================================
-
-FILESYSTEM
-
-No stdio calls should be used by any part of the game, because
-we need to deal with all sorts of directory and seperator char
-issues.
-==============================================================
-*/
-
-// referenced flags
-// these are in loop specific order so don't change the order
-public const int FS_GENERAL_REF = 0x01;
-public const int FS_UI_REF = 0x02;
-public const int FS_CGAME_REF = 0x04;
-public const int FS_QAGAME_REF = 0x08;
-// number of id paks that will never be autodownloaded from baseq3
-public const int NUM_ID_PAKS = 9;
-
-public const int MAX_FILE_HANDLES = 64;
-
-public const string BASEGAME = "baseq3";
-
-bool FS_Initialized();
-
-void	FS_InitFilesystem (void);
-void	FS_Shutdown( bool closemfp );
-
-bool	FS_ConditionalRestart( int checksumFeed );
-void	FS_Restart( int checksumFeed );
-// shutdown and restart the filesystem so changes to fs_gamedir can take effect
-
-char	**FS_ListFiles( const char *directory, const char *extension, int *numfiles );
-// directory should not have either a leading or trailing /
-// if extension is "/", only subdirectories will be returned
-// the returned files will not include any directories or /
-
-void	FS_FreeFileList( char **list );
-
-bool FS_FileExists( const char *file );
-
-int		FS_LoadStack();
-
-int		FS_GetFileList(  const char *path, const char *extension, char *listbuf, int bufsize );
-int		FS_GetModList(  char *listbuf, int bufsize );
-
-fileHandle_t	FS_FOpenFileWrite( const char *qpath );
-// will properly create any needed paths and deal with seperater character issues
-
-int		FS_filelength( fileHandle_t f );
-fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
-int		FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp );
-void	FS_SV_Rename( const char *from, const char *to );
-int		FS_FOpenFileRead( const char *qpath, fileHandle_t *file, bool uniqueFILE );
-// if uniqueFILE is true, then a new FILE will be fopened even if the file
-// is found in an already open pak file.  If uniqueFILE is false, you must call
-// FS_FCloseFile instead of fclose, otherwise the pak FILE would be improperly closed
-// It is generally safe to always set uniqueFILE to true, because the majority of
-// file IO goes through FS_ReadFile, which Does The Right Thing already.
-
-int		FS_FileIsInPAK(const char *filename, int *pChecksum );
-// returns 1 if a file is in the PAK file, otherwise -1
-
-int		FS_Write( const void *buffer, int len, fileHandle_t f );
-
-int		FS_Read2( void *buffer, int len, fileHandle_t f );
-int		FS_Read( void *buffer, int len, fileHandle_t f );
-// properly handles partial reads and reads from other dlls
-
-void	FS_FCloseFile( fileHandle_t f );
-// note: you can't just fclose from another DLL, due to MS libc issues
-
-int		FS_ReadFile( const char *qpath, void **buffer );
-// returns the length of the file
-// a null buffer will just return the file length without loading
-// as a quick check for existance. -1 length == not present
-// A 0 byte will always be appended at the end, so string ops are safe.
-// the buffer should be considered read-only, because it may be cached
-// for other uses.
-
-void	FS_ForceFlush( fileHandle_t f );
-// forces flush on files we're writing to.
-
-void	FS_FreeFile( void *buffer );
-// frees the memory returned by FS_ReadFile
-
-void	FS_WriteFile( const char *qpath, const void *buffer, int size );
-// writes a complete file, creating any subdirectories needed
-
-int		FS_filelength( fileHandle_t f );
-// doesn't work for files that are opened from a pack file
-
-int		FS_FTell( fileHandle_t f );
-// where are we?
-
-void	FS_Flush( fileHandle_t f );
-
-void 	QDECL FS_Printf( fileHandle_t f, const char *fmt, ... );
-// like fprintf
-
-int		FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode );
-// opens a file for reading, writing, or appending depending on the value of mode
-
-int		FS_Seek( fileHandle_t f, long offset, int origin );
-// seek on a file (doesn't work for zip files!!!!!!!!)
-
-bool FS_FilenameCompare( const char *s1, const char *s2 );
-
-const char *FS_GamePureChecksum( );
-// Returns the checksum of the pk3 from which the server loaded the qagame.qvm
-
-const char *FS_LoadedPakNames( );
-const char *FS_LoadedPakChecksums( );
-const char *FS_LoadedPakPureChecksums( );
-// Returns a space separated string containing the checksums of all loaded pk3 files.
-// Servers with sv_pure set will get this string and pass it to clients.
-
-const char *FS_ReferencedPakNames( );
-const char *FS_ReferencedPakChecksums( );
-const char *FS_ReferencedPakPureChecksums( );
-// Returns a space separated string containing the checksums of all loaded 
-// AND referenced pk3 files. Servers with sv_pure set will get this string 
-// back from clients for pure validation 
-
-void FS_ClearPakReferences( int flags );
-// clears referenced booleans on loaded pk3s
-
-void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames );
-void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames );
-// If the string is empty, all data sources will be allowed.
-// If not empty, only pk3 files that match one of the space
-// separated checksums will be checked for files, with the
-// sole exception of .cfg files.
-
-bool FS_idPak( char *pak, char *base );
-bool FS_ComparePaks( char *neededpaks, int len, bool dlstring );
-
-void FS_Rename( const char *from, const char *to );
-
-/*
-==============================================================
-
-Edit fields and command line history/completion
-
-==============================================================
-*/
-
-public const int MAX_EDIT_LINE = 256;
-typedef struct {
-	int		cursor;
-	int		scroll;
-	int		widthInChars;
-	char	buffer[MAX_EDIT_LINE];
-} field_t;
-
-void Field_Clear( field_t *edit );
-void Field_CompleteCommand( field_t *edit );
-
-/*
-==============================================================
-
-MISC
-
-==============================================================
-*/
-
-public string Q_vsnprintf( string fmt, params object[] parameters )
-{
-	return StringFormatter.PrintF( fmt, parameters );
-}
-
-// centralizing the declarations for cl_cdkey
-// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=470
-public static string cl_cdkey;//[34];
-
-// returnbed by Sys_GetProcessorId
-public const int CPUID_GENERIC = 0;        // any unrecognized processor
-
-// TTimo
-// centralized and cleaned, that's the max string you can send to a Com_Printf / Com_DPrintf (above gets truncated)
-public const int MAXPRINTMSG =	4096;
-
-char		*CopyString( const char *in );
-void		Info_Print( const char *s );
-
-void		Com_BeginRedirect (char *buffer, int buffersize, void (*flush)(char *));
-void		Com_EndRedirect( );
-void 		QDECL Com_Printf( const char *fmt, ... );
-void 		QDECL Com_DPrintf( const char *fmt, ... );
-void 		QDECL Com_Error( int code, const char *fmt, ... );
-void 		Com_Quit_f( );
-int			Com_EventLoop( );
-int			Com_Milliseconds( );	// will be journaled properly
-unsigned	Com_BlockChecksum( const void *buffer, int length );
-unsigned	Com_BlockChecksumKey (void *buffer, int length, int key);
-int			Com_HashKey(char *string, int maxlen);
-int			Com_Filter(char *filter, char *name, int casesensitive);
-int			Com_FilterPath(char *filter, char *name, int casesensitive);
-int			Com_RealTime(qtime_t *qtime);
-bool	Com_SafeMode( );
-
-void		Com_StartupVariable( const char *match );
-// checks for and removes command line "+set var arg" constructs
-// if match is NULL, all set commands will be executed, otherwise
-// only a set with the exact name.  Only used during startup.
-
-
-public static cvar_t	com_developer;
-public static cvar_t	com_dedicated;
-public static cvar_t	com_speeds;
-public static cvar_t	com_timescale;
-public static cvar_t	com_sv_running;
-public static cvar_t	com_cl_running;
-public static cvar_t	com_viewlog;           // 0 = hidden, 1 = visible, 2 = minimized
-public static cvar_t	com_version;
-public static cvar_t	com_blood;
-public static cvar_t	com_buildScript;       // for building release pak files
-public static cvar_t	com_journal;
-public static cvar_t	com_cameraMode;
-
-// both client and server must agree to pause
-public static cvar_t	cl_paused;
-public static cvar_t	sv_paused;
-
-// com_speeds times
-public static int		time_game;
-public static int		time_frontend;
-public static int		time_backend;       // renderer backend time
-
-public static int		com_frameTime;
-public static int		com_frameMsec;
-
-public static bool	com_errorEntered;
-
-public static fileHandle_t	com_journalFile;
-public static fileHandle_t	com_journalDataFile;
-
-public enum memtag_t
-{
-	TAG_FREE,
-	TAG_GENERAL,
-	TAG_BOTLIB,
-	TAG_RENDERER,
-	TAG_SMALL,
-	TAG_STATIC
-}
-
-/*
-
---- low memory ----
-server vm
-server clipmap
----mark---
-renderer initialization (shaders, etc)
-UI vm
-cgame vm
-renderer map
-renderer models
-
----free---
-
-temp file loading
---- high memory ---
-
-*/
-
-#if defined(_DEBUG) && !defined(BSPC)
-	#define ZONE_DEBUG
-#endif
-
-#ifdef ZONE_DEBUG
-#define Z_TagMalloc(size, tag)			Z_TagMallocDebug(size, tag, #size, __FILE__, __LINE__)
-#define Z_Malloc(size)					Z_MallocDebug(size, #size, __FILE__, __LINE__)
-#define S_Malloc(size)					S_MallocDebug(size, #size, __FILE__, __LINE__)
-void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line );	// NOT 0 filled memory
-void *Z_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
-void *S_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
-#else
-void *Z_TagMalloc( int size, int tag );	// NOT 0 filled memory
-void *Z_Malloc( int size );			// returns 0 filled memory
-void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
-#endif
-void Z_Free( void *ptr );
-void Z_FreeTags( int tag );
-int Z_AvailableMemory( );
-void Z_LogHeap( );
-
-void Hunk_Clear( );
-void Hunk_ClearToMark( );
-void Hunk_SetMark( );
-bool Hunk_CheckMark( );
-void Hunk_ClearTempMemory( );
-void *Hunk_AllocateTempMemory( int size );
-void Hunk_FreeTempMemory( void *buf );
-int	Hunk_MemoryRemaining( );
-void Hunk_Log( void);
-void Hunk_Trash( );
-
-void Com_TouchMemory( );
-
-// commandLine should not include the executable name (argv[0])
-void Com_Init( char *commandLine );
-void Com_Frame( );
-void Com_Shutdown( );
-
-
-/*
-==============================================================
-
-CLIENT / SERVER SYSTEMS
-
-==============================================================
-*/
-
-//
-// client interface
-//
-void CL_InitKeyCommands( );
-// the keyboard binding interface must be setup before execing
-// config files, but the rest of client startup will happen later
-
-void CL_Init( );
-void CL_Disconnect( bool showMainMenu );
-void CL_Shutdown( );
-void CL_Frame( int msec );
-bool CL_GameCommand( );
-void CL_KeyEvent (int key, bool down, unsigned time);
-
-void CL_CharEvent( int key );
-// char events are for field typing, not game control
-
-void CL_MouseEvent( int dx, int dy, int time );
-
-void CL_JoystickEvent( int axis, int value, int time );
-
-void CL_PacketEvent( netadr_t from, msg_t *msg );
-
-void CL_ConsolePrint( char *text );
-
-void CL_MapLoading( );
-// do a screen update before starting to load a map
-// when the server is going to load a new map, the entire hunk
-// will be cleared, so the client must shutdown cgame, ui, and
-// the renderer
-
-void	CL_ForwardCommandToServer( const char *string );
-// adds the current command line as a clc_clientCommand to the client message.
-// things like godmode, noclip, etc, are commands directed to the server,
-// so when they are typed in at the console, they will need to be forwarded.
-
-void CL_CDDialog( );
-// bring up the "need a cd to play" dialog
-
-void CL_ShutdownAll( );
-// shutdown all the client stuff
-
-void CL_FlushMemory( );
-// dump all memory on an error
-
-void CL_StartHunkUsers( );
-// start all the client stuff using the hunk
-
-void Key_WriteBindings( fileHandle_t f );
-// for writing the config files
-
-void S_ClearSoundBuffer( );
-// call before filesystem access
-
-void SCR_DebugGraph (float value, int color);	// FIXME: move logging to common?
-
-
-//
-// server interface
-//
-void SV_Init( );
-void SV_Shutdown( char *finalmsg );
-void SV_Frame( int msec );
-void SV_PacketEvent( netadr_t from, msg_t *msg );
-bool SV_GameCommand( );
-
-
-//
-// UI interface
-//
-bool UI_GameCommand( );
-bool UI_usesUniqueCDKey();
-
-/*
-==============================================================
-
-NON-PORTABLE SYSTEM SERVICES
-
-==============================================================
-*/
-
-public enum joystickAxis_t
-{
-	AXIS_SIDE,
-	AXIS_FORWARD,
-	AXIS_UP,
-	AXIS_ROLL,
-	AXIS_YAW,
-	AXIS_PITCH,
-	MAX_JOYSTICK_AXIS
-}
-
-public enumsysEventType_t
-{
-  // bk001129 - make sure SE_NONE is zero
-	SE_NONE = 0,	// evTime is still valid
-	SE_KEY,		// evValue is a key code, evValue2 is the down flag
-	SE_CHAR,	// evValue is an ascii char
-	SE_MOUSE,	// evValue and evValue2 are reletive signed x / y moves
-	SE_JOYSTICK_AXIS,	// evValue is an axis number and evValue2 is the current state (-127 to 127)
-	SE_CONSOLE,	// evPtr is a char*
-	SE_PACKET	// evPtr is a netadr_t followed by data bytes to evPtrLength
-}
-
-typedef struct {
-	int				evTime;
-	sysEventType_t	evType;
-	int				evValue, evValue2;
-	int				evPtrLength;	// bytes of data pointed to by evPtr, for journaling
-	void			*evPtr;			// this must be manually freed if not NULL
-} sysEvent_t;
-
-sysEvent_t	Sys_GetEvent( );
-
-void	Sys_Init (void);
-
-// general development dll loading for virtual machine testing
-// fqpath param added 7/20/02 by T.Ray - Sys_LoadDll is only called in vm.c at this time
-void	* QDECL Sys_LoadDll( const char *name, char *fqpath , intptr_t (QDECL **entryPoint)(int, ...),
-				  intptr_t (QDECL *systemcalls)(intptr_t, ...) );
-void	Sys_UnloadDll( void *dllHandle );
-
-void	Sys_UnloadGame( );
-void	*Sys_GetGameAPI( void *parms );
-
-void	Sys_UnloadCGame( );
-void	*Sys_GetCGameAPI( );
-
-void	Sys_UnloadUI( );
-void	*Sys_GetUIAPI( );
-
-//bot libraries
-void	Sys_UnloadBotLib( );
-void	*Sys_GetBotLibAPI( void *parms );
-
-char	*Sys_GetCurrentUser( );
-
-void	QDECL Sys_Error( const char *error, ...);
-void	Sys_Quit (void);
-char	*Sys_GetClipboardData( );	// note that this isn't journaled...
-
-void	Sys_Print( const char *msg );
-
-// Sys_Milliseconds should only be used for profiling purposes,
-// any game related timing information should come from event timestamps
-int		Sys_Milliseconds (void);
-
-void	Sys_SnapVector( float *v );
-
-// the system console is shown when a dedicated server is running
-void	Sys_DisplaySystemConsole( bool show );
-
-int		Sys_GetProcessorId( );
-
-void	Sys_BeginStreamedFile( fileHandle_t f, int readahead );
-void	Sys_EndStreamedFile( fileHandle_t f );
-int		Sys_StreamedRead( void *buffer, int size, int count, fileHandle_t f );
-void	Sys_StreamSeek( fileHandle_t f, int offset, int origin );
-
-void	Sys_ShowConsole( int level, bool quitOnClose );
-void	Sys_SetErrorText( const char *text );
-
-void	Sys_SendPacket( int length, const void *data, netadr_t to );
-
-bool	Sys_StringToAdr( const char *s, netadr_t *a );
-//Does NOT parse port numbers, only base addresses.
-
-bool	Sys_IsLANAddress (netadr_t adr);
-void		Sys_ShowIP(void);
-
-bool	Sys_CheckCD( );
-
-void	Sys_Mkdir( const char *path );
-char	*Sys_Cwd( );
-void	Sys_SetDefaultCDPath(const char *path);
-char	*Sys_DefaultCDPath(void);
-void	Sys_SetDefaultInstallPath(const char *path);
-char	*Sys_DefaultInstallPath(void);
-void  Sys_SetDefaultHomePath(const char *path);
-char	*Sys_DefaultHomePath(void);
-
-char **Sys_ListFiles( const char *directory, const char *extension, char *filter, int *numfiles, bool wantsubs );
-void	Sys_FreeFileList( char **list );
-
-void	Sys_BeginProfiling( );
-void	Sys_EndProfiling( );
-
-bool Sys_LowPhysicalMemory();
-unsigned int Sys_ProcessorCount();
-
-int Sys_MonkeyShouldBeSpanked( );
-
-/* This is based on the Adaptive Huffman algorithm described in Sayood's Data
- * Compression book.  The ranks are not actually stored, but implicitly defined
- * by the location of a node within a doubly-linked list */
-
-public const int NYT HMAX;                   /* NYT = Not Yet Transmitted */
-public const int INTERNAL_NODE (HMAX + 1);
-
-typedef struct nodetype {
-	struct	nodetype *left, *right, *parent; /* tree structure */ 
-	struct	nodetype *next, *prev; /* doubly-linked list */
-	struct	nodetype **head; /* highest ranked node in block */
-	int		weight;
-	int		symbol;
-} node_t;
-
-public const int HMAX = 256; /* Maximum symbol */
-
-typedef struct {
-	int			blocNode;
-	int			blocPtrs;
-
-	node_t*		tree;
-	node_t*		lhead;
-	node_t*		ltail;
-	node_t*		loc[HMAX+1];
-	node_t**	freelist;
-
-	node_t		nodeList[768];
-	node_t*		nodePtrs[768];
-} huff_t;
-
-public struct huffman_t
-{
-	huff_t		compressor;
-	huff_t		decompressor;
-}
-
-void	Huff_Compress(msg_t *buf, int offset);
-void	Huff_Decompress(msg_t *buf, int offset);
-void	Huff_Init(huffman_t *huff);
-void	Huff_addRef(huff_t* huff, byte ch);
-int		Huff_Receive (node_t *node, int *ch, byte *fin);
-void	Huff_transmit (huff_t *huff, int ch, byte *fout);
-void	Huff_offsetReceive (node_t *node, int *ch, byte *fin, int *offset);
-void	Huff_offsetTransmit (huff_t *huff, int ch, byte *fout, int *offset);
-void	Huff_putBit( int bit, byte *fout, int *offset);
-int		Huff_getBit( byte *fout, int *offset);
-
-public static huffman_t clientHuffTables;
-
-public const int SV_ENCODE_START = 4;
-public const int SV_DECODE_START = 12;
-public const int CL_ENCODE_START = 12;
-public const int CL_DECODE_START = 4;
+	public static int		com_frameTime;
+	public static int		com_frameMsec;
+
+	public static bool	com_errorEntered;
+
+	public static fileHandle_t	com_journalFile;
+	public static fileHandle_t	com_journalDataFile;
+
+	public enum memtag_t
+	{
+		TAG_FREE,
+		TAG_GENERAL,
+		TAG_BOTLIB,
+		TAG_RENDERER,
+		TAG_SMALL,
+		TAG_STATIC
+	}
+
+	/*
+
+	--- low memory ----
+	server vm
+	server clipmap
+	---mark---
+	renderer initialization (shaders, etc)
+	UI vm
+	cgame vm
+	renderer map
+	renderer models
+
+	---free---
+
+	temp file loading
+	--- high memory ---
+
+	*/
+
+	#if defined(_DEBUG) && !defined(BSPC)
+		#define ZONE_DEBUG
+	#endif
+
+	#ifdef ZONE_DEBUG
+	#define Z_TagMalloc(size, tag)			Z_TagMallocDebug(size, tag, #size, __FILE__, __LINE__)
+	#define Z_Malloc(size)					Z_MallocDebug(size, #size, __FILE__, __LINE__)
+	#define S_Malloc(size)					S_MallocDebug(size, #size, __FILE__, __LINE__)
+	void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line );	// NOT 0 filled memory
+	void *Z_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
+	void *S_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
+	#else
+	void *Z_TagMalloc( int size, int tag );	// NOT 0 filled memory
+	void *Z_Malloc( int size );			// returns 0 filled memory
+	void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
+	#endif
+
+
+	/*
+	==============================================================
+
+	CLIENT / SERVER SYSTEMS
+
+	==============================================================
+	*/
+
+	//
+	// client interface
+	//	
+
+	/*
+	==============================================================
+
+	NON-PORTABLE SYSTEM SERVICES
+
+	==============================================================
+	*/
+
+	public enum joystickAxis_t
+	{
+		AXIS_SIDE,
+		AXIS_FORWARD,
+		AXIS_UP,
+		AXIS_ROLL,
+		AXIS_YAW,
+		AXIS_PITCH,
+		MAX_JOYSTICK_AXIS
+	}
+
+	public enum sysEventType_t
+	{
+	  // bk001129 - make sure SE_NONE is zero
+		SE_NONE = 0,	// evTime is still valid
+		SE_KEY,		// evValue is a key code, evValue2 is the down flag
+		SE_CHAR,	// evValue is an ascii char
+		SE_MOUSE,	// evValue and evValue2 are reletive signed x / y moves
+		SE_JOYSTICK_AXIS,	// evValue is an axis number and evValue2 is the current state (-127 to 127)
+		SE_CONSOLE,	// evPtr is a char*
+		SE_PACKET	// evPtr is a netadr_t followed by data bytes to evPtrLength
+	}
+
+	public struct sysEvent_t
+	{
+		int				evTime;
+		sysEventType_t	evType;
+		int				evValue, evValue2;
+		int				evPtrLength;	// bytes of data pointed to by evPtr, for journaling
+		void			*evPtr;			// this must be manually freed if not NULL
+	}
+
+	/* This is based on the Adaptive Huffman algorithm described in Sayood's Data
+	 * Compression book.  The ranks are not actually stored, but implicitly defined
+	 * by the location of a node within a doubly-linked list */
+
+	public const int NYT HMAX;                   /* NYT = Not Yet Transmitted */
+	public const int INTERNAL_NODE (HMAX + 1);
+
+	// Changed to class as it has references
+	public class node_t
+	{
+		node_t left, right, parent; /* tree structure */ 
+		node_t next, prev; /* doubly-linked list */
+		node_t head; /* highest ranked node in block */
+		int		weight;
+		int		symbol;
+	};
+
+	public const int HMAX = 256; /* Maximum symbol */
+
+	// Changed to class as it has references
+	public class huff_t
+	{
+		int			blocNode;
+		int			blocPtrs;
+
+		node_t*		tree;
+		node_t*		lhead;
+		node_t*		ltail;
+		node_t*		loc[HMAX+1];
+		node_t**	freelist;
+
+		node_t		nodeList[768];
+		node_t*		nodePtrs[768];
+	};
+
+	public struct huffman_t
+	{
+		huff_t		compressor;
+		huff_t		decompressor;
+	}
+
+	void	Huff_Compress(msg_t *buf, int offset);
+	void	Huff_Decompress(msg_t *buf, int offset);
+	void	Huff_Init(huffman_t *huff);
+	void	Huff_addRef(huff_t* huff, byte ch);
+	int		Huff_Receive (node_t *node, int *ch, byte *fin);
+	void	Huff_transmit (huff_t *huff, int ch, byte *fout);
+	void	Huff_offsetReceive (node_t *node, int *ch, byte *fin, int *offset);
+	void	Huff_offsetTransmit (huff_t *huff, int ch, byte *fout, int *offset);
+	void	Huff_putBit( int bit, byte *fout, int *offset);
+	int		Huff_getBit( byte *fout, int *offset);
+
+	public static huffman_t clientHuffTables;
+
+	public const int SV_ENCODE_START = 4;
+	public const int SV_DECODE_START = 12;
+	public const int CL_ENCODE_START = 12;
+	public const int CL_DECODE_START = 4;
 }
