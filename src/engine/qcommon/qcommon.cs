@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // qcommon.h -- definitions common between client and server, but not game.or ref modules
 
 using SprintfNET;
+using System.Runtime.InteropServices;
 
 //#define	PRE_RELEASE_DEMO
 
@@ -83,10 +84,13 @@ public static class QCommon
 	{
 		netadrtype_t	type;
 
-		byte	ip[4];
-		byte	ipx[10];
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 4)]
+		byte[]	ip;
 
-		unsigned short	port;
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 10 )]
+		byte[]	ipx;
+
+		ushort port;
 	}
 
 	public const int MAX_MSGLEN = 16384;    // max length of a message, which may
@@ -115,15 +119,18 @@ public static class QCommon
 
 		// incoming fragment assembly buffer
 		int			fragmentSequence;
-		int			fragmentLength;	
-		byte		fragmentBuffer[MAX_MSGLEN];
+		int			fragmentLength;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_MSGLEN )]
+		byte[]		fragmentBuffer;
 
 		// outgoing fragment buffer
 		// we need to space out the sending of large fragmented messages
 		bool	unsentFragments;
 		int			unsentFragmentStart;
 		int			unsentLength;
-		byte		unsentBuffer[MAX_MSGLEN];
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_MSGLEN )]
+		byte[]		unsentBuffer;
 	}
 
 	/*
@@ -328,7 +335,8 @@ public static class QCommon
 		int		cursor;
 		int		scroll;
 		int		widthInChars;
-		char	buffer[MAX_EDIT_LINE];
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_EDIT_LINE )]
+		char[]	buffer;
 	}
 
 	/*
@@ -339,7 +347,7 @@ public static class QCommon
 	==============================================================
 	*/
 
-	public string Q_vsnprintf( string fmt, params object[] parameters )
+	public static string Q_vsnprintf( string fmt, params object[] parameters )
 	{
 		return StringFormatter.PrintF( fmt, parameters );
 	}
@@ -422,13 +430,6 @@ public static class QCommon
 	#define Z_TagMalloc(size, tag)			Z_TagMallocDebug(size, tag, #size, __FILE__, __LINE__)
 	#define Z_Malloc(size)					Z_MallocDebug(size, #size, __FILE__, __LINE__)
 	#define S_Malloc(size)					S_MallocDebug(size, #size, __FILE__, __LINE__)
-	void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line );	// NOT 0 filled memory
-	void *Z_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
-	void *S_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
-	#else
-	void *Z_TagMalloc( int size, int tag );	// NOT 0 filled memory
-	void *Z_Malloc( int size );			// returns 0 filled memory
-	void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
 	#endif
 
 
@@ -489,7 +490,7 @@ public static class QCommon
 	 * by the location of a node within a doubly-linked list */
 
 	public const int NYT HMAX;                   /* NYT = Not Yet Transmitted */
-	public const int INTERNAL_NODE (HMAX + 1);
+	public const int INTERNAL_NODE = (HMAX + 1);
 
 	// Changed to class as it has references
 	public class node_t

@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
-using System;
 
 //======================= WIN32 DEFINES =================================
 #define MAC_STATIC
@@ -41,6 +40,8 @@ using System;
 #define HUNK_DEBUG
 #endif
 #endif
+
+using System;
 
 public static class QShared
 { 
@@ -71,22 +72,28 @@ public static class QShared
 
 	private const string CPUSTRING = "generic";
 
-	static short BigShort( short l ) { return ShortSwap( l ); }
-	static int BigLong( int l ) { LongSwap( l ); }
-	static float BigFloat(const float* l ) { FloatSwap( l ); }
+	public static short BigShort( short l ) 
+	{
+		return ShortSwap( l ); 
+	}
+
+	public static int BigLong( int l ) 
+	{ 
+		LongSwap( l ); 
+	}
+
+	public static float BigFloat(const float* l )
+	{
+		return FloatSwap( l ); 
+	}
 
 
 	public const char PATH_SEP = '\\';
 
-	typedef unsigned char 		byte;
-
-	typedef enum { qfalse, qtrue }
-	bool;
-
-	typedef int qhandle_t;
-	typedef int sfxHandle_t;
-	typedef int fileHandle_t;
-	typedef int clipHandle_t;
+	//typedef int qhandle_t;
+	//typedef int sfxHandle_t;
+	//typedef int fileHandle_t;
+	//typedef int clipHandle_t;
 
 
 	public const int MAX_QINT = 0x7fffffff;
@@ -188,7 +195,6 @@ public static class QShared
 
 	#if HUNK_DEBUG
 	#define Hunk_Alloc( size, preference )				Hunk_AllocDebug(size, preference, #size, __FILE__, __LINE__)
-	void* Hunk_AllocDebug( int size, ha_pref preference, char* label, char* file, int line );
 	#else
 	void* Hunk_Alloc( int size, ha_pref preference );
 	#endif
@@ -196,8 +202,6 @@ public static class QShared
 	#define Snd_Memset Com_Memset
 
 	#if !( defined __VECTORC )
-	void Com_Memset( void* dest, const int val, const size_t count );
-	void Com_Memcpy( void* dest, const void* src, const size_t count );
 	#else
 	#define Com_Memset memset
 	#define Com_Memcpy memcpy
@@ -239,7 +243,7 @@ public static class QShared
 	public const float M_PI = 3.14159265358979323846f;    // matches value in gcc v2 math.h
 
 	public const int NUMVERTEXNORMALS = 162;
-	extern vec3_t bytedirs[NUMVERTEXNORMALS];
+	public static vec3_t bytedirs[NUMVERTEXNORMALS];
 
 	// all drawing is done to a 640*480 virtual screen size
 	// and will be automatically scaled to the real resolution
@@ -1139,14 +1143,14 @@ public static class QShared
 	float	LittleFloat (const float *l) {return _LittleFloat(l);}
 	*/
 
-	public static short   ShortSwap (short l)
+	public static short ShortSwap (short l)
 	{
 		byte    b1,b2;
 
-		b1 = l&255;
-		b2 = (l>>8)&255;
+		b1 = ( byte ) ( l & 255 );
+		b2 = ( byte ) ( ( l >> 8 ) & 255 );
 
-		return (b1<<8) + b2;
+		return ( byte ) ( ( b1 << 8 ) + b2 );
 	}
 
 	public static short	ShortNoSwap (short l)
@@ -1154,14 +1158,12 @@ public static class QShared
 		return l;
 	}
 
-	public static int    LongSwap (int l)
+	public static int LongSwap (int l)
 	{
-		byte    b1,b2,b3,b4;
-
-		b1 = l&255;
-		b2 = (l>>8)&255;
-		b3 = (l>>16)&255;
-		b4 = (l>>24)&255;
+		var b1 = ( byte ) ( ( l & 255 );
+		var b2 = ( byte ) ( ( l >> 8 ) & 255 );
+		var b3 = ( byte ) ( ( l >> 16 ) & 255 );
+		var b4 = ( byte ) ( ( l >> 24 ) & 255 );
 
 		return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 	}
