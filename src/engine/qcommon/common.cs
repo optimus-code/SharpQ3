@@ -37,64 +37,64 @@ public static class Common
 	private static int com_argc;
 	private static string com_argv[MAX_NUM_ARGVS+1];
 
-	jmp_buf abortframe;		// an ERR_DROP occured, exit the entire frame
+	private static jmp_buf abortframe;      // an ERR_DROP occured, exit the entire frame
 
 
-	FILE *debuglogfile;
-	static fileHandle_t logfile;
-	fileHandle_t	com_journalFile;			// events are written here
-	fileHandle_t	com_journalDataFile;		// config files are written here
+	private static FILE* debuglogfile;
+	private static static fileHandle_t logfile;
+	private static fileHandle_t com_journalFile;            // events are written here
+	private static fileHandle_t com_journalDataFile;        // config files are written here
 
-	cvar_t	*com_viewlog;
-	cvar_t	*com_speeds;
-	cvar_t	*com_developer;
-	cvar_t	*com_dedicated;
-	cvar_t	*com_timescale;
-	cvar_t	*com_fixedtime;
-	cvar_t	*com_dropsim;		// 0.0 to 1.0, simulated packet drops
-	cvar_t	*com_journal;
-	cvar_t	*com_maxfps;
-	cvar_t	*com_timedemo;
-	cvar_t	*com_sv_running;
-	cvar_t	*com_cl_running;
-	cvar_t	*com_logfile;		// 1 = buffer log, 2 = flush after each print
-	cvar_t	*com_showtrace;
-	cvar_t	*com_version;
-	cvar_t	*com_blood;
-	cvar_t	*com_buildScript;	// for automated data building scripts
-	cvar_t	*com_introPlayed;
-	cvar_t	*cl_paused;
-	cvar_t	*sv_paused;
-	cvar_t	*com_cameraMode;
-	#if DEBUG
-	cvar_t	*com_noErrorInterrupt;
-	#endif
+	private static cvar_t* com_viewlog;
+	private static cvar_t* com_speeds;
+	private static cvar_t* com_developer;
+	private static cvar_t* com_dedicated;
+	private static cvar_t* com_timescale;
+	private static cvar_t* com_fixedtime;
+	private static cvar_t* com_dropsim;     // 0.0 to 1.0, simulated packet drops
+	private static cvar_t* com_journal;
+	private static cvar_t* com_maxfps;
+	private static cvar_t* com_timedemo;
+	private static cvar_t* com_sv_running;
+	private static cvar_t* com_cl_running;
+	private static cvar_t* com_logfile;     // 1 = buffer log, 2 = flush after each print
+	private static cvar_t* com_showtrace;
+	private static cvar_t* com_version;
+	private static cvar_t* com_blood;
+	private static cvar_t* com_buildScript; // for automated data building scripts
+	private static cvar_t* com_introPlayed;
+	private static cvar_t* cl_paused;
+	private static cvar_t* sv_paused;
+	private static cvar_t* com_cameraMode;
+#if DEBUG
+	private static cvar_t	*com_noErrorInterrupt;
+#endif
 
 	// com_speeds times
-	int		time_game;
-	int		time_frontend;		// renderer frontend time
-	int		time_backend;		// renderer backend time
+	private static int time_game;
+	private static int time_frontend;       // renderer frontend time
+	private static int time_backend;        // renderer backend time
 
-	int			com_frameTime;
-	int			com_frameMsec;
-	int			com_frameNumber;
+	private static int com_frameTime;
+	private static int com_frameMsec;
+	private static int com_frameNumber;
 
-	bool		com_errorEntered;
-	bool		com_fullyInitialized;
+	private static bool com_errorEntered;
+	private static bool com_fullyInitialized;
 
-	char	com_errorMessage[MAXPRINTMSG];
+	private static char com_errorMessage[MAXPRINTMSG];
 
 	void Com_WriteConfig_f( );
 	void CIN_CloseAllVideos();
 
 	//============================================================================
 
-	static string rd_buffer;
-	static int	rd_buffersize;
+	private static string rd_buffer;
+	private static int	rd_buffersize;
 	delegate void rd_flushDelegate( string buffer );
-	static rd_flushDelegate rd_flush;
+	private static rd_flushDelegate rd_flush;
 
-	void Com_BeginRedirect (string buffer, int buffersize, rd_flushDelegate flush)
+	private static void Com_BeginRedirect (string buffer, int buffersize, rd_flushDelegate flush)
 	{
 		if (buffer == null || buffersize <= 0 || flush == null)
 			return;
@@ -105,7 +105,7 @@ public static class Common
 		*rd_buffer = 0;
 	}
 
-	void Com_EndRedirect ()
+	private static void Com_EndRedirect ()
 	{
 		if ( rd_flush != null ) 
 		{
@@ -128,7 +128,7 @@ public static class Common
 	A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 	=============
 	*/
-	void Com_Printf( string fmt, params object[] args ) 
+	private static void Com_Printf( string fmt, params object[] args ) 
 	{
 		var msg = StringFormatter.PrintF( fmt, args );
 		
@@ -196,7 +196,7 @@ public static class Common
 	A Com_Printf that only shows up if the "developer" cvar is set
 	================
 	*/
-	void Com_DPrintf( string fmt, params object[] args )
+	private static void Com_DPrintf( string fmt, params object[] args )
 	{		
 		if ( com_developer == null || com_developer->integer != 1 ) {
 			return;			// don't confuse non-developers with techie stuff...
@@ -216,7 +216,7 @@ public static class Common
 	do the apropriate things.
 	=============
 	*/
-	void Com_Error( int code, string fmt, params object[] args )
+	private static void Com_Error( int code, string fmt, params object[] args )
 	{
 		int			currentTime;
 
@@ -301,7 +301,7 @@ public static class Common
 	do the apropriate things.
 	=============
 	*/
-	void Com_Quit_f( ) 
+	private static void Com_Quit_f( ) 
 	{
 		// don't try to shutdown if we are in a recursive error
 		if (com_errorEntered == null)
@@ -333,8 +333,8 @@ public static class Common
 	============================================================================
 	*/
 
-	#define	MAX_CONSOLE_LINES	32
-	int		com_numConsoleLines;
+	private const int MAX_CONSOLE_LINES = 32;
+	private static int		com_numConsoleLines;
 	char	*com_consoleLines[MAX_CONSOLE_LINES];
 
 	/*
@@ -344,7 +344,8 @@ public static class Common
 	Break it up into multiple console lines
 	==================
 	*/
-	void Com_ParseCommandLine( char *commandLine ) {
+	private static void Com_ParseCommandLine( char *commandLine ) 
+	{
 		int inq = 0;
 		com_consoleLines[0] = commandLine;
 		com_numConsoleLines = 1;
@@ -376,7 +377,8 @@ public static class Common
 	skip loading of q3config.cfg
 	===================
 	*/
-	qboolean Com_SafeMode( void ) {
+	private static bool Com_SafeMode( ) 
+	{
 		int		i;
 
 		for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
@@ -384,10 +386,10 @@ public static class Common
 			if ( !Q_stricmp( Cmd_Argv(0), "safe" )
 				|| !Q_stricmp( Cmd_Argv(0), "cvar_restart" ) ) {
 				com_consoleLines[i][0] = 0;
-				return qtrue;
+				return true;
 			}
 		}
-		return qfalse;
+		return false;
 	}
 
 
@@ -402,7 +404,7 @@ public static class Common
 	be after execing the config and default.
 	===============
 	*/
-	void Com_StartupVariable( const char *match ) {
+	private static void Com_StartupVariable( const char *match ) {
 		int		i;
 		char	*s;
 		cvar_t	*cv;
@@ -435,7 +437,8 @@ public static class Common
 	will keep the demoloop from immediately starting
 	=================
 	*/
-	qboolean Com_AddStartupCommands( void ) {
+	private static bool Com_AddStartupCommands( ) 
+	{
 		int		i;
 		qboolean	added;
 
@@ -460,7 +463,8 @@ public static class Common
 
 	//============================================================================
 
-	void Info_Print( const char *s ) {
+	private static void Info_Print( const char *s )
+	{
 		char	key[512];
 		char	value[512];
 		char	*o;
@@ -507,7 +511,8 @@ public static class Common
 	Com_StringContains
 	============
 	*/
-	char *Com_StringContains(char *str1, char *str2, int casesensitive) {
+	private static char *Com_StringContains(char *str1, char *str2, int casesensitive) 
+	{
 		int len, i, j;
 
 		len = (int)strlen(str1) - (int)strlen(str2);
@@ -536,7 +541,7 @@ public static class Common
 	Com_Filter
 	============
 	*/
-	int Com_Filter(char *filter, char *name, int casesensitive)
+	private static int Com_Filter(char *filter, char *name, int casesensitive)
 	{
 		char buf[MAX_TOKEN_CHARS];
 		char *ptr;
@@ -616,7 +621,7 @@ public static class Common
 	Com_FilterPath
 	============
 	*/
-	int Com_FilterPath(char *filter, char *name, int casesensitive)
+	private static int Com_FilterPath(char *filter, char *name, int casesensitive)
 	{
 		int i;
 		char new_filter[MAX_QPATH];
@@ -648,7 +653,7 @@ public static class Common
 	Com_HashKey
 	============
 	*/
-	int Com_HashKey(char *string, int maxlen) {
+	private static int Com_HashKey(char *string, int maxlen) {
 		int register hash, i;
 
 		hash = 0;
@@ -735,14 +740,14 @@ public static class Common
 	// fragment the main zone (think of cvar and cmd strings)
 	memzone_t	*smallzone;
 
-	void Z_CheckHeap( void );
+	private static void Z_CheckHeap( void );
 
 	/*
 	========================
 	Z_ClearZone
 	========================
 	*/
-	void Z_ClearZone( memzone_t *zone, int size ) {
+	private static void Z_ClearZone( memzone_t *zone, int size ) {
 		memblock_t	*block;
 	
 		// set the entire zone to one free block
@@ -767,7 +772,7 @@ public static class Common
 	Z_AvailableZoneMemory
 	========================
 	*/
-	int Z_AvailableZoneMemory( memzone_t *zone ) {
+	private static int Z_AvailableZoneMemory( memzone_t *zone ) {
 		return zone->size - zone->used;
 	}
 
@@ -776,7 +781,7 @@ public static class Common
 	Z_AvailableMemory
 	========================
 	*/
-	int Z_AvailableMemory( void ) {
+	private static int Z_AvailableMemory( void ) {
 		return Z_AvailableZoneMemory( mainzone );
 	}
 
@@ -785,7 +790,7 @@ public static class Common
 	Z_Free
 	========================
 	*/
-	void Z_Free( void *ptr ) {
+	private static void Z_Free( void *ptr ) {
 		memblock_t	*block, *other;
 		memzone_t *zone;
 	
@@ -856,7 +861,7 @@ public static class Common
 	Z_FreeTags
 	================
 	*/
-	void Z_FreeTags( int tag ) {
+	private static void Z_FreeTags( int tag ) {
 		int			count;
 		memzone_t	*zone;
 
@@ -887,9 +892,9 @@ public static class Common
 	================
 	*/
 	#ifdef ZONE_DEBUG
-	void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line ) {
+	private static void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line ) {
 	#else
-	void *Z_TagMalloc( int size, int tag ) {
+	private static void *Z_TagMalloc( int size, int tag ) {
 	#endif
 		int		extra, allocSize;
 		memblock_t	*start, *rover, *newBlock, *base;
@@ -978,9 +983,9 @@ public static class Common
 	========================
 	*/
 	#ifdef ZONE_DEBUG
-	void *Z_MallocDebug( int size, char *label, char *file, int line ) {
+	private static void *Z_MallocDebug( int size, char *label, char *file, int line ) {
 	#else
-	void *Z_Malloc( int size ) {
+	private static void *Z_Malloc( int size ) {
 	#endif
 		void	*buf;
 	
@@ -997,11 +1002,11 @@ public static class Common
 	}
 
 	#ifdef ZONE_DEBUG
-	void *S_MallocDebug( int size, char *label, char *file, int line ) {
+	private static void *S_MallocDebug( int size, char *label, char *file, int line ) {
 		return Z_TagMallocDebug( size, TAG_SMALL, label, file, line );
 	}
 	#else
-	void *S_Malloc( int size ) {
+	private static void *S_Malloc( int size ) {
 		return Z_TagMalloc( size, TAG_SMALL );
 	}
 	#endif
@@ -1011,7 +1016,7 @@ public static class Common
 	Z_CheckHeap
 	========================
 	*/
-	void Z_CheckHeap( void ) {
+	private static void Z_CheckHeap( void ) {
 		memblock_t	*block;
 	
 		for (block = mainzone->blocklist.next ; ; block = block->next) {
@@ -1034,7 +1039,7 @@ public static class Common
 	Z_LogZoneHeap
 	========================
 	*/
-	void Z_LogZoneHeap( memzone_t *zone, char *name ) {
+	private static void Z_LogZoneHeap( memzone_t *zone, char *name ) {
 	#ifdef ZONE_DEBUG
 		char dump[32], *ptr;
 		int  i, j;
@@ -1087,7 +1092,7 @@ public static class Common
 	Z_LogHeap
 	========================
 	*/
-	void Z_LogHeap( void ) {
+	private static void Z_LogHeap( void ) {
 		Z_LogZoneHeap( mainzone, "MAIN" );
 		Z_LogZoneHeap( smallzone, "SMALL" );
 	}
@@ -1122,7 +1127,7 @@ public static class Common
 			memory from a memstatic_t might be returned
 	========================
 	*/
-	char *CopyString( const char *in ) {
+	private static char *CopyString( const char *in ) {
 		char	*out;
 
 		if (!in[0]) {
@@ -1214,7 +1219,8 @@ public static class Common
 	Com_Meminfo_f
 	=================
 	*/
-	void Com_Meminfo_f( void ) {
+	private static void Com_Meminfo_f( ) 
+	{
 		memblock_t	*block;
 		int			zoneBytes, zoneBlocks;
 		int			smallZoneBytes, smallZoneBlocks;
@@ -1308,7 +1314,8 @@ public static class Common
 	Touch all known used data to make sure it is paged in
 	===============
 	*/
-	void Com_TouchMemory( void ) {
+	private static void Com_TouchMemory( ) 
+	{
 		int		start, end;
 		int		i, j;
 		int		sum;
@@ -1355,7 +1362,8 @@ public static class Common
 	Com_InitZoneMemory
 	=================
 	*/
-	void Com_InitSmallZoneMemory( void ) {
+	private static void Com_InitSmallZoneMemory( ) 
+	{
 		s_smallZoneTotal = 512 * 1024;
 		// bk001205 - was malloc
 		smallzone = (memzone_t*) calloc( s_smallZoneTotal, 1 );
@@ -1367,7 +1375,8 @@ public static class Common
 		return;
 	}
 
-	void Com_InitZoneMemory( void ) {
+	private static void Com_InitZoneMemory( ) 
+	{
 		cvar_t	*cv;
 		// allocate the random block zone
 		cv = Cvar_Get( "com_zoneMegs", DEF_COMZONEMEGS, CVAR_LATCH | CVAR_ARCHIVE );
@@ -1392,7 +1401,8 @@ public static class Common
 	Hunk_Log
 	=================
 	*/
-	void Hunk_Log( void) {
+	private static void Hunk_Log() 
+	{
 		hunkblock_t	*block;
 		char		buf[4096];
 		int size, numBlocks;
@@ -1422,7 +1432,8 @@ public static class Common
 	Hunk_SmallLog
 	=================
 	*/
-	void Hunk_SmallLog( void) {
+	private static void Hunk_SmallLog( ) 
+	{
 		hunkblock_t	*block, *block2;
 		char		buf[4096];
 		int size, locsize, numBlocks;
@@ -1470,7 +1481,8 @@ public static class Common
 	Com_InitZoneMemory
 	=================
 	*/
-	void Com_InitHunkMemory( void ) {
+	private static void Com_InitHunkMemory( ) 
+	{
 		cvar_t	*cv;
 		int nMinAlloc;
 		char *pMsg = NULL;
@@ -1528,7 +1540,8 @@ public static class Common
 	Hunk_MemoryRemaining
 	====================
 	*/
-	int	Hunk_MemoryRemaining( void ) {
+	private static int	Hunk_MemoryRemaining( ) 
+	{
 		int		low, high;
 
 		low = hunk_low.permanent > hunk_low.temp ? hunk_low.permanent : hunk_low.temp;
@@ -1544,7 +1557,8 @@ public static class Common
 	The server calls this after the level and game VM have been loaded
 	===================
 	*/
-	void Hunk_SetMark( void ) {
+	private static void Hunk_SetMark( ) 
+	{
 		hunk_low.mark = hunk_low.permanent;
 		hunk_high.mark = hunk_high.permanent;
 	}
@@ -1556,7 +1570,8 @@ public static class Common
 	The client calls this before starting a vid_restart or snd_restart
 	=================
 	*/
-	void Hunk_ClearToMark( void ) {
+	private static void Hunk_ClearToMark( ) 
+	{
 		hunk_low.permanent = hunk_low.temp = hunk_low.mark;
 		hunk_high.permanent = hunk_high.temp = hunk_high.mark;
 	}
@@ -1566,11 +1581,12 @@ public static class Common
 	Hunk_CheckMark
 	=================
 	*/
-	qboolean Hunk_CheckMark( void ) {
+	private static bool Hunk_CheckMark( )
+	{
 		if( hunk_low.mark || hunk_high.mark ) {
-			return qtrue;
+			return true;
 		}
-		return qfalse;
+		return false;
 	}
 
 	void CL_ShutdownCGame( void );
@@ -1584,7 +1600,8 @@ public static class Common
 	The server calls this before shutting down or loading a new map
 	=================
 	*/
-	void Hunk_Clear( void ) {
+	private static void Hunk_Clear( ) 
+	{
 
 	#ifndef DEDICATED
 		CL_ShutdownCGame();
@@ -1614,7 +1631,8 @@ public static class Common
 	#endif
 	}
 
-	static void Hunk_SwapBanks( void ) {
+	private static void Hunk_SwapBanks( )
+	{
 		hunkUsed_t	*swap;
 
 		// can't swap banks if there is any temp already allocated
@@ -1640,9 +1658,9 @@ public static class Common
 	=================
 	*/
 	#ifdef HUNK_DEBUG
-	void *Hunk_AllocDebug( int size, ha_pref preference, char *label, char *file, int line ) {
+	private static void *Hunk_AllocDebug( int size, ha_pref preference, char *label, char *file, int line ) {
 	#else
-	void *Hunk_Alloc( int size, ha_pref preference ) {
+	private static void *Hunk_Alloc( int size, ha_pref preference ) {
 	#endif
 		void	*buf;
 
@@ -1715,7 +1733,7 @@ public static class Common
 	When the files-in-use count reaches zero, all temp memory will be deleted
 	=================
 	*/
-	void *Hunk_AllocateTempMemory( int size ) {
+	private static void *Hunk_AllocateTempMemory( int size ) {
 		void		*buf;
 		hunkHeader_t	*hdr;
 
@@ -1764,7 +1782,7 @@ public static class Common
 	Hunk_FreeTempMemory
 	==================
 	*/
-	void Hunk_FreeTempMemory( void *buf ) {
+	private static void Hunk_FreeTempMemory( void *buf ) {
 		hunkHeader_t	*hdr;
 
 		  // free with Z_Free if the hunk has not been initialized
@@ -1812,7 +1830,7 @@ public static class Common
 	permanent allocs use this side.
 	=================
 	*/
-	void Hunk_ClearTempMemory( void ) {
+	private static void Hunk_ClearTempMemory( void ) {
 		if ( s_hunkData != NULL ) {
 			hunk_temp->temp = hunk_temp->permanent;
 		}
@@ -1823,7 +1841,7 @@ public static class Common
 	Hunk_Trash
 	=================
 	*/
-	void Hunk_Trash( void ) {
+	private static void Hunk_Trash( void ) {
 		int length, i, rnd;
 		char *buf, value;
 
@@ -1883,7 +1901,7 @@ public static class Common
 	Com_InitJournaling
 	=================
 	*/
-	void Com_InitJournaling( void ) {
+	private static void Com_InitJournaling( void ) {
 		Com_StartupVariable( "journal" );
 		com_journal = Cvar_Get ("journal", "0", CVAR_INIT);
 		if ( !com_journal->integer ) {
@@ -1913,7 +1931,7 @@ public static class Common
 	Com_GetRealEvent
 	=================
 	*/
-	sysEvent_t	Com_GetRealEvent( void ) {
+	private static sysEvent_t Com_GetRealEvent( void ) {
 		int			r;
 		sysEvent_t	ev;
 
@@ -1958,7 +1976,7 @@ public static class Common
 	=================
 	*/
 	// bk001129 - added
-	void Com_InitPushEvent( void ) {
+	private static void Com_InitPushEvent( void ) {
 	  // clear the static buffer array
 	  // this requires SE_NONE to be accepted as a valid but NOP event
 	  memset( com_pushedEvents, 0, sizeof(com_pushedEvents) );
@@ -1974,7 +1992,7 @@ public static class Common
 	Com_PushEvent
 	=================
 	*/
-	void Com_PushEvent( sysEvent_t *event ) {
+	private static void Com_PushEvent( sysEvent_t *event ) {
 		sysEvent_t		*ev;
 		static int printedWarning = 0; // bk001129 - init, bk001204 - explicit int
 
@@ -2018,7 +2036,7 @@ public static class Common
 	Com_RunAndTimeServerPacket
 	=================
 	*/
-	void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf ) {
+	private static void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf ) {
 		int		t1, t2, msec;
 
 		t1 = 0;
@@ -2045,7 +2063,7 @@ public static class Common
 	Returns last event time
 	=================
 	*/
-	int Com_EventLoop( void ) {
+	private static int Com_EventLoop( void ) {
 		sysEvent_t	ev;
 		netadr_t	evFrom;
 		byte		bufData[MAX_MSGLEN];
@@ -2145,7 +2163,7 @@ public static class Common
 	Can be used for profiling, but will be journaled accurately
 	================
 	*/
-	int Com_Milliseconds (void) {
+	private static int Com_Milliseconds (void) {
 		sysEvent_t	ev;
 
 		// get events and push them until we get a null event with the current time
@@ -2170,7 +2188,7 @@ public static class Common
 	test error shutdown procedures
 	=============
 	*/
-	static void Com_Error_f (void) {
+	private static void Com_Error_f () {
 		if ( Cmd_Argc() > 1 ) {
 			Com_Error( ERR_DROP, "Testing drop error" );
 		} else {
@@ -2187,7 +2205,7 @@ public static class Common
 	error recovery
 	=============
 	*/
-	static void Com_Freeze_f (void) {
+	private static static void Com_Freeze_f () {
 		float	s;
 		int		start, now;
 
@@ -2214,14 +2232,14 @@ public static class Common
 	A way to force a bus error for development reasons
 	=================
 	*/
-	static void Com_Crash_f( void ) {
+	private static void Com_Crash_f( ) {
 		* ( int * ) 0 = 0x12345678;
 	}
 
 	// TTimo: centralizing the cl_cdkey stuff after I discovered a buffer overflow problem with the dedicated server version
 	//   not sure it's necessary to have different defaults for regular and dedicated, but I don't want to risk it
 	//   https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=470
-	#ifndef DEDICATED
+	#if DEDICATED
 	char	cl_cdkey[34] = "                                ";
 	#else
 	char	cl_cdkey[34] = "123456789";
@@ -2233,7 +2251,7 @@ public static class Common
 	=================
 	*/
 	qboolean CL_CDKeyValidate( const char *key, const char *checksum );
-	void Com_ReadCDKey( const char *filename ) {
+	private static void Com_ReadCDKey( const char *filename ) {
 		fileHandle_t	f;
 		char			buffer[33];
 		char			fbuffer[MAX_OSPATH];
@@ -2263,7 +2281,7 @@ public static class Common
 	Com_AppendCDKey
 	=================
 	*/
-	void Com_AppendCDKey( const char *filename ) {
+	private static void Com_AppendCDKey( const char *filename ) {
 		fileHandle_t	f;
 		char			buffer[33];
 		char			fbuffer[MAX_OSPATH];
@@ -2294,7 +2312,7 @@ public static class Common
 	Com_WriteCDKey
 	=================
 	*/
-	static void Com_WriteCDKey( const char *filename, const char *ikey ) {
+	private static void Com_WriteCDKey( const char *filename, const char *ikey ) {
 		fileHandle_t	f;
 		char			fbuffer[MAX_OSPATH];
 		char			key[17];
@@ -2331,7 +2349,7 @@ public static class Common
 	Com_Init
 	=================
 	*/
-	void Com_Init( char *commandLine ) {
+	private static void Com_Init( char *commandLine ) {
 		char	*s;
 
 		Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
@@ -2486,7 +2504,7 @@ public static class Common
 
 	//==================================================================
 
-	void Com_WriteConfigToFile( const char *filename ) {
+	private static void Com_WriteConfigToFile( const char *filename ) {
 		fileHandle_t	f;
 
 		f = FS_FOpenFileWrite( filename );
@@ -2509,7 +2527,7 @@ public static class Common
 	Writes key bindings and archived cvars to config file if modified
 	===============
 	*/
-	void Com_WriteConfiguration( void ) {
+	private static void Com_WriteConfiguration( void ) {
 	#ifndef DEDICATED // bk001204
 		cvar_t	*fs;
 	#endif
@@ -2545,7 +2563,7 @@ public static class Common
 	Write the config file to a specific name
 	===============
 	*/
-	void Com_WriteConfig_f( void ) {
+	private static void Com_WriteConfig_f( void ) {
 		char	filename[MAX_QPATH];
 
 		if ( Cmd_Argc() != 2 ) {
@@ -2564,7 +2582,7 @@ public static class Common
 	Com_ModifyMsec
 	================
 	*/
-	int Com_ModifyMsec( int msec ) {
+	private static int Com_ModifyMsec( int msec ) {
 		int		clampTime;
 
 		//
@@ -2615,7 +2633,7 @@ public static class Common
 	Com_Frame
 	=================
 	*/
-	void Com_Frame( void ) {
+	private static void Com_Frame( void ) {
 
 		int		msec, minMsec;
 		static int	lastTime;
@@ -2785,7 +2803,7 @@ public static class Common
 	Com_Shutdown
 	=================
 	*/
-	void Com_Shutdown (void) {
+	private static void Com_Shutdown (void) {
 		if (logfile) {
 			FS_FCloseFile (logfile);
 			logfile = 0;
@@ -2802,12 +2820,12 @@ public static class Common
 	#if !( defined __linux__ || defined __FreeBSD__ )  // r010123 - include FreeBSD 
 	#if ((!id386) && (!defined __i386__)) // rcg010212 - for PPC
 
-	void Com_Memcpy (void* dest, const void* src, const size_t count)
+	private static void Com_Memcpy (void* dest, const void* src, const size_t count)
 	{
 		memcpy(dest, src, count);
 	}
 
-	void Com_Memset (void* dest, const int val, const size_t count)
+	private static void Com_Memset (void* dest, const int val, const size_t count)
 	{
 		memset(dest, val, count);
 	}
@@ -3130,7 +3148,7 @@ public static class Common
 		to game and ui
 	=====================
 	*/
-	float Q_acos(float c) {
+	private static float Q_acos(float c) {
 		float angle;
 
 		angle = acos(c);
@@ -3155,17 +3173,17 @@ public static class Common
 	Field_Clear
 	==================
 	*/
-	void Field_Clear( field_t *edit ) {
+	private static void Field_Clear( field_t *edit ) {
 	  memset(edit->buffer, 0, MAX_EDIT_LINE);
 		edit->cursor = 0;
 		edit->scroll = 0;
 	}
 
-	static const char *completionString;
-	static char shortestMatch[MAX_TOKEN_CHARS];
-	static int	matchCount;
+	private static const char *completionString;
+	private static char shortestMatch[MAX_TOKEN_CHARS];
+	private static int	matchCount;
 	// field we are working on, passed to Field_CompleteCommand (&g_consoleCommand for instance)
-	static field_t *completionField;
+	private static field_t *completionField;
 
 	/*
 	===============
@@ -3173,7 +3191,7 @@ public static class Common
 
 	===============
 	*/
-	static void FindMatches( const char *s ) {
+	private static void FindMatches( const char *s ) {
 		int		i;
 
 		if ( Q_stricmpn( s, completionString, (int)strlen( completionString ) ) ) {
@@ -3199,13 +3217,13 @@ public static class Common
 
 	===============
 	*/
-	static void PrintMatches( const char *s ) {
+	private static void PrintMatches( const char *s ) {
 		if ( !Q_stricmpn( s, shortestMatch, (int)strlen( shortestMatch ) ) ) {
 			Com_Printf( "    %s\n", s );
 		}
 	}
 
-	static void keyConcatArgs( void ) {
+	private static void keyConcatArgs( void ) {
 		int		i;
 		char	*arg;
 
@@ -3226,7 +3244,7 @@ public static class Common
 		}
 	}
 
-	static void ConcatRemaining( const char *src, const char *start ) {
+	private static void ConcatRemaining( const char *src, const char *start ) {
 		char *str;
 
 		str = (char*) strstr(src, start);
@@ -3248,7 +3266,7 @@ public static class Common
 	  moved to common code when writing tty console for *nix dedicated server
 	===============
 	*/
-	void Field_CompleteCommand( field_t *field ) {
+	private static void Field_CompleteCommand( field_t *field ) {
 		field_t		temp;
 
 		completionField = field;
