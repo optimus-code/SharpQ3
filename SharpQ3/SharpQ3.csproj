@@ -7,10 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Quake3Sharp.CGame\Quake3Sharp.CGame.csproj" />
-        <ProjectReference Include="..\Quake3Sharp.Engine\Quake3Sharp.Engine.csproj" />
-        <ProjectReference Include="..\Quake3Sharp.Game\Quake3Sharp.Game.csproj" />
-        <ProjectReference Include="..\Quake3Sharp.Ui\Quake3Sharp.Ui.csproj" />
+      <ProjectReference Include="..\SharpQ3.CGame\SharpQ3.CGame.csproj" />
+      <ProjectReference Include="..\SharpQ3.Engine\SharpQ3.Engine.csproj" />
+      <ProjectReference Include="..\SharpQ3.Game\SharpQ3.Game.csproj" />
+      <ProjectReference Include="..\SharpQ3.Ui\SharpQ3.UI.csproj" />
     </ItemGroup>
 
 </Project>

@@ -461,17 +461,17 @@ namespace SharpQ3.Engine
 		// Used more like a class
 		public class cvar_t
 		{
-			string name;
-			string @string;
-			string resetString;      // cvar_restart will reset to this value
-			string latchedString;        // for CVAR_LATCH vars
-			int flags;
-			bool modified;          // set each time the cvar is changed
-			int modificationCount;  // incremented each time the cvar is changed
-			float value;                // atof( string )
-			int integer;            // atoi( string )
-			cvar_t next;
-			cvar_t hashNext;
+			public string name;
+			public string @string;
+			public string resetString;      // cvar_restart will reset to this value
+			public string latchedString;        // for CVAR_LATCH vars
+			public int flags;
+			public bool modified;          // set each time the cvar is changed
+			public int modificationCount;  // incremented each time the cvar is changed
+			public float value;                // atof( string )
+			public int integer;            // atoi( string )
+			public cvar_t next;
+			public cvar_t hashNext;
 		};
 
 		public const int MAX_CVAR_VALUE_STRING = 256;

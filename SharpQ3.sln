@@ -1,14 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpQ3.Engine", "SharpQ3.Engine\SharpQ3.Engine.csproj", "{93B2DBA2-555B-427B-A054-92AEA849678B}"
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.Engine", "SharpQ3.Engine\SharpQ3.Engine.csproj", "{93B2DBA2-555B-427B-A054-92AEA849678B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpQ3.Game", "SharpQ3.Game\SharpQ3.Game.csproj", "{2E64D2C5-E89E-4558-9703-96B674D6A487}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.Game", "SharpQ3.Game\SharpQ3.Game.csproj", "{2E64D2C5-E89E-4558-9703-96B674D6A487}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpQ3.Ui", "SharpQ3.Ui\SharpQ3.Ui.csproj", "{8B9A0585-11ED-472C-ACB7-2A2B0CFB74C0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.UI", "SharpQ3.Ui\SharpQ3.UI.csproj", "{8B9A0585-11ED-472C-ACB7-2A2B0CFB74C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpQ3.CGame", "SharpQ3.CGame\SharpQ3.CGame.csproj", "{4E71F577-B7E3-4602-B328-15B0C28ED3DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3.CGame", "SharpQ3.CGame\SharpQ3.CGame.csproj", "{4E71F577-B7E3-4602-B328-15B0C28ED3DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpQ3", "SharpQ3\SharpQ3.csproj", "{171D3546-5F1F-4C48-8DEC-2C76B6319EBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpQ3", "SharpQ3\SharpQ3.csproj", "{171D3546-5F1F-4C48-8DEC-2C76B6319EBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,5 +39,11 @@ Global
 		{171D3546-5F1F-4C48-8DEC-2C76B6319EBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{171D3546-5F1F-4C48-8DEC-2C76B6319EBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{171D3546-5F1F-4C48-8DEC-2C76B6319EBD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4391F7E1-A4C2-4CE7-B85E-437C7CA1F465}
 	EndGlobalSection
 EndGlobal

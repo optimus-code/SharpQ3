@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 using SprintfNET;
+using System;
 using System.IO;
 
 namespace SharpQ3.Engine.qcommon
@@ -147,7 +148,7 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		// echo to console if we're not a dedicated server
-		if ( com_dedicated && !com_dedicated->integer ) 
+		if ( com_dedicated != null && com_dedicated.integer == 0 ) 
 		{
 			CL_ConsolePrint( msg );
 		}
@@ -156,23 +157,19 @@ namespace SharpQ3.Engine.qcommon
 		Sys_Print( msg );
 
 		// logfile
-		if ( com_logfile && com_logfile->integer ) 
+		if ( com_logfile != null && com_logfile.integer == 1 ) 
 		{
 		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
 		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
 			if ( !logfile && FS_Initialized() && !opening_qconsole) 
 			{
-				struct tm *newtime;
-				time_t aclock;
-
 				opening_qconsole = true;
 
-				time( &aclock );
-				newtime = localtime( &aclock );
+				var newtime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
 				logfile = FS_FOpenFileWrite( "qconsole.log" );
-				Com_Printf( "logfile opened on %s\n", asctime( newtime ) );
-				if ( com_logfile->integer > 1 ) 
+				Com_Printf( "logfile opened on %s\n", DateTime.Now.ToString( "ddd MMM dd hh:mm:ss yyyy" ) );
+				if ( com_logfile.integer > 1 ) 
 				{
 					// force it to not buffer so we get valid
 					// data even if we are crashing
@@ -181,7 +178,7 @@ namespace SharpQ3.Engine.qcommon
 
 				opening_qconsole = false;
 			}
-			if ( logfile && FS_Initialized()) 
+			if ( logfile != null && FS_Initialized()) 
 			{
 				FS_Write(msg, msg.Length, logfile);
 			}
@@ -198,7 +195,7 @@ namespace SharpQ3.Engine.qcommon
 	*/
 	private static void Com_DPrintf( string fmt, params object[] args )
 	{		
-		if ( com_developer == null || com_developer->integer != 1 ) {
+		if ( com_developer == null || com_developer.integer != 1 ) {
 			return;			// don't confuse non-developers with techie stuff...
 		}
 
@@ -222,7 +219,8 @@ namespace SharpQ3.Engine.qcommon
 
 		// when we are running automated scripts, make sure we
 		// know if anything failed
-		if ( com_buildScript && com_buildScript->integer ) {
+		if ( com_buildScript != null && com_buildScript.integer ) 
+		{
 			code = ERR_FATAL;
 		}
 
@@ -316,7 +314,7 @@ namespace SharpQ3.Engine.qcommon
 
 	private const int MAX_CONSOLE_LINES = 32;
 	private static int		com_numConsoleLines;
-	char	*com_consoleLines[MAX_CONSOLE_LINES];
+	private static string[] com_consoleLines = new string[MAX_CONSOLE_LINES];
 
 	/*
 	==================
@@ -325,27 +323,37 @@ namespace SharpQ3.Engine.qcommon
 	Break it up into multiple console lines
 	==================
 	*/
-	private static void Com_ParseCommandLine( char *commandLine ) 
+	private static void Com_ParseCommandLine( ref string commandLine ) 
 	{
-		int inq = 0;
+		bool inq = false;
 		com_consoleLines[0] = commandLine;
 		com_numConsoleLines = 1;
 
-		while ( *commandLine ) {
-			if (*commandLine == '"') {
+		var commandLineIndex = 0;
+
+		while ( commandLineIndex < commandLine.Length - 1 ) 
+		{
+			var character = commandLine[commandLineIndex];
+
+			if ( character == '"' ) 
+			{
 				inq = !inq;
 			}
 			// look for a + seperating character
 			// if commandLine came from a file, we might have real line seperators
-			if ( (*commandLine == '+' && !inq) || *commandLine == '\n'  || *commandLine == '\r' ) {
-				if ( com_numConsoleLines == MAX_CONSOLE_LINES ) {
+			if ( ( character == '+' && !inq) || character == '\n'  || character == '\r' ) 
+			{
+				if ( com_numConsoleLines == MAX_CONSOLE_LINES ) 
+				{
 					return;
 				}
 				com_consoleLines[com_numConsoleLines] = commandLine + 1;
 				com_numConsoleLines++;
-				*commandLine = 0;
+
+				if ( commandLineIndex > 0 )
+					commandLine = commandLine.Substring( commandLineIndex - 1 );
 			}
-			commandLine++;
+			commandLineIndex++;
 		}
 	}
 
