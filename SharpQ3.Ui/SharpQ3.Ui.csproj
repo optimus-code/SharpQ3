@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Quake3Sharp.Engine\Quake3Sharp.Engine.csproj" />
+      <ProjectReference Include="..\SharpQ3.Engine\SharpQ3.Engine.csproj" />
     </ItemGroup>
 
 </Project>
