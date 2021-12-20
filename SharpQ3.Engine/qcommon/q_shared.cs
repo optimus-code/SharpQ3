@@ -213,7 +213,7 @@ namespace SharpQ3.Engine
 		public const float M_PI = 3.14159265358979323846f;    // matches value in gcc v2 math.h
 
 		public const int NUMVERTEXNORMALS = 162;
-		public static vec3_t bytedirs[NUMVERTEXNORMALS];
+		public static vec3_t[] bytedirs = new vec3_t[NUMVERTEXNORMALS];
 
 		// all drawing is done to a 640*480 virtual screen size
 		// and will be automatically scaled to the real resolution
@@ -275,7 +275,7 @@ namespace SharpQ3.Engine
 		public const string S_COLOR_MAGENTA = "^6";
 		public const string S_COLOR_WHITE = "^7";
 
-		public static vec4_t g_color_table[8];
+		public static vec4_t[] g_color_table = new vec4_t[8];
 
 		#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
 		#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
@@ -290,10 +290,10 @@ namespace SharpQ3.Engine
 			return ( ( a ) * 180.0f ) / M_PI;
 		}
 
-		struct cplane_s;
+		//struct cplane_s;
 
 		public static vec3_t vec3_origin;
-		public static vec3_t axisDefault[3];
+		public static vec3_t[] axisDefault = new vec3_t[3];
 
 		public const int nanmask = (255 << 23);
 
@@ -1883,37 +1883,37 @@ namespace SharpQ3.Engine
 		Used to itterate through all the key/value pairs in an info string
 		===================
 		*/
-		public static void Info_NextPair( const char **head, char *key, char *value ) {
-			char	*o;
-			const char	*s;
+		public static void Info_NextPair( ref string head, string key, string value ) {
+			char[] o;
+			char[] s;
+			int sI = 0, oI = 0;
+			s = head.ToCharArray();
 
-			s = *head;
-
-			if ( *s == '\\' ) {
-				s++;
+			if ( s[sI] == '\\' ) {
+				sI++;
 			}
-			key[0] = 0;
-			value[0] = 0;
+			//key[0] = 0;
+			//value[0] = 0;
 
-			o = key;
-			while ( *s != '\\' ) {
-				if ( !*s ) {
-					*o = 0;
-					*head = s;
+			o = key.ToCharArray();
+			while ( sI < s.Length && s[sI] != '\\' ) {
+				if ( sI >= s.Length ) {
+					o[oI] = ( char ) 0;
+					head = s.ToString();
 					return;
 				}
-				*o++ = *s++;
+				o[oI++] = s[sI++];
 			}
-			*o = 0;
-			s++;
+			o[oI] = (char)0;
+			sI++;
 
-			o = value;
-			while ( *s != '\\' && *s ) {
-				*o++ = *s++;
+			o = value.ToCharArray();
+			while ( sI < s.Length && s[sI] != '\\' ) {
+				o[oI++] = s[sI++];
 			}
-			*o = 0;
+			o[oI] = (char)0;
 
-			*head = s;
+			head = s.ToString();
 		}
 
 
@@ -1922,13 +1922,15 @@ namespace SharpQ3.Engine
 		Info_RemoveKey
 		===================
 		*/
-		public static void Info_RemoveKey( char *s, const char *key ) {
-			char	*start;
-			char	pkey[MAX_INFO_KEY];
-			char	value[MAX_INFO_VALUE];
-			char	*o;
+		public static void Info_RemoveKey( string s, string key )
+		{
+			char[] start;
+			char[] pkey = new char[MAX_INFO_KEY];
+			char[] value = new char[MAX_INFO_VALUE];
+			char[] o;
+			int sI = 0, oI = 0;
 
-			if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
+			if ( s.Length >= MAX_INFO_STRING ) {
 				Com_Error( ERR_DROP, "Info_RemoveKey: oversize infostring" );
 			}
 
@@ -1936,40 +1938,42 @@ namespace SharpQ3.Engine
 				return;
 			}
 
-			while (1)
+			while ( true )
 			{
-				start = s;
-				if (*s == '\\')
-					s++;
+				start = s.ToCharArray();
+				sI = 0;
+
+				if (s[sI] == '\\')
+					sI++;
 				o = pkey;
-				while (*s != '\\')
+				oI = 0;
+				while ( s[sI] != '\\')
 				{
-					if (!*s)
+					if ( sI >= s.Length )
 						return;
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
-				s++;
+				o[oI] = (char)0;
+				sI++;
 
 				o = value;
-				while (*s != '\\' && *s)
+				while ( sI < s.Length && s[sI] != '\\' )
 				{
-					if (!*s)
+					if ( sI >= s.Length )
 						return;
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
+				o[oI] = ( char ) 0;
 
-				if (!strcmp (key, pkey) )
+				if (Q_stricmp( key, pkey.ToString() ) <= 0 )
 				{
-					strcpy (start, s);	// remove this part
+					start = s.ToCharArray();	// remove this part
 					return;
 				}
 
-				if (!*s)
+				if ( sI >= s.Length )
 					return;
 			}
-
 		}
 
 		/*
@@ -1977,13 +1981,14 @@ namespace SharpQ3.Engine
 		Info_RemoveKey_Big
 		===================
 		*/
-		public static void Info_RemoveKey_Big( char *s, const char *key ) {
-			char	*start;
-			char	pkey[BIG_INFO_KEY];
-			char	value[BIG_INFO_VALUE];
-			char	*o;
+		public static void Info_RemoveKey_Big( string s, string key ) {
+			char[] start;
+			char[] pkey = new char[MAX_INFO_KEY];
+			char[] value = new char[MAX_INFO_VALUE];
+			char[] o;
+			int sI = 0, oI = 0;
 
-			if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			if ( s.Length >= BIG_INFO_STRING ) {
 				Com_Error( ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
 			}
 
@@ -1991,44 +1996,42 @@ namespace SharpQ3.Engine
 				return;
 			}
 
-			while (1)
+			while ( true )
 			{
-				start = s;
-				if (*s == '\\')
-					s++;
+				start = s.ToCharArray();
+				sI = 0;
+				if (s[sI] == '\\')
+					sI++;
 				o = pkey;
-				while (*s != '\\')
+				while ( s[sI] != '\\')
 				{
-					if (!*s)
+					if ( sI >= s.Length )
 						return;
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
-				s++;
+				o[oI] = (char)0;
+				sI++;
 
 				o = value;
-				while (*s != '\\' && *s)
+				while ( sI < s.Length && s[sI] != '\\' )
 				{
-					if (!*s)
+					if ( sI >= s.Length )
 						return;
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
+				o[oI] = ( char ) 0;
 
-				if (!strcmp (key, pkey) )
+				if ( Q_stricmp( key, pkey.ToString() ) <= 0 )
 				{
-					strcpy (start, s);	// remove this part
+					start = s.ToCharArray(); 	// remove this part
 					return;
 				}
 
-				if (!*s)
+				if ( sI >= s.Length )
 					return;
 			}
 
 		}
-
-
-
 
 		/*
 		==================
@@ -2038,13 +2041,14 @@ namespace SharpQ3.Engine
 		can mess up the server's parsing
 		==================
 		*/
-		public static bool Info_Validate( const char *s ) {
-			if ( strchr( s, '\"' ) ) {
+		public static bool Info_Validate( string s ) 
+		{
+			if ( s.IndexOf( '\"' ) != -1 ) 
 				return false;
-			}
-			if ( strchr( s, ';' ) ) {
+			
+			if ( s.IndexOf( ';' ) != -1 )
 				return false;
-			}
+			
 			return true;
 		}
 
@@ -2055,45 +2059,45 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey( char *s, const char *key, const char *value ) {
-			char	newi[MAX_INFO_STRING];
+		public static void Info_SetValueForKey( string s, string key, string value ) {
+			string newi;//[MAX_INFO_STRING];
 
-			if ( (int)strlen( s ) >= MAX_INFO_STRING ) {
-				Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
+			if ( s.Length >= MAX_INFO_STRING ) {
+				common.Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
 			}
 
 			if (strchr (key, '\\') || strchr (value, '\\'))
 			{
-				Com_Printf ("Can't use keys or values with a \\\n");
+				common.Com_Printf ("Can't use keys or values with a \\\n");
 				return;
 			}
 
 			if (strchr (key, ';') || strchr (value, ';'))
 			{
-				Com_Printf ("Can't use keys or values with a semicolon\n");
+				common.Com_Printf ("Can't use keys or values with a semicolon\n");
 				return;
 			}
 
 			if (strchr (key, '\"') || strchr (value, '\"'))
 			{
-				Com_Printf ("Can't use keys or values with a \"\n");
+				common.Com_Printf ("Can't use keys or values with a \"\n");
 				return;
 			}
 
 			Info_RemoveKey (s, key);
-			if (!value || !strlen(value))
+			if (value == null || value.Length == 0)
 				return;
 
-			Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
+			Com_sprintf( newi, sizeof(newi), "\\%s\\%s", key, value);
 
-			if (strlen(newi) + (int)strlen(s) > MAX_INFO_STRING)
+			if ( newi.Length + s.Length > MAX_INFO_STRING)
 			{
 				Com_Printf ("Info string length exceeded\n");
 				return;
 			}
 
-			strcat (newi, s);
-			strcpy (s, newi);
+			strcat( newi, s );
+			strcpy( s, newi );
 		}
 
 		/*
@@ -2103,44 +2107,46 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey_Big( char *s, const char *key, const char *value ) {
-			char	newi[BIG_INFO_STRING];
+		public static void Info_SetValueForKey_Big( string s, string key, string value ) 
+		{
+			char[]	newi = new char[BIG_INFO_STRING];
 
-			if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			if ( s.Length >= BIG_INFO_STRING ) 
+			{
 				Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
 			}
 
-			if (strchr (key, '\\') || strchr (value, '\\'))
+			if (key.IndexOf( '\\') != -1 || value.IndexOf( '\\' ) != -1 )
 			{
 				Com_Printf ("Can't use keys or values with a \\\n");
 				return;
 			}
 
-			if (strchr (key, ';') || strchr (value, ';'))
+			if (key.IndexOf( ';' ) != -1 || value.IndexOf( ';' ) != -1 )
 			{
 				Com_Printf ("Can't use keys or values with a semicolon\n");
 				return;
 			}
 
-			if (strchr (key, '\"') || strchr (value, '\"'))
+			if (key.IndexOf( '\"' ) != -1 || value.IndexOf( '\"' ) != -1 )
 			{
 				Com_Printf ("Can't use keys or values with a \"\n");
 				return;
 			}
 
 			Info_RemoveKey_Big (s, key);
-			if (!value || !strlen(value))
+			if ( value == null || value.Length == 0 )
 				return;
 
 			Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
 
-			if (strlen(newi) + (int)strlen(s) > BIG_INFO_STRING)
+			if ( newi.Length + s.Length > BIG_INFO_STRING)
 			{
 				Com_Printf ("BIG Info string length exceeded\n");
 				return;
 			}
 
-			strcat (s, newi);
+			s += newi;
 		}
 	}
 }

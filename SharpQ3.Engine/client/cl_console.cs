@@ -368,7 +368,7 @@ namespace SharpQ3.Engine.client
 		If no console is visible, the text will appear at the top of the game window
 		================
 		*/
-		static void CL_ConsolePrint( string txt ) {
+		public static void CL_ConsolePrint( string txt ) {
 			int		y;
 			int		c, l;
 			int		color;

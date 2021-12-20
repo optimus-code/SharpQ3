@@ -24,6 +24,7 @@ using SprintfNET;
 using System;
 using System.IO;
 using System.Text;
+using SharpQ3.Engine.client;
 
 namespace SharpQ3.Engine.qcommon
 {
@@ -371,8 +372,8 @@ namespace SharpQ3.Engine.qcommon
 
 		for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
 			cmd.Cmd_TokenizeString( com_consoleLines[i].ToString() );
-			if ( !q_shared.Q_stricmp( cmd.Cmd_Argv(0), "safe" )
-				|| !q_shared.Q_stricmp( cmd.Cmd_Argv(0), "cvar_restart" ) ) {
+			if ( q_shared.Q_stricmp( cmd.Cmd_Argv(0), "safe" ) <= 0
+				|| q_shared.Q_stricmp( cmd.Cmd_Argv(0), "cvar_restart" ) <= 0 ) {
 				com_consoleLines[i][0] = (char)0;
 				return true;
 			}

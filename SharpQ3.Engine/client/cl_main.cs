@@ -2277,23 +2277,25 @@ namespace SharpQ3.Engine.client
 
 		===============
 		*/
-		void CL_Shutdown( void ) {
-			static bool recursive = false;
+		static bool recursive_shudown = false;
+
+		public static void CL_Shutdown( ) 
+{
 			
 			Com_Printf( "----- CL_Shutdown -----\n" );
 
-			if ( recursive ) {
+			if ( recursive_shudown ) {
 				printf ("recursive shutdown\n");
 				return;
 			}
-			recursive = true;
+			recursive_shudown = true;
 
 			CL_Disconnect( true );
 
 			S_Shutdown();
 			CL_ShutdownRef();
 			
-			CL_ShutdownUI();
+			cl_ui.CL_ShutdownUI();
 
 			Cmd_RemoveCommand ("cmd");
 			Cmd_RemoveCommand ("configstrings");
@@ -2317,12 +2319,11 @@ namespace SharpQ3.Engine.client
 
 			Cvar_Set( "cl_running", "0" );
 
-			recursive = false;
+			recursive_shudown = false;
 
 			Com_Memset( &cls, 0, sizeof( cls ) );
 
 			Com_Printf( "-----------------------\n" );
-
 		}
 
 		static void CL_SetServerInfo(serverInfo_t *server, const char *info, int ping) {
