@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace SharpQ3.Engine.qcommon
 {
 	using System;
+	using System.Text;
+	using static SharpQ3.Engine.q_shared;
 
 	// cmd.c -- Quake script command processing module
 	public static class cmd
@@ -39,7 +41,7 @@ namespace SharpQ3.Engine.qcommon
 
 		private static int			cmd_wait;
 		private static cmd_t cmd_text;
-		private static byte cmd_text_buf[MAX_CMD_BUFFER];
+		private static byte[] cmd_text_buf = new byte[MAX_CMD_BUFFER];
 
 
 		//=============================================================================
@@ -53,14 +55,13 @@ namespace SharpQ3.Engine.qcommon
 		bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 		============
 		*/
-		private static void Cmd_Wait_f( ) {
-			if ( Cmd_Argc() == 2 ) {
-				cmd_wait = atoi( Cmd_Argv( 1 ) );
-			} else {
-				cmd_wait = 1;
-			}
+		private static void Cmd_Wait_f( ) 
+		{
+			if ( Cmd_Argc() == 2 )
+				int.TryParse( Cmd_Argv( 1 ), out cmd_wait );
+			else
+				cmd_wait = 1;			
 		}
-
 
 		/*
 		=============================================================================
@@ -97,10 +98,10 @@ namespace SharpQ3.Engine.qcommon
 
 			if (cmd_text.cursize + l >= cmd_text.maxsize)
 			{
-				com.Com_Printf ("Cbuf_AddText: overflow\n");
+				common.Com_Printf ("Cbuf_AddText: overflow\n");
 				return;
 			}
-			com.Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
+			Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
 			cmd_text.cursize += l;
 		}
 
@@ -120,7 +121,7 @@ namespace SharpQ3.Engine.qcommon
 
 			len = (int) text.Length + 1;
 			if ( len + cmd_text.cursize > cmd_text.maxsize ) {
-				com.Com_Printf( "Cbuf_InsertText overflowed\n" );
+				common.Com_Printf( "Cbuf_InsertText overflowed\n" );
 				return;
 			}
 
@@ -130,7 +131,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// copy the new text in
-			com/Com_Memcpy( cmd_text.data, text, len - 1 );
+			Com_Memcpy( cmd_text.data, text, len - 1 );
 
 			// add a \n
 			cmd_text.data[ len - 1 ] = (byte)'\n';
@@ -144,25 +145,26 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_ExecuteText
 		============
 		*/
-		private static void Cbuf_ExecuteText (int exec_when, string text)
+		private static void Cbuf_ExecuteText( cbufExec_t exec_when, string text)
 		{
 			switch (exec_when)
 			{
-			case EXEC_NOW:
-				if (text && (int) text.Length > 0) {
+			case cbufExec_t.EXEC_NOW:
+				if (text?.Length > 0) {
 					Cmd_ExecuteString (text);
 				} else {
 					Cbuf_Execute();
 				}
 				break;
-			case EXEC_INSERT:
+			case cbufExec_t.EXEC_INSERT:
 				Cbuf_InsertText (text);
 				break;
-			case EXEC_APPEND:
+			case cbufExec_t.EXEC_APPEND:
 				Cbuf_AddText (text);
 				break;
 			default:
 				Com_Error (ERR_FATAL, "Cbuf_ExecuteText: bad exec_when");
+				break;
 			}
 		}
 
@@ -174,13 +176,13 @@ namespace SharpQ3.Engine.qcommon
 		private static void Cbuf_Execute ()
 		{
 			int		i;
-			char	*text;
-			char	line[MAX_CMD_LINE];
+			string text;
+			char[]	line = new char[MAX_CMD_LINE];
 			int		quotes;
 
-			while (cmd_text.cursize)
+			while (cmd_text.cursize > 0)
 			{
-				if ( cmd_wait )	{
+				if ( cmd_wait > 0 )	{
 					// skip out while text still remains in buffer, leaving it
 					// for next frame
 					cmd_wait--;
@@ -188,14 +190,14 @@ namespace SharpQ3.Engine.qcommon
 				}
 
 				// find a \n or ; line break
-				text = (char *)cmd_text.data;
+				text = Encoding.ASCII.GetString( cmd_text.data );
 
 				quotes = 0;
 				for (i=0 ; i< cmd_text.cursize ; i++)
 				{
 					if (text[i] == '"')
 						quotes++;
-					if ( !(quotes&1) &&  text[i] == ';')
+					if ( (quotes&1) == 0 && text[i] == ';')
 						break;	// don't break if inside a quoted string
 					if (text[i] == '\n' || text[i] == '\r' )
 						break;
@@ -206,7 +208,7 @@ namespace SharpQ3.Engine.qcommon
 				}
 						
 				Com_Memcpy (line, text, i);
-				line[i] = 0;
+				line[i] = (char)0;
 				
 		// delete the text from the command buffer and move remaining commands down
 		// this is necessary because commands (exec) can insert data at the
@@ -244,23 +246,22 @@ namespace SharpQ3.Engine.qcommon
 		*/
 		private static void Cmd_Exec_f( ) 
 		{
-			char	*f;
+			string f;
 			int		len;
-			char	filename[MAX_QPATH];
 
 			if (Cmd_Argc () != 2) {
-				Com_Printf ("exec <filename> : execute a script file\n");
+				common.Com_Printf ("exec <filename> : execute a script file\n");
 				return;
 			}
 
-			Q_strncpyz( filename, Cmd_Argv(1), sizeof( filename ) );
-			COM_DefaultExtension( filename, sizeof( filename ), ".cfg" ); 
+			Q_strncpyz( out var filename, Cmd_Argv(1), MAX_QPATH );
+			COM_DefaultExtension( filename, MAX_QPATH, ".cfg" ); 
 			len = FS_ReadFile( filename, (void **)&f);
-			if (!f) {
-				Com_Printf ("couldn't exec %s\n",Cmd_Argv(1));
+			if (f == null) {
+				common.Com_Printf ("couldn't exec %s\n",Cmd_Argv(1));
 				return;
 			}
-			Com_Printf ("execing %s\n",Cmd_Argv(1));
+			common.Com_Printf ("execing %s\n",Cmd_Argv(1));
 			
 			Cbuf_InsertText (f);
 
@@ -279,11 +280,11 @@ namespace SharpQ3.Engine.qcommon
 			char	*v;
 
 			if (Cmd_Argc () != 2) {
-				Com_Printf ("vstr <variablename> : execute a variable command\n");
+				common.Com_Printf ("vstr <variablename> : execute a variable command\n");
 				return;
 			}
 
-			v = Cvar_VariableString( Cmd_Argv( 1 ) );
+			v = Cvar.Cvar_VariableString( Cmd_Argv( 1 ) );
 			Cbuf_InsertText( va("%s\n", v ) );
 		}
 
@@ -300,8 +301,8 @@ namespace SharpQ3.Engine.qcommon
 			int		i;
 			
 			for (i=1 ; i<Cmd_Argc() ; i++)
-				Com_Printf ("%s ",Cmd_Argv(i));
-			Com_Printf ("\n");
+				common.Com_Printf ("%s ",Cmd_Argv(i));
+			common.Com_Printf ("\n");
 		}
 
 
@@ -343,7 +344,7 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		public static string Cmd_Argv( int arg ) {
-			if ( (unsigned)arg >= cmd_argc ) {
+			if ( (uint)arg >= cmd_argc ) {
 				return "";
 			}
 			return cmd_argv[arg];	
@@ -357,8 +358,8 @@ namespace SharpQ3.Engine.qcommon
 		they can't have pointers returned to them
 		============
 		*/
-		public static void Cmd_ArgvBuffer( int arg, string buffer, int bufferLength ) {
-			Q_strncpyz( buffer, Cmd_Argv( arg ), bufferLength );
+		public static void Cmd_ArgvBuffer( int arg, out string buffer, int bufferLength ) {
+			Q_strncpyz( out buffer, Cmd_Argv( arg ), bufferLength );
 		}
 
 
@@ -370,18 +371,16 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		public static string Cmd_Args( ) {
-			static	char		cmd_args[MAX_STRING_CHARS];
-			int		i;
-
-			cmd_args[0] = 0;
-			for ( i = 1 ; i < cmd_argc ; i++ ) {
-				strcat( cmd_args, cmd_argv[i] );
+			var cmd_args = new StringBuilder( MAX_STRING_CHARS );
+			
+			for ( var i = 1 ; i < cmd_argc ; i++ ) {
+				cmd_args.Append( cmd_argv[i] );
 				if ( i != cmd_argc-1 ) {
-					strcat( cmd_args, " " );
+					cmd_args.Append( " " );
 				}
 			}
 
-			return cmd_args;
+			return cmd_args.ToString();
 		}
 
 		/*
@@ -392,20 +391,20 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		private static string Cmd_ArgsFrom( int arg ) {
-			static	char		cmd_args[BIG_INFO_STRING];
-			int		i;
 
-			cmd_args[0] = 0;
+			var cmd_args = new StringBuilder( MAX_STRING_CHARS );
+
 			if (arg < 0)
 				arg = 0;
-			for ( i = arg ; i < cmd_argc ; i++ ) {
-				strcat( cmd_args, cmd_argv[i] );
-				if ( i != cmd_argc-1 ) {
-					strcat( cmd_args, " " );
+			for ( var i = arg ; i < cmd_argc ; i++ )			{
+				cmd_args.Append( cmd_argv[i] );
+				if ( i != cmd_argc-1 )
+				{
+					cmd_args.Append( " " );
 				}
 			}
 
-			return cmd_args;
+			return cmd_args.ToString();
 		}
 
 		/*
@@ -416,8 +415,8 @@ namespace SharpQ3.Engine.qcommon
 		they can't have pointers returned to them
 		============
 		*/
-		private static void Cmd_ArgsBuffer( string buffer, int bufferLength ) {
-			Q_strncpyz( buffer, Cmd_Args(), bufferLength );
+		private static void Cmd_ArgsBuffer( out string buffer, int bufferLength ) {
+			Q_strncpyz( out buffer, Cmd_Args(), bufferLength );
 		}
 
 		/*
@@ -445,49 +444,48 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		public static void Cmd_TokenizeString( string text_in ) {
-			const char	*text;
-			char	*textOut;
+			char[] text;
+			char[] textOut;
+			int tI = 0, tO = 0;
 
 			// clear previous args
 			cmd_argc = 0;
 
-			if ( !text_in ) {
+			if ( text_in == null )
 				return;
-			}
 			
-			Q_strncpyz( cmd_cmd, text_in, sizeof(cmd_cmd) );
+			Q_strncpyz( out cmd_cmd, text_in, cmd_cmd.Length );
 
-			text = text_in;
-			textOut = cmd_tokenized;
+			text = text_in.ToCharArray();
+			textOut = cmd_tokenized.ToCharArray();
 
-			while ( 1 ) {
+			while ( true ) {
 				if ( cmd_argc == MAX_STRING_TOKENS ) {
 					return;			// this is usually something malicious
 				}
 
-				while ( 1 ) {
+				while ( true ) {
 					// skip whitespace
-					while ( *text && *text <= ' ' ) {
-						text++;
+					while ( tI < text.Length && text[tI] <= ' ' ) {
+						tI++;
 					}
-					if ( !*text ) {
+					if ( tI >= text.Length )
 						return;			// all tokens parsed
-					}
 
 					// skip // comments
-					if ( text[0] == '/' && text[1] == '/' ) {
+					if ( text[tI] == '/' && text[tI + 1] == '/' ) {
 						return;			// all tokens parsed
 					}
 
 					// skip /* */ comments
-					if ( text[0] == '/' && text[1] =='*' ) {
-						while ( *text && ( text[0] != '*' || text[1] != '/' ) ) {
-							text++;
+					if ( text[tI] == '/' && text[tI + 1] == '*' ) {
+						while ( tI < text.Length && ( text[tI] != '*' || text[tI + 1] != '/' ) ) {
+							tI++;
 						}
-						if ( !*text ) {
+						if ( tI >= text.Length ) {
 							return;		// all tokens parsed
 						}
-						text += 2;
+						tI += 2;
 					} else {
 						break;			// we are ready to parse a token
 					}
@@ -495,50 +493,48 @@ namespace SharpQ3.Engine.qcommon
 
 				// handle quoted strings
 		    // NOTE TTimo this doesn't handle \" escaping
-				if ( *text == '"' ) {
-					cmd_argv[cmd_argc] = textOut;
+				if ( text[tI] == '"' ) {
+					cmd_argv[cmd_argc] = textOut.ToString();
 					cmd_argc++;
-					text++;
-					while ( *text && *text != '"' ) {
-						*textOut++ = *text++;
+					tI++;
+					while ( tI < text.Length && text[tI] != '"' ) {
+						textOut[tO++] = text[tI++];
 					}
-					*textOut++ = 0;
-					if ( !*text ) {
+					textOut[tO++] = (char)0;
+					if ( tI >= text.Length )
 						return;		// all tokens parsed
-					}
-					text++;
+
+					tI++;
 					continue;
 				}
 
 				// regular token
-				cmd_argv[cmd_argc] = textOut;
+				cmd_argv[cmd_argc] = textOut.ToString();
 				cmd_argc++;
 
 				// skip until whitespace, quote, or command
-				while ( *text > ' ' ) {
-					if ( text[0] == '"' ) {
+				while ( text[tI] > ' ' ) {
+					if ( text[tI] == '"' ) {
 						break;
 					}
 
-					if ( text[0] == '/' && text[1] == '/' ) {
+					if ( text[tI] == '/' && text[tI + 1] == '/' ) {
 						break;
 					}
 
 					// skip /* */ comments
-					if ( text[0] == '/' && text[1] =='*' ) {
+					if ( text[0] == '/' && text[tI + 1] == '*' ) {
 						break;
 					}
 
-					*textOut++ = *text++;
+					textOut[tO++] = text[tI++];
 				}
 
-				*textOut++ = 0;
+				textOut[tO++] = (char)0;
 
-				if ( !*text ) {
+				if ( tI >= text.Length )
 					return;		// all tokens parsed
-				}
 			}
-			
 		}
 
 
@@ -547,7 +543,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_AddCommand
 		============
 		*/
-		private static void Cmd_AddCommand( string cmd_name, Action function ) {
+		public static void Cmd_AddCommand( string cmd_name, Action function ) {
 			cmd_function_t	*cmd;
 			
 			// fail if the command already exists
@@ -555,7 +551,7 @@ namespace SharpQ3.Engine.qcommon
 				if ( !strcmp( cmd_name, cmd->name ) ) {
 					// allow completion-only commands to be silently doubled
 					if ( function != NULL ) {
-						Com_Printf ("Cmd_AddCommand: %s already defined\n", cmd_name);
+						common.Com_Printf ("Cmd_AddCommand: %s already defined\n", cmd_name);
 					}
 					return;
 				}
@@ -602,11 +598,13 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_CommandCompletion
 		============
 		*/
-		private static void Cmd_CommandCompletion( void(*callback)(const char *s) ) {
-			cmd_function_t	*cmd;
+		private static void Cmd_CommandCompletion( Action<string> callback ) 
+		{
+			cmd_function_t	cmd;
 			
-			for (cmd=cmd_functions ; cmd ; cmd=cmd->next) {
-				callback( cmd->name );
+			for (cmd = cmd_functions; cmd != null; cmd = cmd.next) 
+			{
+				callback( cmd.name );
 			}
 		}
 
@@ -619,58 +617,54 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		private static void	Cmd_ExecuteString( string text ) {	
-			cmd_function_t	*cmd, **prev;
+			cmd_function_t	cmd, prev;
 
 			// execute the command line
 			Cmd_TokenizeString( text );		
-			if ( !Cmd_Argc() ) {
+
+			if ( Cmd_Argc() == 0 )
 				return;		// no tokens
-			}
 
 			// check registered command functions	
-			for ( prev = &cmd_functions ; *prev ; prev = &cmd->next ) {
-				cmd = *prev;
-				if ( !Q_stricmp( cmd_argv[0],cmd->name ) ) {
+			for ( prev = cmd_functions; prev != null; prev = cmd.next ) 
+			{
+				cmd = prev;
+				if ( Q_stricmp( cmd_argv[0], cmd.name ) <= 0 ) {
 					// rearrange the links so that the command will be
 					// near the head of the list next time it is used
-					*prev = cmd->next;
-					cmd->next = cmd_functions;
+					prev = cmd.next;
+					cmd.next = cmd_functions;
 					cmd_functions = cmd;
 
 					// perform the action
-					if ( !cmd->function ) {
-						// let the cgame or game handle it
+					if ( cmd.function == null ) // let the cgame or game handle it
 						break;
-					} else {
-						cmd->function ();
-					}
+					else 
+						cmd.function();
+
 					return;
 				}
 			}
 			
 			// check cvars
-			if ( Cvar_Command() ) {
+			if ( Cvar.Cvar_Command() )
 				return;
-			}
 
 			// check client game commands
-			if ( com_cl_running && com_cl_running->integer && CL_GameCommand() ) {
+			if ( common.com_cl_running && common.com_cl_running.integer == 1 && CL_GameCommand() )
 				return;
-			}
 
 			// check server game commands
-			if ( com_sv_running && com_sv_running->integer && SV_GameCommand() ) {
+			if ( common.com_sv_running && common.com_sv_running.integer == 1 && SV_GameCommand() )
 				return;
-			}
 
 			// check ui commands
-			if ( com_cl_running && com_cl_running->integer && UI_GameCommand() ) {
+			if ( common.com_cl_running && common.com_cl_running.integer == 1 && UI_GameCommand() )
 				return;
-			}
 
 			// send it as a server command if we are connected
 			// this will usually result in a chat message
-			CL_ForwardCommandToServer ( text );
+			CL_ForwardCommandToServer( text );
 		}
 
 		/*
@@ -678,26 +672,26 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_List_f
 		============
 		*/
-		private static void Cmd_List_f ()
+		private static void Cmd_List_f( )
 		{
-			cmd_function_t	*cmd;
-			int				i;
-			char			*match;
+			cmd_function_t cmd;
+			int i;
+			string match;
 
-			if ( Cmd_Argc() > 1 ) {
+			if ( Cmd_Argc() > 1 )
 				match = Cmd_Argv( 1 );
-			} else {
-				match = NULL;
-			}
+			else
+				match = null;
 
 			i = 0;
-			for (cmd=cmd_functions ; cmd ; cmd=cmd->next) {
-				if (match && !Com_Filter(match, cmd->name, false)) continue;
+			for ( cmd = cmd_functions; cmd != null; cmd = cmd.next )
+			{
+				if ( match != null && !common.Com_Filter( match, cmd.name, false ) ) continue;
 
-				Com_Printf ("%s\n", cmd->name);
+				common.Com_Printf( "%s\n", cmd.name );
 				i++;
 			}
-			Com_Printf ("%i commands\n", i);
+			common.Com_Printf( "%i commands\n", i );
 		}
 
 		/*

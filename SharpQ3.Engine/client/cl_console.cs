@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.client
 {
 	// cl_console.c
@@ -178,16 +180,16 @@ namespace SharpQ3.Engine.client
 
 			if (Cmd_Argc() != 2)
 			{
-				Com_Printf ("usage: condump <filename>\n");
+				common.Com_Printf ("usage: condump <filename>\n");
 				return;
 			}
 
-			Com_Printf ("Dumped console text to %s.\n", Cmd_Argv(1) );
+			common.Com_Printf ("Dumped console text to %s.\n", Cmd_Argv(1) );
 
 			f = FS_FOpenFileWrite( Cmd_Argv( 1 ) );
 			if (!f)
 			{
-				Com_Printf ("ERROR: couldn't open.\n");
+				common.Com_Printf ("ERROR: couldn't open.\n");
 				return;
 			}
 

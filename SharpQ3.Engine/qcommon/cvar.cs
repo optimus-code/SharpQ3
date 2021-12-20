@@ -212,12 +212,12 @@ namespace SharpQ3.Engine.qcommon
 
 			if (var_name == null || var_value == null)
 			{
-				Com_Error(ERR_FATAL, "Cvar_Get: NULL parameter");
+				common.Com_Error(ERR_FATAL, "Cvar_Get: NULL parameter");
 			}
 
 			if (!Cvar_ValidateString(var_name))
 			{
-				Com_Printf("invalid cvar name string: %s\n", var_name);
+				common.Com_Printf("invalid cvar name string: %s\n", var_name);
 				var_name = "BADNAME";
 			}
 
@@ -249,7 +249,7 @@ namespace SharpQ3.Engine.qcommon
 				}
 				else if (var_value[0] && strcmp(var.resetString, var_value))
 				{
-					Com_DPrintf("Warning: cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var.resetString, var_value);
+					common.Com_DPrintf("Warning: cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var.resetString, var_value);
 				}
 
 				// if we have a latched string, take that value now
@@ -304,11 +304,11 @@ namespace SharpQ3.Engine.qcommon
 		{
 			cvar_t var;
 
-			Com_DPrintf("Cvar_Set2: %s %s\n", var_name, value);
+			common.Com_DPrintf("Cvar_Set2: %s %s\n", var_name, value);
 
 			if (!Cvar_ValidateString(var_name))
 			{
-				Com_Printf("invalid cvar name string: %s\n", var_name);
+				common.Com_Printf("invalid cvar name string: %s\n", var_name);
 				var_name = "BADNAME";
 			}
 
@@ -349,14 +349,14 @@ namespace SharpQ3.Engine.qcommon
 			{
 				if (var.flags.HasFlag( CVAR.ROM ))
 				{
-					Com_Printf("%s is read only.\n", var_name);
+					common.Com_Printf("%s is read only.\n", var_name);
 
 					return var;
 				}
 
 				if (var.flags.HasFlag( CVAR.INIT ) )
 				{
-					Com_Printf("%s is write protected.\n", var_name);
+					common.Com_Printf("%s is write protected.\n", var_name);
 
 					return var;
 				}
@@ -376,7 +376,7 @@ namespace SharpQ3.Engine.qcommon
 							return var;
 					}
 
-					Com_Printf("%s will be changed upon restarting.\n", var_name);
+					common.Com_Printf("%s will be changed upon restarting.\n", var_name);
 					var.latchedString = CopyString(value);
 					var.modified = true;
 					var.modificationCount++;
@@ -386,7 +386,7 @@ namespace SharpQ3.Engine.qcommon
 
 				if ((var.flags.HasFlag( CVAR.CHEAT ) ) && cvar_cheats.integer == 0)
 				{
-					Com_Printf("%s is cheat protected.\n", var_name);
+					common.Com_Printf("%s is cheat protected.\n", var_name);
 
 					return var;
 				}
@@ -447,11 +447,11 @@ namespace SharpQ3.Engine.qcommon
 
 			if (value == (int)value)
 			{
-				Com_sprintf(val, sizeof(val), "%i", (int)value);
+				common.Com_sprintf(val, sizeof(val), "%i", (int)value);
 			}
 			else
 			{
-				Com_sprintf(val, sizeof(val), "%f", value);
+				common.Com_sprintf(val, sizeof(val), "%f", value);
 			}
 
 			Cvar_Set(var_name, val);
@@ -513,7 +513,7 @@ namespace SharpQ3.Engine.qcommon
 			cvar_t v;
 
 			// check variables
-			v = Cvar_FindVar(Cmd_Argv(0));
+			v = Cvar_FindVar(cmd.Cmd_Argv(0));
 
 			if (v == null)
 			{
@@ -521,20 +521,20 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// perform a variable print or set
-			if (Cmd_Argc() == 1)
+			if (cmd.Cmd_Argc() == 1)
 			{
-				Com_Printf("\"%s\" is:\"%s" + S_COLOR_WHITE + "\" default:\"%s" + S_COLOR_WHITE + "\"\n", v.name, v.@string, v.resetString);
+				common.Com_Printf("\"%s\" is:\"%s" + S_COLOR_WHITE + "\" default:\"%s" + S_COLOR_WHITE + "\"\n", v.name, v.@string, v.resetString);
 
 				if (v.latchedString != null)
 				{
-					Com_Printf("latched: \"%s\"\n", v.latchedString);
+					common.Com_Printf("latched: \"%s\"\n", v.latchedString);
 				}
 
 				return true;
 			}
 
 			// set the value if forcing isn't required
-			Cvar_Set2(v.name, Cmd_Argv(1), false);
+			Cvar_Set2(v.name, cmd.Cmd_Argv(1), false);
 
 			return true;
 		}
@@ -551,17 +551,17 @@ namespace SharpQ3.Engine.qcommon
 		{
 			int v;
 
-			if (Cmd_Argc() != 2)
+			if (cmd.Cmd_Argc() != 2)
 			{
-				Com_Printf("usage: toggle <variable>\n");
+				common.Com_Printf("usage: toggle <variable>\n");
 
 				return;
 			}
 
-			v = Cvar_VariableValue(Cmd_Argv(1));
+			v = (int)Cvar_VariableValue(cmd.Cmd_Argv(1));
 			v = v == 1 ? 0 : 1;
 
-			Cvar_Set2(Cmd_Argv(1), va("%i", v), false);
+			Cvar_Set2(cmd.Cmd_Argv(1), va("%i", v), false);
 		}
 
 		/*
@@ -577,11 +577,11 @@ namespace SharpQ3.Engine.qcommon
 			int i, c, l, len;
 			string combined;
 
-			c = Cmd_Argc();
+			c = cmd.Cmd_Argc();
 
 			if (c < 3)
 			{
-				Com_Printf("usage: set <variable> <value>\n");
+				common.Com_Printf("usage: set <variable> <value>\n");
 
 				return;
 			}
@@ -591,14 +591,14 @@ namespace SharpQ3.Engine.qcommon
 
 			for (i = 2; i < c; i++)
 			{
-				len = (int)strlen(Cmd_Argv(i) + 1);
+				len = cmd.Cmd_Argv(i).Length + 1);
 
 				if (l + len >= MAX_STRING_TOKENS - 2)
 				{
 					break;
 				}
 
-				strcat(combined, Cmd_Argv(i));
+				strcat(combined, cmd.Cmd_Argv(i));
 
 				if (i != c - 1)
 				{
@@ -608,7 +608,7 @@ namespace SharpQ3.Engine.qcommon
 				l += len;
 			}
 
-			Cvar_Set2(Cmd_Argv(1), combined, false);
+			Cvar_Set2(cmd.Cmd_Argv(1), combined, false);
 		}
 
 		/*
@@ -622,15 +622,15 @@ namespace SharpQ3.Engine.qcommon
 		{
 			cvar_t v;
 
-			if (Cmd_Argc() != 3)
+			if (cmd.Cmd_Argc() != 3)
 			{
-				Com_Printf("usage: setu <variable> <value>\n");
+				common.Com_Printf("usage: setu <variable> <value>\n");
 
 				return;
 			}
 
 			Cvar_Set_f();
-			v = Cvar_FindVar(Cmd_Argv(1));
+			v = Cvar_FindVar(cmd.Cmd_Argv(1));
 
 			if (v == null)
 			{
@@ -651,9 +651,9 @@ namespace SharpQ3.Engine.qcommon
 		{
 			cvar_t v;
 
-			if (Cmd_Argc() != 3)
+			if (cmd.Cmd_Argc() != 3)
 			{
-				Com_Printf("usage: sets <variable> <value>\n");
+				common.Com_Printf("usage: sets <variable> <value>\n");
 
 				return;
 			}
@@ -682,7 +682,7 @@ namespace SharpQ3.Engine.qcommon
 
 			if (Cmd_Argc() != 3)
 			{
-				Com_Printf("usage: seta <variable> <value>\n");
+				common.Com_Printf("usage: seta <variable> <value>\n");
 
 				return;
 			}
@@ -705,14 +705,14 @@ namespace SharpQ3.Engine.qcommon
 		*/
 		static void Cvar_Reset_f()
 		{
-			if (Cmd_Argc() != 2)
+			if (cmd.Cmd_Argc() != 2)
 			{
-				Com_Printf("usage: reset <variable>\n");
+				common.Com_Printf("usage: reset <variable>\n");
 
 				return;
 			}
 
-			Cvar_Reset(Cmd_Argv(1));
+			Cvar_Reset(cmd.Cmd_Argv(1));
 		}
 
 		/*
@@ -758,9 +758,9 @@ namespace SharpQ3.Engine.qcommon
 			int i;
 			string match;
 
-			if (Cmd_Argc() > 1)
+			if (cmd.Cmd_Argc() > 1)
 			{
-				match = Cmd_Argv(1);
+				match = cmd.Cmd_Argv(1);
 			}
 			else
 			{
@@ -776,72 +776,72 @@ namespace SharpQ3.Engine.qcommon
 
 				if (var.flags.HasFlag( CVAR.SERVERINFO ))
 				{
-					Com_Printf("S");
+					common.Com_Printf("S");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.USERINFO ) )
 				{
-					Com_Printf("U");
+					common.Com_Printf("U");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.ROM ) )
 				{
-					Com_Printf("R");
+					common.Com_Printf("R");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.INIT ) )
 				{
-					Com_Printf("I");
+					common.Com_Printf("I");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.ARCHIVE ))
 				{
-					Com_Printf("A");
+					common.Com_Printf("A");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.LATCH ))
 				{
-					Com_Printf("L");
+					common.Com_Printf("L");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
 				if (var.flags.HasFlag( CVAR.CHEAT ))
 				{
-					Com_Printf("C");
+					common.Com_Printf("C");
 				}
 				else
 				{
-					Com_Printf(" ");
+					common.Com_Printf(" ");
 				}
 
-				Com_Printf(" %s \"%s\"\n", var.name, var.@string);
+				common.Com_Printf(" %s \"%s\"\n", var.name, var.@string);
 			}
 
-			Com_Printf("\n%i total cvars\n", i);
-			Com_Printf("%i cvar indexes\n", cvar_numIndexes);
+			common.Com_Printf("\n%i total cvars\n", i);
+			common.Com_Printf("%i cvar indexes\n", cvar_numIndexes);
 		}
 
 		/*
@@ -966,9 +966,9 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_InfoStringBuffer
 		=====================
 		*/
-		static void Cvar_InfoStringBuffer(int bit, string buff, int buffsize)
+		static void Cvar_InfoStringBuffer(int bit, ref string buff, int buffsize)
 		{
-			Q_strncpyz(buff, Cvar_InfoString(bit), buffsize);
+			q_shared.Q_strncpyz(ref buff, Cvar_InfoString(bit), buffsize);
 		}
 
 		/*
@@ -1008,7 +1008,7 @@ namespace SharpQ3.Engine.qcommon
 
 			if ((unsigned)vmCvar.handle >= cvar_numIndexes)
 			{
-				Com_Error(ERR_DROP, "Cvar_Update: handle out of range");
+				common.Com_Error(ERR_DROP, "Cvar_Update: handle out of range");
 			}
 
 			cv = cvar_indexes + vmCvar.handle;
@@ -1026,7 +1026,7 @@ namespace SharpQ3.Engine.qcommon
 
 			// bk001129 - mismatches.
 			if ((int)strlen(cv.@string) + 1 > MAX_CVAR_VALUE_STRING)
-				Com_Error(
+				common.Com_Error(
 					ERR_DROP,
 					"Cvar_Update: src %s length %d exceeds MAX_CVAR_VALUE_STRING",
 					cv.@string,
@@ -1040,7 +1040,7 @@ namespace SharpQ3.Engine.qcommon
 			// bk001129 - beware, sizeof(char*) is always 4 (for cv->string). 
 			//            sizeof(vmCvar->string) always MAX_CVAR_VALUE_STRING
 			//Q_strncpyz( vmCvar->string, cv->string, sizeof( vmCvar->string ) ); // id
-			Q_strncpyz(vmCvar.@string, cv.@string, MAX_CVAR_VALUE_STRING);
+			q_shared.Q_strncpyz(out vmCvar.@string, cv.@string, MAX_CVAR_VALUE_STRING);
 
 			vmCvar.value = cv.value;
 			vmCvar.integer = cv.integer;
@@ -1058,14 +1058,14 @@ namespace SharpQ3.Engine.qcommon
 		{
 			cvar_cheats = Cvar_Get("sv_cheats", "1", CVAR.ROM | CVAR.SYSTEMINFO);
 
-			Cmd_AddCommand("toggle", Cvar_Toggle_f);
-			Cmd_AddCommand("set", Cvar_Set_f);
-			Cmd_AddCommand("sets", Cvar_SetS_f);
-			Cmd_AddCommand("setu", Cvar_SetU_f);
-			Cmd_AddCommand("seta", Cvar_SetA_f);
-			Cmd_AddCommand("reset", Cvar_Reset_f);
-			Cmd_AddCommand("cvarlist", Cvar_List_f);
-			Cmd_AddCommand("cvar_restart", Cvar_Restart_f);
+			cmd.Cmd_AddCommand("toggle", Cvar_Toggle_f);
+			cmd.Cmd_AddCommand("set", Cvar_Set_f);
+			cmd.Cmd_AddCommand("sets", Cvar_SetS_f);
+			cmd.Cmd_AddCommand("setu", Cvar_SetU_f);
+			cmd.Cmd_AddCommand("seta", Cvar_SetA_f);
+			cmd.Cmd_AddCommand("reset", Cvar_Reset_f);
+			cmd.Cmd_AddCommand("cvarlist", Cvar_List_f);
+			cmd.Cmd_AddCommand("cvar_restart", Cvar_Restart_f);
 		}
 	}
 }

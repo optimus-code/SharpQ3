@@ -297,23 +297,23 @@ namespace SharpQ3.Engine
 
 		public const int nanmask = (255 << 23);
 
-		#define IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
+		//#define IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
 
-		#define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
+		//#define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
 
-		#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
-		#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
-		#define VectorAdd(a,b,c)		((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
-		#define VectorCopy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
-		#define VectorScale(v, s, o)	((o)[0]=(v)[0]*(s),(o)[1]=(v)[1]*(s),(o)[2]=(v)[2]*(s))
-		#define VectorMA(v, s, b, o)	((o)[0]=(v)[0]+(b)[0]*(s),(o)[1]=(v)[1]+(b)[1]*(s),(o)[2]=(v)[2]+(b)[2]*(s))
+		//#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
+		//#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
+		//#define VectorAdd(a,b,c)		((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
+		//#define VectorCopy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
+		//#define VectorScale(v, s, o)	((o)[0]=(v)[0]*(s),(o)[1]=(v)[1]*(s),(o)[2]=(v)[2]*(s))
+		//#define VectorMA(v, s, b, o)	((o)[0]=(v)[0]+(b)[0]*(s),(o)[1]=(v)[1]+(b)[1]*(s),(o)[2]=(v)[2]+(b)[2]*(s))
 
-		#define VectorClear(a)			((a)[0]=(a)[1]=(a)[2]=0)
-		#define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
-		#define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
-		#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
+		//#define VectorClear(a)			((a)[0]=(a)[1]=(a)[2]=0)
+		//#define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
+		//#define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
+		//#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
-		#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
+		//#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
 
 		static int VectorCompare( vec3_t v1, vec3_t v2 )
 		{
@@ -452,47 +452,6 @@ namespace SharpQ3.Engine
 		==========================================================
 		*/
 		
-		[Flags]
-		public enum CVAR
-		{
-			NONE = 0,
-			ARCHIVE =	1,   // set to cause it to be saved to vars.rc
-			// used for system variables, not for player
-			// specific configurations
-			USERINFO = 2,   // sent to server on connect or change
-			SERVERINFO = 4,   // sent in response to front end requests
-			SYSTEMINFO = 8,   // these cvars will be duplicated on all clients
-			INIT = 16, // don't allow change from console at all,
-			// but can be set from the command line
-			LATCH = 32,    // will only change when C code next does
-			// a Cvar_Get(), so it can't be changed
-			// without proper initialization.  modified
-			// will be set, even though the value hasn't
-			// changed yet
-
-			ROM = 64,  // display only, cannot be set by user at all
-			USER_CREATED = 128, // created by a set command
-			TEMP = 256, // can be set even when cheats are disabled, but is not archived
-			CHEAT = 512, // can not be changed if cheats are disabled
-			NORESTART = 1024	// do not clear when a cvar_restart is issued
-		}
-
-		// nothing outside the Cvar_*() functions should modify these fields!
-		// Used more like a class
-		public class cvar_t
-		{
-			public string name;
-			public string @string;
-			public string resetString;      // cvar_restart will reset to this value
-			public string latchedString;        // for CVAR_LATCH vars
-			public CVAR flags;
-			public bool modified;          // set each time the cvar is changed
-			public int modificationCount;  // incremented each time the cvar is changed
-			public float value;                // atof( string )
-			public int integer;            // atoi( string )
-			public cvar_t next;
-			public cvar_t hashNext;
-		};
 
 		public const int MAX_CVAR_VALUE_STRING = 256;
 
@@ -2148,5 +2107,48 @@ namespace SharpQ3.Engine
 
 			s += newi;
 		}
+	}
+
+
+	// nothing outside the Cvar_*() functions should modify these fields!
+	// Used more like a class
+	public class cvar_t
+	{
+		public string name;
+		public string @string;
+		public string resetString;      // cvar_restart will reset to this value
+		public string latchedString;        // for CVAR_LATCH vars
+		public CVAR flags;
+		public bool modified;          // set each time the cvar is changed
+		public int modificationCount;  // incremented each time the cvar is changed
+		public float value;                // atof( string )
+		public int integer;            // atoi( string )
+		public cvar_t next;
+		public cvar_t hashNext;
+	}
+
+	[Flags]
+	public enum CVAR
+	{
+		NONE = 0,
+		ARCHIVE = 1,   // set to cause it to be saved to vars.rc
+					   // used for system variables, not for player
+					   // specific configurations
+		USERINFO = 2,   // sent to server on connect or change
+		SERVERINFO = 4,   // sent in response to front end requests
+		SYSTEMINFO = 8,   // these cvars will be duplicated on all clients
+		INIT = 16, // don't allow change from console at all,
+				   // but can be set from the command line
+		LATCH = 32,    // will only change when C code next does
+					   // a Cvar_Get(), so it can't be changed
+					   // without proper initialization.  modified
+					   // will be set, even though the value hasn't
+					   // changed yet
+
+		ROM = 64,  // display only, cannot be set by user at all
+		USER_CREATED = 128, // created by a set command
+		TEMP = 256, // can be set even when cheats are disabled, but is not archived
+		CHEAT = 512, // can not be changed if cheats are disabled
+		NORESTART = 1024    // do not clear when a cvar_restart is issued
 	}
 }

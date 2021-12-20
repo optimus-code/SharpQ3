@@ -48,30 +48,30 @@ namespace SharpQ3.Engine.qcommon
 
 	private static FileStream debuglogfile;
 	private static int logfile;
-	private static int com_journalFile;            // events are written here
-	private static int com_journalDataFile;        // config files are written here
+	public static int com_journalFile;            // events are written here
+	public static int com_journalDataFile;        // config files are written here
 
-	private static cvar_t com_viewlog;
-	private static cvar_t com_speeds;
-	private static cvar_t com_developer;
-	private static cvar_t com_dedicated;
-	private static cvar_t com_timescale;
-	private static cvar_t com_fixedtime;
-	private static cvar_t com_dropsim;     // 0.0 to 1.0, simulated packet drops
-	private static cvar_t com_journal;
-	private static cvar_t com_maxfps;
-	private static cvar_t com_timedemo;
-	private static cvar_t com_sv_running;
-	private static cvar_t com_cl_running;
-	private static cvar_t com_logfile;     // 1 = buffer log, 2 = flush after each print
-	private static cvar_t com_showtrace;
-	private static cvar_t com_version;
-	private static cvar_t com_blood;
-	private static cvar_t com_buildScript; // for automated data building scripts
-	private static cvar_t com_introPlayed;
-	private static cvar_t cl_paused;
+	public static cvar_t com_viewlog;
+	public static cvar_t com_speeds;
+	public static cvar_t com_developer;
+	public static cvar_t com_dedicated;
+	public static cvar_t com_timescale;
+	public static cvar_t com_fixedtime;
+	public static cvar_t com_dropsim;     // 0.0 to 1.0, simulated packet drops
+	public static cvar_t com_journal;
+	public static cvar_t com_maxfps;
+	public static cvar_t com_timedemo;
+	public static cvar_t com_sv_running;
+	public static cvar_t com_cl_running;
+	public static cvar_t com_logfile;     // 1 = buffer log, 2 = flush after each print
+	public static cvar_t com_showtrace;
+	public static cvar_t com_version;
+	public static cvar_t com_blood;
+	public static cvar_t com_buildScript; // for automated data building scripts
+	public static cvar_t com_introPlayed;
+	public static cvar_t cl_paused;
 	private static cvar_t sv_paused;
-	private static cvar_t com_cameraMode;
+	public static cvar_t com_cameraMode;
 
 	// com_speeds times
 	private static int time_game;
@@ -439,16 +439,15 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// set commands won't override menu startup
-			if ( q_shared.Q_stricmpn( com_consoleLines[i], "set", 3 ) ) {
+			if ( q_shared.Q_stricmpn( com_consoleLines[i].ToString(), "set", 3 ) > 0 )
 				added = true;
-			}
+			
 			cmd.Cbuf_AddText( com_consoleLines[i].ToString() );
 			cmd.Cbuf_AddText( "\n" );
 		}
 
 		return added;
 	}
-
 
 	//============================================================================
 
@@ -502,9 +501,9 @@ namespace SharpQ3.Engine.qcommon
 	Com_StringContains
 	============
 	*/
-	private static string Com_StringContains( string str1, string str2, int casesensitive) 
+	private static string Com_StringContains( string str1, string str2, bool casesensitive) 
 	{
-		if ( str1.Contains( str2, casesensitive == 1 ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase ) )
+		if ( str1.Contains( str2, casesensitive ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase ) )
 			return str1;
 		else
 			return null;
@@ -515,7 +514,7 @@ namespace SharpQ3.Engine.qcommon
 	Com_Filter
 	============
 	*/
-	private static bool Com_Filter(string filter, string name, int casesensitive)
+	public static bool Com_Filter(string filter, string name, bool casesensitive)
 	{
 		StringBuilder buf = new StringBuilder( q_shared.MAX_TOKEN_CHARS );
 		string ptr;
@@ -552,7 +551,7 @@ namespace SharpQ3.Engine.qcommon
 				while(filterI < filter.Length && !found) {
 					if ( filter[filterI] == ']' && filter[filterI + 1] != ']') break;
 					if ( filter[filterI + 1] == '-' && filterI + 2 < filter.Length && ( filter[filterI + 2] != ']' || filter[filterI + 3] == ']')) {
-						if (casesensitive == 1) {
+						if (casesensitive) {
 							if ( name[nameI] >= filter[filterI] && name[nameI] <= filter[filterI + 2] ) found = true;
 						}
 						else {
@@ -562,7 +561,7 @@ namespace SharpQ3.Engine.qcommon
 						filter += 3;
 					}
 					else {
-						if (casesensitive == 1) {
+						if (casesensitive) {
 							if ( filter[filterI] == name[nameI] ) found = true;
 						}
 						else {
@@ -580,7 +579,7 @@ namespace SharpQ3.Engine.qcommon
 				nameI++;
 			}
 			else {
-				if (casesensitive == 1) {
+				if (casesensitive) {
 					if ( filter[filterI] != name[nameI]) return false;
 				}
 				else {
