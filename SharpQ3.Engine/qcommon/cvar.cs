@@ -68,7 +68,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_ValidateString
 		============
 		*/
-		static bool Cvar_ValidateString( string s )
+		public static bool Cvar_ValidateString( string s )
 		{
 			if ( s is null )
 				return false;
@@ -90,7 +90,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_FindVar
 		============
 		*/
-		static cvar_t Cvar_FindVar( string var_name ) 
+		public static cvar_t Cvar_FindVar( string var_name ) 
 		{
 			cvar_t var;
 			long hash;
@@ -99,7 +99,7 @@ namespace SharpQ3.Engine.qcommon
 
 			for (var = hashTable[hash]; var != null; var = var.hashNext)
 			{
-				if (!Q_stricmp(var_name, var.name))
+				if (q_shared.Q_stricmp(var_name, var.name) <= 0)
 				{
 					return var;
 				}
@@ -113,7 +113,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_VariableValue
 		============
 		*/
-		static float Cvar_VariableValue( string var_name ) 
+		public static float Cvar_VariableValue( string var_name ) 
 		{
 			cvar_t var;
 
@@ -131,7 +131,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_VariableIntegerValue
 		============
 		*/
-		static int Cvar_VariableIntegerValue( string var_name ) 
+		public static int Cvar_VariableIntegerValue( string var_name ) 
 		{
 			cvar_t var;
 
@@ -149,7 +149,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_VariableString
 		============
 		*/
-		static string Cvar_VariableString( string var_name )
+		public static string Cvar_VariableString( string var_name )
 		{
 			cvar_t var;
 
@@ -167,7 +167,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_VariableStringBuffer
 		============
 		*/
-		static void Cvar_VariableStringBuffer( string var_name, out string buffer, int bufsize ) 
+		public static void Cvar_VariableStringBuffer( string var_name, out string buffer, int bufsize ) 
 		{
 			cvar_t var;
 
@@ -179,7 +179,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 			else
 			{
-				Q_strncpyz(out buffer, var.@string, bufsize);
+				q_shared.Q_strncpyz( out buffer, var.@string, bufsize);
 			}
 		}
 
@@ -189,7 +189,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_CommandCompletion
 		============
 		*/
-		static void Cvar_CommandCompletion( Action<string> callback )
+		public static void Cvar_CommandCompletion( Action<string> callback )
 		{
 			for (var cvar = cvar_vars; cvar != null; cvar = cvar.next)
 			{
@@ -206,7 +206,7 @@ namespace SharpQ3.Engine.qcommon
 		The flags will be or'ed in if the variable exists.
 		============
 		*/
-		static cvar_t Cvar_Get( string var_name, string var_value, CVAR flags ) {
+		public static cvar_t Cvar_Get( string var_name, string var_value, CVAR flags ) {
 			cvar_t var;
 			long hash;
 
@@ -300,7 +300,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_Set2
 		============
 		*/
-		static cvar_t Cvar_Set2( string var_name, string value, bool force ) 
+		public static cvar_t Cvar_Set2( string var_name, string value, bool force ) 
 		{
 			cvar_t var;
 
@@ -379,7 +379,7 @@ namespace SharpQ3.Engine.qcommon
 					Com_Printf("%s will be changed upon restarting.\n", var_name);
 					var.latchedString = CopyString(value);
 					var.modified = true;
-					var. modificationCount++;
+					var.modificationCount++;
 
 					return var;
 				}
@@ -421,7 +421,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_Set
 		============
 		*/
-		static void Cvar_Set( string var_name, string value) 
+		public static void Cvar_Set( string var_name, string value) 
 		{
 			Cvar_Set2(var_name, value, true);
 		}
@@ -431,7 +431,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_SetLatched
 		============
 		*/
-		static void Cvar_SetLatched( string var_name, string value) 
+		public static void Cvar_SetLatched( string var_name, string value) 
 		{
 			Cvar_Set2(var_name, value, false);
 		}
@@ -441,7 +441,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_SetValue
 		============
 		*/
-		static void Cvar_SetValue( string var_name,  float value) 
+		public static void Cvar_SetValue( string var_name,  float value) 
 		{
 			string val;
 
@@ -463,7 +463,7 @@ namespace SharpQ3.Engine.qcommon
 		Cvar_Reset
 		============
 		*/
-		static void Cvar_Reset( string var_name ) 
+		public static void Cvar_Reset( string var_name ) 
 		{
 			Cvar_Set2(var_name, null, false);
 		}
@@ -476,7 +476,7 @@ namespace SharpQ3.Engine.qcommon
 		Any testing variables will be reset to the safe values
 		============
 		*/
-		static void Cvar_SetCheatState()
+		public static void Cvar_SetCheatState()
 		{
 			cvar_t var;
 
@@ -508,7 +508,7 @@ namespace SharpQ3.Engine.qcommon
 		Handles variable inspection and changing from the console
 		============
 		*/
-		static bool Cvar_Command()
+		public static bool Cvar_Command()
 		{
 			cvar_t v;
 

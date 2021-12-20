@@ -89,18 +89,18 @@ namespace SharpQ3.Engine.qcommon
 		Adds command text at the end of the buffer, does NOT add a final \n
 		============
 		*/
-		private static void Cbuf_AddText( string text )
+		public static void Cbuf_AddText( string text )
 		{
 			int		l;
 			
-			l = (int)strlen (text);
+			l = (int) text.Length;
 
 			if (cmd_text.cursize + l >= cmd_text.maxsize)
 			{
-				Com_Printf ("Cbuf_AddText: overflow\n");
+				com.Com_Printf ("Cbuf_AddText: overflow\n");
 				return;
 			}
-			Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
+			com.Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
 			cmd_text.cursize += l;
 		}
 
@@ -113,14 +113,14 @@ namespace SharpQ3.Engine.qcommon
 		Adds a \n to the text
 		============
 		*/
-		private static void Cbuf_InsertText( string text ) 
+		public static void Cbuf_InsertText( string text ) 
 		{
 			int		len;
 			int		i;
 
-			len = (int)strlen( text ) + 1;
+			len = (int) text.Length + 1;
 			if ( len + cmd_text.cursize > cmd_text.maxsize ) {
-				Com_Printf( "Cbuf_InsertText overflowed\n" );
+				com.Com_Printf( "Cbuf_InsertText overflowed\n" );
 				return;
 			}
 
@@ -130,10 +130,10 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// copy the new text in
-			Com_Memcpy( cmd_text.data, text, len - 1 );
+			com/Com_Memcpy( cmd_text.data, text, len - 1 );
 
 			// add a \n
-			cmd_text.data[ len - 1 ] = '\n';
+			cmd_text.data[ len - 1 ] = (byte)'\n';
 
 			cmd_text.cursize += len;
 		}
@@ -149,7 +149,7 @@ namespace SharpQ3.Engine.qcommon
 			switch (exec_when)
 			{
 			case EXEC_NOW:
-				if (text && (int)strlen(text) > 0) {
+				if (text && (int) text.Length > 0) {
 					Cmd_ExecuteString (text);
 				} else {
 					Cbuf_Execute();
@@ -333,7 +333,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Argc
 		============
 		*/
-		private static int Cmd_Argc( ) {
+		public static int Cmd_Argc( ) {
 			return cmd_argc;
 		}
 
@@ -342,7 +342,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Argv
 		============
 		*/
-		private static string Cmd_Argv( int arg ) {
+		public static string Cmd_Argv( int arg ) {
 			if ( (unsigned)arg >= cmd_argc ) {
 				return "";
 			}
@@ -357,7 +357,7 @@ namespace SharpQ3.Engine.qcommon
 		they can't have pointers returned to them
 		============
 		*/
-		private static void Cmd_ArgvBuffer( int arg, string buffer, int bufferLength ) {
+		public static void Cmd_ArgvBuffer( int arg, string buffer, int bufferLength ) {
 			Q_strncpyz( buffer, Cmd_Argv( arg ), bufferLength );
 		}
 
@@ -369,7 +369,7 @@ namespace SharpQ3.Engine.qcommon
 		Returns a single string containing argv(1) to argv(argc()-1)
 		============
 		*/
-		private static string Cmd_Args( ) {
+		public static string Cmd_Args( ) {
 			static	char		cmd_args[MAX_STRING_CHARS];
 			int		i;
 

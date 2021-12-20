@@ -20,7 +20,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SprintfNET;
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace SharpQ3.Engine
 {
@@ -50,7 +53,7 @@ namespace SharpQ3.Engine
 
 		//typedef int intptr_t;
 
-		private const string CPUSTRING = "generic";
+		public const string CPUSTRING = "generic";
 
 		public static short BigShort( short l ) 
 		{
@@ -452,6 +455,7 @@ namespace SharpQ3.Engine
 		[Flags]
 		public enum CVAR
 		{
+			NONE = 0,
 			ARCHIVE =	1,   // set to cause it to be saved to vars.rc
 			// used for system variables, not for player
 			// specific configurations
@@ -655,8 +659,12 @@ namespace SharpQ3.Engine
 		public const int MAX_GAMESTATE_CHARS = 16000;
 		public struct gameState_t
 		{
-			int stringOffsets[MAX_CONFIGSTRINGS];
-			char stringData[MAX_GAMESTATE_CHARS];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_CONFIGSTRINGS )]
+			int[] stringOffsets;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_GAMESTATE_CHARS )]
+			char[] stringData;
+
 			int dataCount;
 		}
 
@@ -695,7 +703,9 @@ namespace SharpQ3.Engine
 			int weaponTime;
 			int gravity;
 			int speed;
-			int delta_angles[3];    // add to command angles to get view direction
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[] delta_angles;    // add to command angles to get view direction
 									// changed by spawns, rotating objects, and teleporters
 
 			int groundEntityNum;// ENTITYNUM_NONE = in air
@@ -716,8 +726,12 @@ namespace SharpQ3.Engine
 			int eFlags;         // copied to entityState_t->eFlags
 
 			int eventSequence;  // pmove generated events
-			int events[MAX_PS_EVENTS];
-			int eventParms[MAX_PS_EVENTS];
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_PS_EVENTS )]
+			int[] events;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_PS_EVENTS )]
+			int[] eventParms;
 
 			int externalEvent;  // events set on player from another source
 			int externalEventParm;
@@ -736,10 +750,17 @@ namespace SharpQ3.Engine
 			int damagePitch;
 			int damageCount;
 
-			int stats[MAX_STATS];
-			int persistant[MAX_PERSISTANT]; // stats that aren't cleared on death
-			int powerups[MAX_POWERUPS]; // level.time that the powerup runs out
-			int ammo[MAX_WEAPONS];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_STATS )]
+			int[] stats;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_PERSISTANT )]
+			int[] persistant; // stats that aren't cleared on death
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_POWERUPS )]
+			int[] powerups; // level.time that the powerup runs out
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_WEAPONS )]
+			int[] ammo;
 
 			int generic1;
 			int loopSound;
@@ -786,10 +807,11 @@ namespace SharpQ3.Engine
 		public struct usercmd_t
 		{
 			int serverTime;
-			int angles[3];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[] angles;
 			int buttons;
 			byte weapon;           // weapon 
-			signed char forwardmove, rightmove, upmove;
+			sbyte forwardmove, rightmove, upmove;
 		}
 
 		//===================================================================
@@ -856,7 +878,7 @@ namespace SharpQ3.Engine
 
 			int solid;          // for client side prediction, trap_linkentity sets this properly
 
-			int event;          // impulse events -- muzzle flashes, footsteps, etc
+			int @event;          // impulse events -- muzzle flashes, footsteps, etc
 			int eventParm;
 
 			// for players
@@ -903,15 +925,20 @@ namespace SharpQ3.Engine
 			float t;          // y offset in image where glyph starts
 			float s2;
 			float t2;
-			qhandle_t glyph;  // handle to the shader with the glyph
-			char shaderName[32];
+			int glyph;  // handle to the shader with the glyph
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 32 )]
+			char[] shaderName;
 		}
 
 		public struct fontInfo_t
 		{
-			glyphInfo_t glyphs[GLYPHS_PER_FONT];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = GLYPHS_PER_FONT )]
+			glyphInfo_t[] glyphs;
 			float glyphScale;
-			char name[MAX_QPATH];
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_QPATH )]
+			char[] name;
 		}
 
 		public static int Square( int x) 
@@ -1001,16 +1028,17 @@ namespace SharpQ3.Engine
 		COM_SkipPath
 		============
 		*/
-		public static string COM_SkipPath ( string pathname)
+		public static string COM_SkipPath( string pathname )
 		{
+			var pathnameIndex = 0;
 			string last;
 		
 			last = pathname;
-			while (*pathname)
+			while ( pathnameIndex < pathname.Length)
 			{
-				if (*pathname=='/')
-					last = pathname+1;
-				pathname++;
+				if (pathname[pathnameIndex]== '/')
+					last = pathname.Substring(pathnameIndex + 1);
+				pathnameIndex++;
 			}
 			return last;
 		}
@@ -1130,8 +1158,8 @@ namespace SharpQ3.Engine
 			_FloatByteUnion @in;
 			_FloatByteUnion @out;
 
-			@in = (_FloatByteUnion *)f;
-			@out.i = LongSwap(@in->i);
+			@in = (_FloatByteUnion )f;
+			@out.i = LongSwap(@in.i);
 
 			return @out.f;
 		}
@@ -1186,8 +1214,8 @@ namespace SharpQ3.Engine
 		============================================================================
 		*/
 
-		private static string com_token;//[MAX_TOKEN_CHARS];
-		private static string com_parsename;//[MAX_TOKEN_CHARS];
+		private static char[] com_token = new char[MAX_TOKEN_CHARS];
+		private static char[] com_parsename = new char[MAX_TOKEN_CHARS];
 		private static	int		com_lines;
 
 		public static void COM_BeginParseSession( string name )
@@ -1201,21 +1229,21 @@ namespace SharpQ3.Engine
 			return com_lines;
 		}
 
-		public static string COM_Parse( char **data_p )
+		public static string COM_Parse( ref string data_p )
 		{
-			return COM_ParseExt( data_p, true );
+			return COM_ParseExt( ref data_p, true );
 		}
 
 		public static void COM_ParseError( string format, params object[] parameters )
 		{
-			var str = string.Format( format, parameters );
+			var str = StringFormatter.PrintF( format, parameters );
 
 			Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
 
 		public static void COM_ParseWarning( string format, params object[] parameters )
 		{
-			var str = string.Format( format, parameters );
+			var str = StringFormatter.PrintF( format, parameters );
 
 			Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
@@ -1232,144 +1260,155 @@ namespace SharpQ3.Engine
 		a newline.
 		==============
 		*/
-		public static char *SkipWhitespace( char *data, bool *hasNewLines ) {
+		public static string SkipWhitespace( string data, out bool hasNewLines )
+		{
 			int c;
+			hasNewLines = false;
+			var dataI = 0;
 
-			while( (c = *data) <= ' ') {
-				if( !c ) {
-					return NULL;
+			while ( (c = data[dataI]) <= ' ') 
+			{
+				if ( dataI >= data.Length ) 
+				{
+					return null;
 				}
-				if( c == '\n' ) {
+				if ( c == '\n' ) {
 					com_lines++;
-					*hasNewLines = true;
+					hasNewLines = true;
 				}
-				data++;
+				dataI++;
 			}
 
 			return data;
 		}
 
-		public static int COM_Compress( char *data_p ) {
-			char *in, *out;
+		public static void COM_Compress( ref string data_p ) {
+			char[] @in, @out;
+			int inI = 0, outI = 0;
 			int c;
 			bool newline = false, whitespace = false;
 
-			in = out = data_p;
-			if (in) {
-				while ((c = *in) != 0) {
+			@in = @out = data_p.ToCharArray();
+			if ( @in != null ) {
+				while ( ( c = @in[inI]) != 0) {
 					// skip double slash comments
-					if ( c == '/' && in[1] == '/' ) {
-						while (*in && *in != '\n') {
-							in++;
+					if ( c == '/' && @in[1] == '/' ) {
+						while (inI < @in.Length && @in[inI] != '\n') {
+							inI++;
 						}
 					// skip /* */ comments
-					} else if ( c == '/' && in[1] == '*' ) {
-						while ( *in && ( *in != '*' || in[1] != '/' ) ) 
-							in++;
-						if ( *in ) 
-							in += 2;
+					} else if ( c == '/' && @in[1] == '*' ) {
+						while ( inI < @in.Length && ( @in[inI] != '*' || @in[1] != '/' ) )
+							inI++;
+						if ( inI < @in.Length )
+							inI += 2;
 								// record when we hit a newline
 								} else if ( c == '\n' || c == '\r' ) {
 									newline = true;
-									in++;
+									inI++;
 								// record when we hit whitespace
 								} else if ( c == ' ' || c == '\t') {
 									whitespace = true;
-									in++;
+									inI++;
 								// an actual token
 					} else {
 									// if we have a pending newline, emit it (and it counts as whitespace)
 									if (newline) {
-										*out++ = '\n';
+										outI++;
+										@out[outI] = '\n';
 										newline = false;
 										whitespace = false;
 									} if (whitespace) {
-										*out++ = ' ';
+										outI++;
+										@out[outI] = ' ';
 										whitespace = false;
 									}
 	                            
 									// copy quoted strings unmolested
-									if (c == '"') {
-											*out++ = c;
-											in++;
-											while (1) {
-												c = *in;
-												if (c && c != '"') {
-													*out++ = c;
-													in++;
+									if (c == '"') {							
+											outI++;
+											@out[outI] = (char)c;
+											inI++;
+											while (true) {
+												c = @in[inI];
+												if ( inI < @in.Length && c != '"') {												
+													outI++;
+													@out[outI] = (char)c;
+													inI++;
 												} else {
 													break;
 												}
 											}
-											if (c == '"') {
-												*out++ = c;
-												in++;
+											if (c == '"') {															
+												outI++;
+												@out[outI] = (char)c;
+												inI++;
 											}
-									} else {
-										*out = c;
-										out++;
-										in++;
+									} else {				
+										@out[outI] = (char)c;
+										outI++;
+										inI++;
 									}
 					}
 				}
 			}
-			*out = 0;
-			return out - data_p;
+
+			@out[outI] = ( char ) 0;
+			data_p = @out.ToString();
 		}
 
-		public static char *COM_ParseExt( char **data_p, bool allowLineBreaks )
+		public static string COM_ParseExt( ref string data_p, bool allowLineBreaks )
 		{
 			int c = 0, len;
 			bool hasNewLines = false;
-			char *data;
-
-			data = *data_p;
+			var dataI = 0;
+			char[] data = data_p.ToCharArray();
 			len = 0;
-			com_token[0] = 0;
+			com_token[0] = (char)0;
 
 			// make sure incoming data is valid
-			if ( !data )
+			if ( data == null)
 			{
-				*data_p = NULL;
-				return com_token;
+				data_p = null;
+				return com_token.ToString();
 			}
 
-			while ( 1 )
+			while ( true )
 			{
 				// skip whitespace
-				data = SkipWhitespace( data, &hasNewLines );
-				if ( !data )
+				data = SkipWhitespace( data.ToString(), out hasNewLines ).ToCharArray();
+				if ( data == null )
 				{
-					*data_p = NULL;
-					return com_token;
+					data_p = null;
+					return com_token.ToString();
 				}
 				if ( hasNewLines && !allowLineBreaks )
 				{
-					*data_p = data;
-					return com_token;
+					data_p = data.ToString();
+					return com_token.ToString();
 				}
 
-				c = *data;
+				c = data[dataI];
 
 				// skip double slash comments
 				if ( c == '/' && data[1] == '/' )
 				{
-					data += 2;
-					while (*data && *data != '\n') {
-						data++;
+					dataI += 2;
+					while ( dataI < data.Length && data[dataI] != '\n') {
+						dataI++;
 					}
 				}
 				// skip /* */ comments
 				else if ( c=='/' && data[1] == '*' ) 
 				{
-					data += 2;
-					while ( *data && ( *data != '*' || data[1] != '/' ) ) 
+					dataI += 2;
+					while ( dataI < data.Length && ( data[dataI] != '*' || data[dataI + 1] != '/' ) ) 
 					{
-						data++;
+						dataI++;
 					}
-					if ( *data ) 
+					if ( dataI < data.Length ) 
 					{
-						data += 2;
+						dataI += 2;
 					}
 				}
 				else
@@ -1381,19 +1420,27 @@ namespace SharpQ3.Engine
 			// handle quoted strings
 			if (c == '\"')
 			{
-				data++;
-				while (1)
+				dataI++;
+				while ( true )
 				{
-					c = *data++;
-					if (c=='\"' || !c)
+					dataI++;
+					if ( dataI >= data.Length )
 					{
-						com_token[len] = 0;
-						*data_p = ( char * ) data;
-						return com_token;
+						com_token[len] = (char) 0;
+						data_p = data.ToString();
+						return com_token.ToString();
+
+					}
+					c = data[dataI];
+					if (c=='\"' || c == 0)
+					{
+						com_token[len] = (char)0;
+						data_p = data.ToString();
+						return com_token.ToString();
 					}
 					if (len < MAX_TOKEN_CHARS)
 					{
-						com_token[len] = c;
+						com_token[len] = (char)c;
 						len++;
 					}
 				}
@@ -1404,11 +1451,11 @@ namespace SharpQ3.Engine
 			{
 				if (len < MAX_TOKEN_CHARS)
 				{
-					com_token[len] = c;
+					com_token[len] = ( char ) c;
 					len++;
 				}
-				data++;
-				c = *data;
+				dataI++;
+				c = data[dataI];
 				if ( c == '\n' )
 					com_lines++;
 			} while (c>32);
@@ -1418,10 +1465,10 @@ namespace SharpQ3.Engine
 		//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
 				len = 0;
 			}
-			com_token[len] = 0;
+			com_token[len] = ( char ) 0;
 
-			*data_p = ( char * ) data;
-			return com_token;
+			data_p = data.ToString();
+			return com_token.ToString();
 		}
 
 
@@ -1432,11 +1479,11 @@ namespace SharpQ3.Engine
 		COM_MatchToken
 		==================
 		*/
-		public static void COM_MatchToken( char **buf_p, char *match ) {
-			char	*token;
+		public static void COM_MatchToken( ref string buf_p, string match ) {
+			string token;
 
-			token = COM_Parse( buf_p );
-			if ( strcmp( token, match ) ) {
+			token = COM_Parse( ref buf_p );
+			if ( token.IndexOf( match ) == -1 ) {
 				Com_Error( ERR_DROP, "MatchToken: %s != %s", token, match );
 			}
 		}
@@ -1451,13 +1498,13 @@ namespace SharpQ3.Engine
 		Internal brace depths are properly skipped.
 		=================
 		*/
-		public static void SkipBracedSection (char **program) {
-			char			*token;
+		public static void SkipBracedSection (ref string program) {
+			string token;
 			int				depth;
 
 			depth = 0;
 			do {
-				token = COM_ParseExt( program, true );
+				token = COM_ParseExt( ref program, true );
 				if( token[1] == 0 ) {
 					if( token[0] == '{' ) {
 						depth++;
@@ -1466,7 +1513,7 @@ namespace SharpQ3.Engine
 						depth--;
 					}
 				}
-			} while( depth && *program );
+			} while( depth > 0 && program != null );
 		}
 
 		/*
@@ -1474,58 +1521,60 @@ namespace SharpQ3.Engine
 		SkipRestOfLine
 		=================
 		*/
-		public static void SkipRestOfLine ( char **data ) {
-			char	*p;
+		public static void SkipRestOfLine( ref string data ) {
+			char[] p;
 			int		c;
+			var pI = 0;
 
-			p = *data;
-			while ( (c = *p++) != 0 ) {
+			p = data.ToCharArray();
+			while ( (c = p[pI++]) != 0 ) {
 				if ( c == '\n' ) {
 					com_lines++;
 					break;
 				}
 			}
 
-			*data = p;
+			data = p.ToString();
 		}
 
 
-		public static void Parse1DMatrix (char **buf_p, int x, float *m) {
-			char	*token;
+		public static void Parse1DMatrix(ref string buf_p, int x, ref float[] m) {
+			string token;
 			int		i;
 
-			COM_MatchToken( buf_p, "(" );
+			COM_MatchToken( ref buf_p, "(" );
 
 			for (i = 0 ; i < x ; i++) {
-				token = COM_Parse(buf_p);
-				m[i] = atof(token);
+				token = COM_Parse(ref buf_p);
+				float.TryParse( token, out m[i] );
 			}
 
-			COM_MatchToken( buf_p, ")" );
+			COM_MatchToken( ref buf_p, ")" );
 		}
 
-		public static void Parse2DMatrix (char **buf_p, int y, int x, float *m) {
+		public static void Parse2DMatrix( ref string buf_p, int y, int x, float[] m) {
 			int		i;
 
-			COM_MatchToken( buf_p, "(" );
+			COM_MatchToken( ref buf_p, "(" );
 
 			for (i = 0 ; i < y ; i++) {
-				Parse1DMatrix (buf_p, x, m + i * x);
+				Parse1DMatrix( ref buf_p, x, m + i * x);
 			}
 
-			COM_MatchToken( buf_p, ")" );
+			COM_MatchToken( ref buf_p, ")" );
 		}
 
-		public static void Parse3DMatrix (char **buf_p, int z, int y, int x, float *m) {
+		public static void Parse3DMatrix( ref string buf_p, int z, int y, int x, float[] m) 
+		{
 			int		i;
 
-			COM_MatchToken( buf_p, "(" );
+			COM_MatchToken( ref buf_p, "(" );
 
 			for (i = 0 ; i < z ; i++) {
-				Parse2DMatrix (buf_p, y, x, m + i * x*y);
+				Parse2DMatrix( ref buf_p, y, x, m + i * x*y );
 			}
 
-			COM_MatchToken( buf_p, ")" );
+			COM_MatchToken( ref buf_p, ")" );
 		}
 
 
@@ -1565,19 +1614,18 @@ namespace SharpQ3.Engine
 			return ( 0 );
 		}
 
-		public static char* Q_strrchr( const char* string, int c )
+		public static string Q_strrchr( string @string, int c )
 		{
-			char cc = c;
-			char *s;
-			char *sp=(char *)0;
+			char cc = (char)c;
+			string s = @string;
+			string sp = null;
+			var sI = 0;
 
-			s = (char*)string;
-
-			while (*s)
+			while ( sI < @string.Length )
 			{
-				if (*s == cc)
+				if (@string[sI] == cc)
 					sp = s;
-				s++;
+				sI++;
 			}
 			if (cc == 0)
 				sp = s;
@@ -1592,42 +1640,38 @@ namespace SharpQ3.Engine
 		Safe strncpy that ensures a trailing zero
 		=============
 		*/
-		public static void Q_strncpyz( char *dest, const char *src, int destsize ) {
+		public static void Q_strncpyz( out string dest, string src, int destsize ) {
 		  // bk001129 - also NULL dest
-		  if ( !dest ) {
-			Com_Error( ERR_FATAL, "Q_strncpyz: NULL dest" );
-		  }
-			if ( !src ) {
+			if ( src == null ) {
 				Com_Error( ERR_FATAL, "Q_strncpyz: NULL src" );
 			}
 			if ( destsize < 1 ) {
 				Com_Error(ERR_FATAL,"Q_strncpyz: destsize < 1" ); 
 			}
 
-			strncpy( dest, src, destsize-1 );
-		  dest[destsize-1] = 0;
+			dest = new string( destsize < src.Length ? src.Substring( destsize ) : src );
 		}
 	                 
-		public static int Q_stricmpn (const char *s1, const char *s2, int n) {
+		public static int Q_stricmpn (string s1, string s2, int n) 
+		{
 			int		c1, c2;
+			int s1I = 0, s2I = 0;
 
 			// bk001129 - moved in 1.17 fix not in id codebase
-				if ( s1 == NULL ) {
-				   if ( s2 == NULL )
-					 return 0;
-				   else
-					 return -1;
-				}
-				else if ( s2==NULL )
-				  return 1;
-
-
+			if ( s1 == null ) {
+				if ( s2 == null )
+					return 0;
+				else
+					return -1;
+			}
+			else if ( s2== null )
+				return 1;
 		
 			do {
-				c1 = *s1++;
-				c2 = *s2++;
+				c1 = s1[s1I++];
+				c2 = s2[s2I++];
 
-				if (!n--) {
+				if (n - 1 == 0) {
 					return 0;		// strings are equal until end point
 				}
 			
@@ -1642,64 +1686,49 @@ namespace SharpQ3.Engine
 						return c1 < c2 ? -1 : 1;
 					}
 				}
-			} while (c1);
+			} while (c1 > 0);
 		
 			return 0;		// strings are equal
 		}
 
 		public static int Q_strncmp (string s1, string s2, int n) {
 			int		c1, c2;
-		
-			do {
-				c1 = *s1++;
-				c2 = *s2++;
+			int s1I = 0, s2I = 0;
 
-				if (!n--) {
+			do {
+				c1 = s1[s1I++];
+				c2 = s2[s2I++];
+
+				if (n - 1 == 0) {
 					return 0;		// strings are equal until end point
 				}
 			
 				if (c1 != c2) {
 					return c1 < c2 ? -1 : 1;
 				}
-			} while (c1);
+			} while (c1 > 0);
 		
 			return 0;		// strings are equal
 		}
 
 		public static int Q_stricmp (string s1, string s2) {
-			return s1.IndexOf( s2 );
-			//return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
+			return (s1 != null && s2 != null ) ? Q_stricmpn (s1, s2, 99999) : -1;
 		}
 
 
-		public static char *Q_strlwr( char *s1 ) {
-			char	*s;
-
-			s = s1;
-			while ( *s ) {
-				*s = tolower(*s);
-				s++;
-			}
-			return s1;
+		public static string Q_strlwr( string s1 ) {
+			return s1.ToLower();
 		}
 
-		public static char *Q_strupr( char *s1 ) {
-			char	*s;
-
-			s = s1;
-			while ( *s ) {
-				*s = toupper(*s);
-				s++;
-			}
-			return s1;
+		public static string Q_strupr( string s1 ) {
+			return s1.ToUpper();
 		}
-
 
 		// never goes past bounds or leaves without a terminating 0
 		public static void Q_strcat( ref string dest, int size, string src ) {
 			int		l1;
 
-			l1 = (int)strlen( dest );
+			l1 = (int) dest.Length;
 			if ( l1 >= size ) {
 				Com_Error( ERR_FATAL, "Q_strcat: already overflowed" );
 			}
@@ -1707,22 +1736,23 @@ namespace SharpQ3.Engine
 		}
 
 
-		public static int Q_PrintStrlen( const char *string ) {
+		public static int Q_PrintStrlen( string @string ) {
 			int			len;
-			const char	*p;
+			string p;
+			var pI = 0;
 
-			if( !string ) {
+			if( @string == null ) {
 				return 0;
 			}
 
 			len = 0;
-			p = string;
-			while( *p ) {
-				if( Q_IsColorString( p ) ) {
-					p += 2;
+			p = @string;
+			while( pI < p.Length ) {
+				if( q_shared.Q_IsColorString( p, pI ) ) {
+					pI += 2;
 					continue;
 				}
-				p++;
+				pI++;
 				len++;
 			}
 
@@ -1730,69 +1760,43 @@ namespace SharpQ3.Engine
 		}
 
 
-		public static char *Q_CleanStr( char *string ) {
-			char*	d;
-			char*	s;
+		public static string Q_CleanStr( string @string ) 
+		{
+			char[] d;
+			string	s;
 			int		c;
 
-			s = string;
-			d = string;
-			while ((c = *s) != 0 ) {
-				if ( Q_IsColorString( s ) ) {
-					s++;
+			int sI = 0, dI = 0;
+			s = @string;
+			d = @string.ToCharArray();
+			while (sI < s.Length && (c = s[sI]) != 0 ) {
+				if ( Q_IsColorString( s, sI ) ) {
+					sI++;
 				}		
 				else if ( c >= 0x20 && c <= 0x7E ) {
-					*d++ = c;
+					d[dI++] = ( char ) c;
 				}
-				s++;
+				sI++;
 			}
-			*d = '\0';
 
-			return string;
+			d[dI] = '\0';
+
+			return d.ToString();
 		}
 
 
-		public static void Com_sprintf( char *dest, int size, const char *fmt, ...) {
+		public static void Com_sprintf( out string dest, int size, string fmt, params object[] parameters ) 
+		{
 			int		len;
-			va_list		argptr;
-			char	bigbuffer[32000];	// big, but small enough to fit in PPC stack
+			char[]	bigbuffer = new char[32000];    // big, but small enough to fit in PPC stack
 
-			va_start (argptr,fmt);
-			len = vsprintf (bigbuffer,fmt,argptr);
-			va_end (argptr);
-			if ( len >= sizeof( bigbuffer ) ) {
-				Com_Error( ERR_FATAL, "Com_sprintf: overflowed bigbuffer" );
+			var output = StringFormatter.PrintF( fmt, parameters );
+
+			if ( output.Length >= size ) 
+			{
+				Com_Printf( "Com_sprintf: overflow of %i in %i\n", len, size);
 			}
-			if (len >= size) {
-				Com_Printf ("Com_sprintf: overflow of %i in %i\n", len, size);
-			}
-			Q_strncpyz (dest, bigbuffer, size );
-		}
-
-
-		/*
-		============
-		va
-
-		does a varargs printf into a temp buffer, so I don't need to have
-		varargs versions of all text functions.
-		FIXME: make this buffer size safe someday
-		============
-		*/
-		public static char	* QDECL va( char *format, ... ) {
-			va_list		argptr;
-			static char		string[2][32000];	// in case va is called by nested functions
-			static int		index = 0;
-			char	*buf;
-
-			buf = string[index & 1];
-			index++;
-
-			va_start (argptr, format);
-			vsprintf (buf, format,argptr);
-			va_end (argptr);
-
-			return buf;
+			Q_strncpyz( out dest, output, size );
 		}
 
 
@@ -1813,50 +1817,59 @@ namespace SharpQ3.Engine
 		FIXME: overflow check?
 		===============
 		*/
-		public static char *Info_ValueForKey( const char *s, const char *key ) {
-			char	pkey[BIG_INFO_KEY];
-			static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
-													// work without stomping on each other
-			static	int	valueindex = 0;
-			char	*o;
+		static int valueindex = 0;
+
+		public static string Info_ValueForKey( string s, string key ) {
+			char[]	pkey = new char[BIG_INFO_KEY];
+			char[][] value = new char[2][]; // use two buffers so compares
+			value[0] = new char[BIG_INFO_VALUE];
+			value[1] = new char[BIG_INFO_VALUE];
+
+			// work without stomping on each other
+			char[] o;
+
+			int sI = 0;
+			int oI = 0;
 		
-			if ( !s || !key ) {
+			if ( s == null || key == null ) {
 				return "";
 			}
 
-			if ( (int)strlen( s ) >= BIG_INFO_STRING ) {
+			if ( s.Length >= BIG_INFO_STRING ) {
 				Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring" );
 			}
 
 			valueindex ^= 1;
-			if (*s == '\\')
-				s++;
-			while (1)
+
+			if (s[sI] == '\\')
+				sI++;
+
+			while ( true )
 			{
 				o = pkey;
-				while (*s != '\\')
+				while ( s[sI] != '\\')
 				{
-					if (!*s)
+					if ( sI >= s.Length )
 						return "";
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
-				s++;
+				o[oI] = (char)0;
+				sI++;
 
 				o = value[valueindex];
 
-				while (*s != '\\' && *s)
+				while ( sI < s.Length && s[sI] != '\\' )
 				{
-					*o++ = *s++;
+					o[oI++] = s[sI++];
 				}
-				*o = 0;
+				o[oI] = (char)0;
 
-				if (!Q_stricmp (key, pkey) )
-					return value[valueindex];
+				if (Q_stricmp( key, pkey.ToString() ) <= 0)
+					return value[valueindex].ToString();
 
-				if (!*s)
+				if ( sI >= s.Length )
 					break;
-				s++;
+				sI++;
 			}
 
 			return "";

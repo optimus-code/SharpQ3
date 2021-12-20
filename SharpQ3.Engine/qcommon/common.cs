@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 using SprintfNET;
 using System;
 using System.IO;
+using System.Text;
 
 namespace SharpQ3.Engine.qcommon
 {
@@ -39,7 +40,7 @@ namespace SharpQ3.Engine.qcommon
 	private const string DEF_COMZONEMEGS = "16";
 
 	private static int com_argc;
-	private static string com_argv[MAX_NUM_ARGVS+1];
+	private static string com_argv;//[MAX_NUM_ARGVS+1];
 
 	private static jmp_buf abortframe;      // an ERR_DROP occured, exit the entire frame
 
@@ -100,7 +101,7 @@ namespace SharpQ3.Engine.qcommon
 		rd_buffersize = buffersize;
 		rd_flush = flush;
 
-		*rd_buffer = 0;
+		//*rd_buffer = 0;
 	}
 
 	private static void Com_EndRedirect ()
@@ -116,6 +117,7 @@ namespace SharpQ3.Engine.qcommon
 	}
 
 	private static bool opening_qconsole = false;
+
 	/*
 	=============
 	Com_Printf
@@ -126,7 +128,7 @@ namespace SharpQ3.Engine.qcommon
 	A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 	=============
 	*/
-	private static void Com_Printf( string fmt, params object[] args ) 
+	public static void Com_Printf( string fmt, params object[] args ) 
 	{
 		var msg = StringFormatter.PrintF( fmt, args );
 		
@@ -135,7 +137,7 @@ namespace SharpQ3.Engine.qcommon
 			if ((msg.Length + rd_buffer.Length) > (rd_buffersize - 1)) 
 			{
 				rd_flush(rd_buffer);
-				*rd_buffer = 0;
+				//*rd_buffer = 0;
 			}
 			q_shared.Q_strcat(ref rd_buffer, rd_buffersize, msg);
 		// TTimo nooo .. that would defeat the purpose
@@ -158,7 +160,7 @@ namespace SharpQ3.Engine.qcommon
 		{
 		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
 		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
-			if ( !logfile && FS_Initialized() && !opening_qconsole) 
+			if ( logfile == 0 && FS_Initialized() && !opening_qconsole) 
 			{
 				opening_qconsole = true;
 
@@ -175,7 +177,7 @@ namespace SharpQ3.Engine.qcommon
 
 				opening_qconsole = false;
 			}
-			if ( logfile != null && FS_Initialized()) 
+			if ( logfile > 0 && FS_Initialized()) 
 			{
 				FS_Write(msg, msg.Length, logfile);
 			}
@@ -243,7 +245,7 @@ namespace SharpQ3.Engine.qcommon
 		com_errorMessage = StringFormatter.PrintF( fmt, args );
 
 		if ( code != ERR_DISCONNECT ) {
-			Cvar_Set("com_errorMessage", com_errorMessage);
+			Cvar.Cvar_Set("com_errorMessage", com_errorMessage);
 		}
 
 		if ( code == ERR_SERVERDISCONNECT ) {
@@ -263,7 +265,7 @@ namespace SharpQ3.Engine.qcommon
 			SV_Shutdown (va("Server fatal crashed: %s\n", com_errorMessage));
 		}
 
-		Com_Shutdown ();
+		com.Com_Shutdown ();
 
 		Sys_Error ("%s", com_errorMessage);
 	}
@@ -280,11 +282,11 @@ namespace SharpQ3.Engine.qcommon
 	private static void Com_Quit_f( ) 
 	{
 		// don't try to shutdown if we are in a recursive error
-		if (com_errorEntered == null)
+		if ( !com_errorEntered )
 		{
 			SV_Shutdown ("Server quit\n");
 			CL_Shutdown ();
-			Com_Shutdown ();
+			com.Com_Shutdown ();
 			FS_Shutdown(true);
 		}
 		Sys_Quit ();
@@ -311,7 +313,7 @@ namespace SharpQ3.Engine.qcommon
 
 	private const int MAX_CONSOLE_LINES = 32;
 	private static int		com_numConsoleLines;
-	private static string[] com_consoleLines = new string[MAX_CONSOLE_LINES];
+	private static char[][] com_consoleLines = new char[MAX_CONSOLE_LINES][];
 
 	/*
 	==================
@@ -323,7 +325,7 @@ namespace SharpQ3.Engine.qcommon
 	private static void Com_ParseCommandLine( ref string commandLine ) 
 	{
 		bool inq = false;
-		com_consoleLines[0] = commandLine;
+		com_consoleLines[0] = commandLine.ToCharArray();
 		com_numConsoleLines = 1;
 
 		var commandLineIndex = 0;
@@ -344,7 +346,7 @@ namespace SharpQ3.Engine.qcommon
 				{
 					return;
 				}
-				com_consoleLines[com_numConsoleLines] = commandLine + 1;
+				com_consoleLines[com_numConsoleLines] = commandLine.Substring( commandLineIndex + 1 ).ToCharArray();
 				com_numConsoleLines++;
 
 				if ( commandLineIndex > 0 )
@@ -368,10 +370,10 @@ namespace SharpQ3.Engine.qcommon
 		int		i;
 
 		for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
-			cmd.Cmd_TokenizeString( com_consoleLines[i] );
-			if ( !q_shared.Q_stricmp( Cmd_Argv(0), "safe" )
-				|| !q_shared.Q_stricmp( Cmd_Argv(0), "cvar_restart" ) ) {
-				com_consoleLines[i][0] = 0;
+			cmd.Cmd_TokenizeString( com_consoleLines[i].ToString() );
+			if ( !q_shared.Q_stricmp( cmd.Cmd_Argv(0), "safe" )
+				|| !q_shared.Q_stricmp( cmd.Cmd_Argv(0), "cvar_restart" ) ) {
+				com_consoleLines[i][0] = (char)0;
 				return true;
 			}
 		}
@@ -392,20 +394,20 @@ namespace SharpQ3.Engine.qcommon
 	*/
 	private static void Com_StartupVariable( string match ) {
 		int		i;
-		char	*s;
-		cvar_t	*cv;
+		string s;
+		cvar_t	cv;
 
 		for (i=0 ; i < com_numConsoleLines ; i++) {
-			cmd.Cmd_TokenizeString( com_consoleLines[i] );
-			if ( strcmp( Cmd_Argv(0), "set" ) ) {
+			cmd.Cmd_TokenizeString( com_consoleLines[i].ToString() );
+			if ( !cmd.Cmd_Argv(0).Contains( "set" ) ) {
 				continue;
 			}
 
 			s = cmd.Cmd_Argv(1);
-			if ( !match || !strcmp( s, match ) ) {
-				cvar.Cvar_Set( s, cmd.Cmd_Argv(2) );
-				cv = cvar.Cvar_Get( s, "", 0 );
-				cv->flags |= CVAR_USER_CREATED;
+			if ( match == null || !s.Contains( match ) ) {
+				Cvar.Cvar_Set( s, cmd.Cmd_Argv(2) );
+				cv = Cvar.Cvar_Get( s, "", CVAR.NONE );
+				cv.flags |= CVAR.USER_CREATED;
 	//			com_consoleLines[i] = 0;
 			}
 		}
@@ -436,10 +438,10 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// set commands won't override menu startup
-			if ( Q_stricmpn( com_consoleLines[i], "set", 3 ) ) {
+			if ( q_shared.Q_stricmpn( com_consoleLines[i], "set", 3 ) ) {
 				added = true;
 			}
-			cmd.Cbuf_AddText( com_consoleLines[i] );
+			cmd.Cbuf_AddText( com_consoleLines[i].ToString() );
 			cmd.Cbuf_AddText( "\n" );
 		}
 
@@ -512,76 +514,79 @@ namespace SharpQ3.Engine.qcommon
 	Com_Filter
 	============
 	*/
-	private static int Com_Filter(char *filter, char *name, int casesensitive)
+	private static bool Com_Filter(string filter, string name, int casesensitive)
 	{
-		char buf[MAX_TOKEN_CHARS];
-		char *ptr;
-		int i, found;
+		StringBuilder buf = new StringBuilder( q_shared.MAX_TOKEN_CHARS );
+		string ptr;
+		int i;
+		bool found;
+		int nameI = 0;
+		int filterI = 0;
 
-		while(*filter) {
-			if (*filter == '*') {
-				filter++;
-				for (i = 0; *filter; i++) {
-					if (*filter == '*' || *filter == '?') break;
-					buf[i] = *filter;
-					filter++;
+		while( filterI < filter.Length ) {
+			if ( filter[filterI] == '*') {
+				filterI++;
+				for (i = 0; filterI < filter.Length; i++) {
+					if ( filter[filterI] == '*' || filter[filterI] == '?') break;
+					buf[i] = filter[filterI];
+					filterI++;
 				}
 				buf[i] = '\0';
-				if (strlen(buf)) {
-					ptr = Com_StringContains(name, buf, casesensitive);
-					if (!ptr) return false;
-					name = ptr + (int)strlen(buf);
+				if ( buf.Length > 0) {
+					ptr = Com_StringContains(name, buf.ToString(), casesensitive);
+					if ( ptr == null ) return false;
+					name = ptr + (int)buf.Length;
 				}
 			}
-			else if (*filter == '?') {
-				filter++;
-				name++;
+			else if ( filter[filterI] == '?') {
+				filterI++;
+				nameI++;
 			}
-			else if (*filter == '[' && *(filter+1) == '[') {
-				filter++;
+			else if ( filter[filterI] == '[' && filter[filterI + 1] == '[') {
+				filterI++;
 			}
-			else if (*filter == '[') {
-				filter++;
+			else if ( filter[filterI] == '[') {
+				filterI++;
 				found = false;
-				while(*filter && !found) {
-					if (*filter == ']' && *(filter+1) != ']') break;
-					if (*(filter+1) == '-' && *(filter+2) && (*(filter+2) != ']' || *(filter+3) == ']')) {
-						if (casesensitive) {
-							if (*name >= *filter && *name <= *(filter+2)) found = true;
+				while(filterI < filter.Length && !found) {
+					if ( filter[filterI] == ']' && filter[filterI + 1] != ']') break;
+					if ( filter[filterI + 1] == '-' && filterI + 2 < filter.Length && ( filter[filterI + 2] != ']' || filter[filterI + 3] == ']')) {
+						if (casesensitive == 1) {
+							if ( name[nameI] >= filter[filterI] && name[nameI] <= filter[filterI + 2] ) found = true;
 						}
 						else {
-							if (toupper(*name) >= toupper(*filter) &&
-								toupper(*name) <= toupper(*(filter+2))) found = true;
+							if ( Char.ToUpper( name[nameI] ) >= Char.ToUpper( filter[filterI] ) &&
+								Char.ToUpper( name[nameI] ) <= Char.ToUpper( filter[filterI + 2] ) ) found = true;
 						}
 						filter += 3;
 					}
 					else {
-						if (casesensitive) {
-							if (*filter == *name) found = true;
+						if (casesensitive == 1) {
+							if ( filter[filterI] == name[nameI] ) found = true;
 						}
 						else {
-							if (toupper(*filter) == toupper(*name)) found = true;
+							if (Char.ToUpper( filter[filterI] ) == Char.ToUpper( name[nameI] ) ) found = true;
 						}
-						filter++;
+						filterI++;
 					}
 				}
 				if (!found) return false;
-				while(*filter) {
-					if (*filter == ']' && *(filter+1) != ']') break;
-					filter++;
+				while(filterI < filter.Length) {
+					if ( filter[filterI] == ']' && filter[filterI + 1] != ']') break;
+					filterI++;
 				}
-				filter++;
-				name++;
+				filterI++;
+				nameI++;
 			}
 			else {
-				if (casesensitive) {
-					if (*filter != *name) return false;
+				if (casesensitive == 1) {
+					if ( filter[filterI] != name[nameI]) return false;
 				}
 				else {
-					if (toupper(*filter) != toupper(*name)) return false;
+					if ( Char.ToUpper( filter[filterI] ) != Char.ToUpper( name[nameI] ) ) return false;
 				}
-				filter++;
-				name++;
+				filterI++;
+				nameI++;
 			}
 		}
 		return true;
@@ -592,13 +597,13 @@ namespace SharpQ3.Engine.qcommon
 	Com_FilterPath
 	============
 	*/
-	private static int Com_FilterPath(string filter, string name, int casesensitive)
+	private static bool Com_FilterPath(string filter, string name, int casesensitive)
 	{
 		int i;
-		char new_filter[MAX_QPATH];
-		char new_name[MAX_QPATH];
+		StringBuilder new_filter = new StringBuilder( q_shared.MAX_QPATH );
+		StringBuilder new_name = new StringBuilder( q_shared.MAX_QPATH );
 
-		for (i = 0; i < MAX_QPATH-1 && filter[i]; i++) {
+		for (i = 0; i < q_shared.MAX_QPATH -1 && i < filter.Length; i++) {
 			if ( filter[i] == '\\' || filter[i] == ':' ) {
 				new_filter[i] = '/';
 			}
@@ -607,7 +612,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 		}
 		new_filter[i] = '\0';
-		for (i = 0; i < MAX_QPATH-1 && name[i]; i++) {
+		for (i = 0; i < q_shared.MAX_QPATH-1 && i < name.Length; i++) {
 			if ( name[i] == '\\' || name[i] == ':' ) {
 				new_name[i] = '/';
 			}
@@ -616,7 +621,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 		}
 		new_name[i] = '\0';
-		return Com_Filter(new_filter, new_name, casesensitive);
+		return Com_Filter(new_filter.ToString(), new_name.ToString(), casesensitive);
 	}
 
 	/*
@@ -641,26 +646,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_RealTime
 	================
 	*/
-	int Com_RealTime(ref qtime_t qtime) {
-		time_t t;
-		struct tm *tms;
-
-		t = time(NULL);
-		if (!qtime)
-			return t;
-		tms = localtime(&t);
-		if (tms) {
-			qtime->tm_sec = tms->tm_sec;
-			qtime->tm_min = tms->tm_min;
-			qtime->tm_hour = tms->tm_hour;
-			qtime->tm_mday = tms->tm_mday;
-			qtime->tm_mon = tms->tm_mon;
-			qtime->tm_year = tms->tm_year;
-			qtime->tm_wday = tms->tm_wday;
-			qtime->tm_yday = tms->tm_yday;
-			qtime->tm_isdst = tms->tm_isdst;
-		}
-		return t;
+	public static long Com_RealTime() {
+		return DateTime.Now.Ticks;
 	}
 
 
@@ -705,12 +692,10 @@ namespace SharpQ3.Engine.qcommon
 	} ;
 
 	// main zone for all "dynamic" memory allocation
-	memzone_t	mainzone;
+	private static memzone_t	mainzone;
 	// we also have a small zone for small allocations that would only
 	// fragment the main zone (think of cvar and cmd strings)
-	memzone_t	smallzone;
-
-	private static void Z_CheckHeap( void );
+	private static memzone_t	smallzone;
 
 	/*
 	========================
@@ -722,7 +707,7 @@ namespace SharpQ3.Engine.qcommon
 	
 		// set the entire zone to one free block
 
-		zone.blocklist.next = zone->blocklist.prev = block =
+		zone.blocklist.next = zone.blocklist.prev = block =
 			(memblock_t *)( (byte *)zone + sizeof(memzone_t) );
 		zone.blocklist.tag = 1;	// in use block
 		zone.blocklist.id = 0;
@@ -731,7 +716,7 @@ namespace SharpQ3.Engine.qcommon
 		zone.size = size;
 		zone.used = 0;
 	
-		block.prev = block->next = &zone->blocklist;
+		block.prev = block->next = &zone.blocklist;
 		block.tag = 0;			// free block
 		block.id = ZONEID;
 		block.size = size - sizeof(memzone_t);
@@ -742,8 +727,8 @@ namespace SharpQ3.Engine.qcommon
 	Z_AvailableZoneMemory
 	========================
 	*/
-	private static int Z_AvailableZoneMemory( memzone_t *zone ) {
-		return zone->size - zone->used;
+	private static int Z_AvailableZoneMemory( memzone_t zone ) {
+		return zone.size - zone.used;
 	}
 
 	/*
@@ -1113,7 +1098,7 @@ namespace SharpQ3.Engine.qcommon
 	static	hunkblock_t hunkblocks;
 
 	static	hunkUsed_t	hunk_low, hunk_high;
-	static	hunkUsed_t	*hunk_permanent, *hunk_temp;
+	static	hunkUsed_t	hunk_permanent, hunk_temp;
 
 	static	byte[]	s_hunkData = null;
 	static	int		s_hunkTotal;
@@ -1129,7 +1114,7 @@ namespace SharpQ3.Engine.qcommon
 	*/
 	private static void Com_Meminfo_f( ) 
 	{
-		memblock_t	*block;
+		memblock_t	block;
 		int			zoneBytes, zoneBlocks;
 		int			smallZoneBytes, smallZoneBlocks;
 		int			botlibBytes, rendererBytes;
@@ -1481,10 +1466,6 @@ namespace SharpQ3.Engine.qcommon
 		}
 		return false;
 	}
-
-	void CL_ShutdownCGame( void );
-	void CL_ShutdownUI( void );
-	void SV_ShutdownGameProgs( void );
 
 	/*
 	=================
@@ -1922,7 +1903,7 @@ namespace SharpQ3.Engine.qcommon
 	Returns last event time
 	=================
 	*/
-	private static int Com_EventLoop( void ) {
+	public static int Com_EventLoop( ) {
 		sysEvent_t	ev;
 		netadr_t	evFrom;
 		byte		bufData[MAX_MSGLEN];
@@ -2022,7 +2003,7 @@ namespace SharpQ3.Engine.qcommon
 	Can be used for profiling, but will be journaled accurately
 	================
 	*/
-	private static int Com_Milliseconds (void) {
+	private static int Com_Milliseconds () {
 		sysEvent_t	ev;
 
 		// get events and push them until we get a null event with the current time
@@ -2064,7 +2045,7 @@ namespace SharpQ3.Engine.qcommon
 	error recovery
 	=============
 	*/
-	private static static void Com_Freeze_f () {
+	private static void Com_Freeze_f () {
 		float	s;
 		int		start, now;
 
@@ -2072,11 +2053,12 @@ namespace SharpQ3.Engine.qcommon
 			Com_Printf( "freeze <seconds>\n" );
 			return;
 		}
-		s = atof( cmd.Cmd_Argv(1) );
+
+		float.TryParse( cmd.Cmd_Argv(1), out s );
 
 		start = Com_Milliseconds();
 
-		while ( 1 ) {
+		while ( true ) {
 			now = Com_Milliseconds();
 			if ( ( now - start ) * 0.001 > s ) {
 				break;
@@ -2092,7 +2074,7 @@ namespace SharpQ3.Engine.qcommon
 	=================
 	*/
 	private static void Com_Crash_f( ) {
-		* ( int * ) 0 = 0x12345678;
+		//* ( int * ) 0 = 0x12345678;
 	}
 
 
@@ -2101,10 +2083,10 @@ namespace SharpQ3.Engine.qcommon
 	Com_Init
 	=================
 	*/
-	private static void Com_Init( char *commandLine ) {
+	private static void Com_Init( string commandLine ) {
 		char	*s;
 
-		Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
+		Com_Printf( "%s %s %s\n", q_shared.Q3_VERSION, q_shared.CPUSTRING, DateTime.Now );
 
 		if ( setjmp (abortframe) ) {
 			Sys_Error ("Error during initialization");
