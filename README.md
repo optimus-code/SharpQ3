@@ -5,4 +5,17 @@
  
 ### Description 
 
-SharpQ3 is a C# port of the Kenny Edition of Quake III Arena.
+SharpQ3 is a C# port of the Kenny Edition of Quake III Arena. This is a huge undertaking a far from complete. If you have C++ and C# experience and would like to get involved let me know!
+
+\### Conversion progress
+
+- [ ] CGame - 1%
+- [ ] Game - 1%
+- [ ] Engine
+	- [ ] QCommon - 7%
+	- [ ] Platform - 1%
+	- [ ] Client - 1%
+	- [ ] Server - 1%
+	- [ ] Renderer - 1%
+	- [ ] BotLib - 1%
+- [ ] UI - 1%
