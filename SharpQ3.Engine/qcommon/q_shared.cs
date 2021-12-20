@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using System;
+
 namespace SharpQ3.Engine
 {
 	// q_shared.h -- included first by ALL program modules.
@@ -46,23 +48,23 @@ namespace SharpQ3.Engine
 
 		 **********************************************************************/
 
-		typedef int intptr_t;
+		//typedef int intptr_t;
 
 		private const string CPUSTRING = "generic";
 
 		public static short BigShort( short l ) 
 		{
-			return q_shared.ShortSwap( l ); 
+			return ShortSwap( l ); 
 		}
 
 		public static int BigLong( int l ) 
 		{ 
-			return q_shared.LongSwap( l ); 
+			return LongSwap( l ); 
 		}
 
-		public static float BigFloat(const float* l )
+		public static float BigFloat(ref float l )
 		{
-			return FloatSwap( l ); 
+			return FloatSwap( ref l ); 
 		}
 
 
@@ -98,7 +100,7 @@ namespace SharpQ3.Engine
 
 
 		public const int MAX_QPATH =		64; // max length of a quake game pathname
-		public const int MAX_OSPATH	 =		PATH_MAX;
+		//public const int MAX_OSPATH	 =		PATH_MAX;
 		public const int MAX_OSPATH = 256;     // max length of a filesystem pathname
 
 		public const int MAX_NAME_LENGTH = 32;      // max length of a client name
@@ -168,9 +170,9 @@ namespace SharpQ3.Engine
 			h_dontcare
 		}
 
-		void* Hunk_Alloc( int size, ha_pref preference );
+		//void* Hunk_Alloc( int size, ha_pref preference );
 
-		#define Snd_Memset Com_Memset
+		//#define Snd_Memset Com_Memset
 
 		public const int CIN_system = 1;
 		public const int CIN_loop = 2;
@@ -310,26 +312,26 @@ namespace SharpQ3.Engine
 
 		#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
 
-		static int VectorCompare( const vec3_t v1, const vec3_t v2 )
+		static int VectorCompare( vec3_t v1, vec3_t v2 )
 		{
-			if ( v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2] )
+			if ( v1.x != v2.x|| v1.y != v2.y || v1.z != v2.z )
 			{
 				return 0;
 			}
 			return 1;
 		}
 
-		static float VectorLength( const vec3_t v )
+		static float VectorLength( vec3_t v )
 		{
-			return ( float ) sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+			return ( float ) Math.Sqrt( v.x* v.x + v.y * v.y + v.z * v.z );
 		}
 
-		static float VectorLengthSquared( const vec3_t v )
+		static float VectorLengthSquared( vec3_t v )
 		{
-			return ( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+			return ( v.x * v.x + v.y * v.y + v.z * v.z );
 		}
 
-		static float Distance( const vec3_t p1, const vec3_t p2 )
+		static float Distance( vec3_t p1, vec3_t p2 )
 		{
 			vec3_t v;
 
@@ -337,12 +339,12 @@ namespace SharpQ3.Engine
 			return VectorLength( v );
 		}
 
-		static float DistanceSquared( const vec3_t p1, const vec3_t p2 )
+		static float DistanceSquared( vec3_t p1, vec3_t p2 )
 		{
 			vec3_t v;
 
 			VectorSubtract( p2, p1, v );
-			return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+			return v.x * v.x + v.y * v.y + v.z * v.z;
 		}
 
 		// fast vector normalize routine that does not check to make sure
@@ -353,27 +355,36 @@ namespace SharpQ3.Engine
 
 			ilength = Q_rsqrt( DotProduct( v, v ) );
 
-			v[0] *= ilength;
-			v[1] *= ilength;
-			v[2] *= ilength;
+			v.x *= ilength;
+			v.y *= ilength;
+			v.z *= ilength;
 		}
 
 		static void VectorInverse( vec3_t v )
 		{
-			v[0] = -v[0];
-			v[1] = -v[1];
-			v[2] = -v[2];
+			v.x = -v.x;
+			v.y = -v.y;
+			v.z = -v.z;
 		}
 
-		static void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
+		static void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
 		{
-			cross[0] = v1[1] * v2[2] - v1[2] * v2[1];
-			cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
-			cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
+			cross.x = v1.x * v2.z - v1.z * v2.y;
+			cross.y = v1.z * v2.x - v1.x * v2.z;
+			cross.z = v1.x * v2.y - v1.y * v2.x;
 		}
 
-		#define random()	((rand () & 0x7fff) / ((float)0x7fff))
-		#define crandom()	(2.0 * (random() - 0.5))
+		static Random rand = new Random();
+		public static int  random()
+		{
+			return rand.Next();
+		}
+		public static Double  crandom()
+		{
+			return rand.NextDouble();
+		}
+		//#define random()	((rand () & 0x7fff) / ((float)0x7fff))
+		//#define crandom()	(2.0 * (random() - 0.5))
 
 		//int		COM_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
 
@@ -392,7 +403,7 @@ namespace SharpQ3.Engine
 			int subtype;
 			int intvalue;
 			float floatvalue;
-			char string[MAX_TOKENLENGTH];
+			string @string;//[MAX_TOKENLENGTH];
 		}
 
 		// mode parm for FS_FOpenFile
@@ -437,25 +448,30 @@ namespace SharpQ3.Engine
 		default values.
 		==========================================================
 		*/
+		
+		[Flags]
+		public enum CVAR
+		{
+			ARCHIVE =	1,   // set to cause it to be saved to vars.rc
+			// used for system variables, not for player
+			// specific configurations
+			USERINFO = 2,   // sent to server on connect or change
+			SERVERINFO = 4,   // sent in response to front end requests
+			SYSTEMINFO = 8,   // these cvars will be duplicated on all clients
+			INIT = 16, // don't allow change from console at all,
+			// but can be set from the command line
+			LATCH = 32,    // will only change when C code next does
+			// a Cvar_Get(), so it can't be changed
+			// without proper initialization.  modified
+			// will be set, even though the value hasn't
+			// changed yet
 
-		public const int CVAR_ARCHIVE =	1;   // set to cause it to be saved to vars.rc
-		// used for system variables, not for player
-		// specific configurations
-		public const int CVAR_USERINFO = 2;   // sent to server on connect or change
-		public const int CVAR_SERVERINFO = 4;   // sent in response to front end requests
-		public const int CVAR_SYSTEMINFO = 8;   // these cvars will be duplicated on all clients
-		public const int CVAR_INIT = 16; // don't allow change from console at all,
-		// but can be set from the command line
-		public const int CVAR_LATCH = 32;    // will only change when C code next does
-		// a Cvar_Get(), so it can't be changed
-		// without proper initialization.  modified
-		// will be set, even though the value hasn't
-		// changed yet
-		public const int CVAR_ROM = 64;  // display only, cannot be set by user at all
-		public const int CVAR_USER_CREATED = 128; // created by a set command
-		public const int CVAR_TEMP = 256; // can be set even when cheats are disabled, but is not archived
-		public const int CVAR_CHEAT = 512; // can not be changed if cheats are disabled
-		public const int CVAR_NORESTART = 1024;	// do not clear when a cvar_restart is issued
+			ROM = 64,  // display only, cannot be set by user at all
+			USER_CREATED = 128, // created by a set command
+			TEMP = 256, // can be set even when cheats are disabled, but is not archived
+			CHEAT = 512, // can not be changed if cheats are disabled
+			NORESTART = 1024	// do not clear when a cvar_restart is issued
+		}
 
 		// nothing outside the Cvar_*() functions should modify these fields!
 		// Used more like a class
@@ -465,7 +481,7 @@ namespace SharpQ3.Engine
 			public string @string;
 			public string resetString;      // cvar_restart will reset to this value
 			public string latchedString;        // for CVAR_LATCH vars
-			public int flags;
+			public CVAR flags;
 			public bool modified;          // set each time the cvar is changed
 			public int modificationCount;  // incremented each time the cvar is changed
 			public float value;                // atof( string )
@@ -476,17 +492,17 @@ namespace SharpQ3.Engine
 
 		public const int MAX_CVAR_VALUE_STRING = 256;
 
-		typedef int cvarHandle_t;
+		//typedef int cvarHandle_t;
 
 		// the modules that run in the virtual machine can't access the cvar_t directly,
 		// so they must ask for structured updates
-		public struct vmCvar_t
+		public class vmCvar_t
 		{
-			cvarHandle_t handle;
-			int modificationCount;
-			float value;
-			int integer;
-			char string[MAX_CVAR_VALUE_STRING];
+			public int handle;
+			public int modificationCount;
+			public float value;
+			public int integer;
+			public string @string;
 		}
 
 		/*
@@ -511,7 +527,10 @@ namespace SharpQ3.Engine
 		=================
 		*/
 
-		#define PlaneTypeForNormal(x) (x[0] == 1.0 ? PLANE_X : (x[1] == 1.0 ? PLANE_Y : (x[2] == 1.0 ? PLANE_Z : PLANE_NON_AXIAL) ) )
+		public static int PlaneTypeForNormal( vec3_t vec ) 
+		{
+			return vec.x == 1.0 ? PLANE_X : ( vec.y == 1.0 ? PLANE_Y : ( vec.z == 1.0 ? PLANE_Z : PLANE_NON_AXIAL ) );
+		}
 
 		// plane_t structure
 		// !!! if this is changed, it must be changed in asm code too !!!
@@ -521,7 +540,8 @@ namespace SharpQ3.Engine
 			float dist;
 			byte type;          // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 			byte signbits;      // signx + (signy<<1) + (signz<<2), used as lookup during collision
-			byte pad[2];
+			byte pad1;
+			byte pad2;
 		}
 
 		// a trace is returned when a box is swept through the world
@@ -551,7 +571,7 @@ namespace SharpQ3.Engine
 		public struct orientation_t
 		{
 			vec3_t origin;
-			vec3_t axis[3];
+			vec3_t axis;
 		}
 
 		//=====================================================================
@@ -588,8 +608,15 @@ namespace SharpQ3.Engine
 		========================================================================
 		*/
 
-		#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
-		#define SHORT2ANGLE(x)	((x)*(360.0/65536))
+		public static int ANGLE2SHORT( double x) 
+		{			
+			return ( int ) ( ( x ) * 65536 / 360 ) & 65535;
+		}
+
+		public static double SHORT2ANGLE(int x) 
+		{
+			return ( ( x ) * ( 360.0 / 65536 ) );
+		}
 
 		public const int SNAPFLAG_RATE_DELAYED = 1;
 		public const int SNAPFLAG_NOT_ACTIVE = 2 ;  // snapshot used during connection and for zombies
@@ -887,7 +914,20 @@ namespace SharpQ3.Engine
 			char name[MAX_QPATH];
 		}
 
-		#define Square(x) ((x)*(x))
+		public static int Square( int x) 
+		{ 
+			return ( ( x ) * ( x ) );
+		}
+
+		public static float Square( float x )
+		{
+			return ( ( x ) * ( x ) );
+		}
+
+		public static double Square( double x )
+		{
+			return ( ( x ) * ( x ) );
+		}
 
 		// real time
 		//=============================================
@@ -961,9 +1001,9 @@ namespace SharpQ3.Engine
 		COM_SkipPath
 		============
 		*/
-		public static char *COM_SkipPath (char *pathname)
+		public static string COM_SkipPath ( string pathname)
 		{
-			char	*last;
+			string last;
 		
 			last = pathname;
 			while (*pathname)
@@ -980,38 +1020,24 @@ namespace SharpQ3.Engine
 		COM_StripExtension
 		============
 		*/
-		public static void COM_StripExtension( const char *in, char *out ) {
-			while ( *in && *in != '.' ) {
-				*out++ = *in++;
-			}
-			*out = 0;
+		public static void COM_StripExtension( string file, out string result ) 
+		{
+			result = Path.GetFileNameWithoutExtension( file );
 		}
-
 
 		/*
 		==================
 		COM_DefaultExtension
 		==================
 		*/
-		public static void COM_DefaultExtension (char *path, int maxSize, const char *extension ) {
-			char	oldPath[MAX_QPATH];
-			char    *src;
-
-		//
-		// if path doesn't have a .EXT, append extension
-		// (extension should include the .)
-		//
-			src = path + (int)strlen(path) - 1;
-
-			while (*src != '/' && src != path) {
-				if ( *src == '.' ) {
-					return;                 // it has an extension
-				}
-				src--;
-			}
-
-			Q_strncpyz( oldPath, path, sizeof( oldPath ) );
-			Com_sprintf( path, maxSize, "%s%s", oldPath, extension );
+		public static void COM_DefaultExtension( string path, int maxSize, string extension ) 
+		{
+			//
+			// if path doesn't have a .EXT, append extension
+			// (extension should include the .)
+			//
+			if ( !System.IO.Path.HasExtension( path ) )
+				path += extension;
 		}
 
 		/*
@@ -1094,24 +1120,25 @@ namespace SharpQ3.Engine
 			return ll;
 		}
 
-		typedef union {
-			float	f;
-			unsigned int i;
-		} _FloatByteUnion;
-
-		public static float FloatSwap (const float *f) {
-			const _FloatByteUnion *in;
-			_FloatByteUnion out;
-
-			in = (_FloatByteUnion *)f;
-			out.i = LongSwap(in->i);
-
-			return out.f;
+		public struct _FloatByteUnion
+		{
+			public float	f;
+			public uint i;
 		}
 
-		public static FloatNoSwap (const float *f)
+		public static float FloatSwap( ref float f) {
+			_FloatByteUnion @in;
+			_FloatByteUnion @out;
+
+			@in = (_FloatByteUnion *)f;
+			@out.i = LongSwap(@in->i);
+
+			return @out.f;
+		}
+
+		public static float FloatNoSwap (ref float f)
 		{
-			return *f;
+			return f;
 		}
 
 		/*
@@ -1159,11 +1186,11 @@ namespace SharpQ3.Engine
 		============================================================================
 		*/
 
-		private static	char	com_token[MAX_TOKEN_CHARS];
-		private static	char	com_parsename[MAX_TOKEN_CHARS];
+		private static string com_token;//[MAX_TOKEN_CHARS];
+		private static string com_parsename;//[MAX_TOKEN_CHARS];
 		private static	int		com_lines;
 
-		public static void COM_BeginParseSession( const char *name )
+		public static void COM_BeginParseSession( string name )
 		{
 			com_lines = 0;
 			Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
@@ -1174,33 +1201,23 @@ namespace SharpQ3.Engine
 			return com_lines;
 		}
 
-		public static char *COM_Parse( char **data_p )
+		public static string COM_Parse( char **data_p )
 		{
 			return COM_ParseExt( data_p, true );
 		}
 
-		public static void COM_ParseError( char *format, ... )
+		public static void COM_ParseError( string format, params object[] parameters )
 		{
-			va_list argptr;
-			static char string[4096];
+			var str = string.Format( format, parameters );
 
-			va_start (argptr, format);
-			vsprintf (string, format, argptr);
-			va_end (argptr);
-
-			Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, string);
+			Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
 
-		public static void COM_ParseWarning( char *format, ... )
+		public static void COM_ParseWarning( string format, params object[] parameters )
 		{
-			va_list argptr;
-			static char string[4096];
+			var str = string.Format( format, parameters );
 
-			va_start (argptr, format);
-			vsprintf (string, format, argptr);
-			va_end (argptr);
-
-			Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, string);
+			Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
 
 		/*
@@ -1630,7 +1647,7 @@ namespace SharpQ3.Engine
 			return 0;		// strings are equal
 		}
 
-		public static int Q_strncmp (const char *s1, const char *s2, int n) {
+		public static int Q_strncmp (string s1, string s2, int n) {
 			int		c1, c2;
 		
 			do {
@@ -1649,8 +1666,9 @@ namespace SharpQ3.Engine
 			return 0;		// strings are equal
 		}
 
-		public static int Q_stricmp (const char *s1, const char *s2) {
-			return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
+		public static int Q_stricmp (string s1, string s2) {
+			return s1.IndexOf( s2 );
+			//return (s1 && s2) ? Q_stricmpn (s1, s2, 99999) : -1;
 		}
 
 
@@ -1678,7 +1696,7 @@ namespace SharpQ3.Engine
 
 
 		// never goes past bounds or leaves without a terminating 0
-		public static void Q_strcat( char *dest, int size, const char *src ) {
+		public static void Q_strcat( ref string dest, int size, string src ) {
 			int		l1;
 
 			l1 = (int)strlen( dest );

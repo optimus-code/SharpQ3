@@ -27,18 +27,19 @@ namespace SharpQ3.Engine.qcommon
 	// cmd.c -- Quake script command processing module
 	public static class cmd
 	{
-		#define	MAX_CMD_BUFFER	16384
-		#define	MAX_CMD_LINE	1024
+		public const int MAX_CMD_BUFFER = 16384;
+		public const int MAX_CMD_LINE = 1024;
 
-		typedef struct {
-			byte	*data;
-			int		maxsize;
-			int		cursize;
-		} cmd_t;
+		public struct cmd_t
+		{
+			public byte[]	data;
+			public int maxsize;
+			public int cursize;
+		}
 
-		int			cmd_wait;
-		cmd_t		cmd_text;
-		byte		cmd_text_buf[MAX_CMD_BUFFER];
+		private static int			cmd_wait;
+		private static cmd_t cmd_text;
+		private static byte cmd_text_buf[MAX_CMD_BUFFER];
 
 
 		//=============================================================================
@@ -52,7 +53,7 @@ namespace SharpQ3.Engine.qcommon
 		bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 		============
 		*/
-		void Cmd_Wait_f( void ) {
+		private static void Cmd_Wait_f( ) {
 			if ( Cmd_Argc() == 2 ) {
 				cmd_wait = atoi( Cmd_Argv( 1 ) );
 			} else {
@@ -74,7 +75,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_Init
 		============
 		*/
-		void Cbuf_Init (void)
+		private static void Cbuf_Init ()
 		{
 			cmd_text.data = cmd_text_buf;
 			cmd_text.maxsize = MAX_CMD_BUFFER;
@@ -88,7 +89,8 @@ namespace SharpQ3.Engine.qcommon
 		Adds command text at the end of the buffer, does NOT add a final \n
 		============
 		*/
-		void Cbuf_AddText( const char *text ) {
+		private static void Cbuf_AddText( string text )
+		{
 			int		l;
 			
 			l = (int)strlen (text);
@@ -111,7 +113,8 @@ namespace SharpQ3.Engine.qcommon
 		Adds a \n to the text
 		============
 		*/
-		void Cbuf_InsertText( const char *text ) {
+		private static void Cbuf_InsertText( string text ) 
+		{
 			int		len;
 			int		i;
 
@@ -141,7 +144,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_ExecuteText
 		============
 		*/
-		void Cbuf_ExecuteText (int exec_when, const char *text)
+		private static void Cbuf_ExecuteText (int exec_when, string text)
 		{
 			switch (exec_when)
 			{
@@ -168,7 +171,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_Execute
 		============
 		*/
-		void Cbuf_Execute (void)
+		private static void Cbuf_Execute ()
 		{
 			int		i;
 			char	*text;
@@ -239,7 +242,8 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Exec_f
 		===============
 		*/
-		void Cmd_Exec_f( void ) {
+		private static void Cmd_Exec_f( ) 
+		{
 			char	*f;
 			int		len;
 			char	filename[MAX_QPATH];
@@ -271,7 +275,7 @@ namespace SharpQ3.Engine.qcommon
 		Inserts the current value of a variable as command text
 		===============
 		*/
-		void Cmd_Vstr_f( void ) {
+		private static void Cmd_Vstr_f( ) {
 			char	*v;
 
 			if (Cmd_Argc () != 2) {
@@ -291,7 +295,7 @@ namespace SharpQ3.Engine.qcommon
 		Just prints the rest of the line to the console
 		===============
 		*/
-		void Cmd_Echo_f (void)
+		private static void Cmd_Echo_f ()
 		{
 			int		i;
 			
@@ -309,27 +313,27 @@ namespace SharpQ3.Engine.qcommon
 		=============================================================================
 		*/
 
-		typedef struct cmd_function_s
+		public class cmd_function_t
 		{
-			struct cmd_function_s	*next;
-			char					*name;
-			Action				function;
-		} cmd_function_t;
+			public cmd_function_t next;
+			public string name;
+			public Action function;
+		}
 
 
-		static	int			cmd_argc;
-		static	char		*cmd_argv[MAX_STRING_TOKENS];		// points into cmd_tokenized
-		static	char		cmd_tokenized[BIG_INFO_STRING+MAX_STRING_TOKENS];	// will have 0 bytes inserted
-		static	char		cmd_cmd[BIG_INFO_STRING]; // the original command we received (no token processing)
+		private static	int			cmd_argc;
+		private static string[] cmd_argv;//[MAX_STRING_TOKENS];       // points into cmd_tokenized
+		private static string cmd_tokenized;//[BIG_INFO_STRING+MAX_STRING_TOKENS];   // will have 0 bytes inserted
+		private static string cmd_cmd;//[BIG_INFO_STRING]; // the original command we received (no token processing)
 
-		static	cmd_function_t	*cmd_functions;		// possible commands to execute
+		private static cmd_function_t cmd_functions;        // possible commands to execute
 
 		/*
 		============
 		Cmd_Argc
 		============
 		*/
-		int		Cmd_Argc( void ) {
+		private static int Cmd_Argc( ) {
 			return cmd_argc;
 		}
 
@@ -338,7 +342,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Argv
 		============
 		*/
-		char	*Cmd_Argv( int arg ) {
+		private static string Cmd_Argv( int arg ) {
 			if ( (unsigned)arg >= cmd_argc ) {
 				return "";
 			}
@@ -353,7 +357,7 @@ namespace SharpQ3.Engine.qcommon
 		they can't have pointers returned to them
 		============
 		*/
-		void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength ) {
+		private static void Cmd_ArgvBuffer( int arg, string buffer, int bufferLength ) {
 			Q_strncpyz( buffer, Cmd_Argv( arg ), bufferLength );
 		}
 
@@ -365,7 +369,7 @@ namespace SharpQ3.Engine.qcommon
 		Returns a single string containing argv(1) to argv(argc()-1)
 		============
 		*/
-		char	*Cmd_Args( void ) {
+		private static string Cmd_Args( ) {
 			static	char		cmd_args[MAX_STRING_CHARS];
 			int		i;
 
@@ -387,7 +391,7 @@ namespace SharpQ3.Engine.qcommon
 		Returns a single string containing argv(arg) to argv(argc()-1)
 		============
 		*/
-		char *Cmd_ArgsFrom( int arg ) {
+		private static string Cmd_ArgsFrom( int arg ) {
 			static	char		cmd_args[BIG_INFO_STRING];
 			int		i;
 
@@ -412,7 +416,7 @@ namespace SharpQ3.Engine.qcommon
 		they can't have pointers returned to them
 		============
 		*/
-		void	Cmd_ArgsBuffer( char *buffer, int bufferLength ) {
+		private static void Cmd_ArgsBuffer( string buffer, int bufferLength ) {
 			Q_strncpyz( buffer, Cmd_Args(), bufferLength );
 		}
 
@@ -425,7 +429,7 @@ namespace SharpQ3.Engine.qcommon
 		https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=543
 		============
 		*/
-		char *Cmd_Cmd()
+		private static string Cmd_Cmd()
 		{
 			return cmd_cmd;
 		}
@@ -440,7 +444,7 @@ namespace SharpQ3.Engine.qcommon
 		will point into this temporary buffer.
 		============
 		*/
-		void Cmd_TokenizeString( const char *text_in ) {
+		public static void Cmd_TokenizeString( string text_in ) {
 			const char	*text;
 			char	*textOut;
 
@@ -543,7 +547,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_AddCommand
 		============
 		*/
-		void	Cmd_AddCommand( const char *cmd_name, Action function ) {
+		private static void Cmd_AddCommand( string cmd_name, Action function ) {
 			cmd_function_t	*cmd;
 			
 			// fail if the command already exists
@@ -570,7 +574,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_RemoveCommand
 		============
 		*/
-		void	Cmd_RemoveCommand( const char *cmd_name ) {
+		private static void Cmd_RemoveCommand( string cmd_name ) {
 			cmd_function_t	*cmd, **back;
 
 			back = &cmd_functions;
@@ -598,7 +602,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_CommandCompletion
 		============
 		*/
-		void	Cmd_CommandCompletion( void(*callback)(const char *s) ) {
+		private static void Cmd_CommandCompletion( void(*callback)(const char *s) ) {
 			cmd_function_t	*cmd;
 			
 			for (cmd=cmd_functions ; cmd ; cmd=cmd->next) {
@@ -614,7 +618,7 @@ namespace SharpQ3.Engine.qcommon
 		A complete command line has been parsed, so try to execute it
 		============
 		*/
-		void	Cmd_ExecuteString( const char *text ) {	
+		private static void	Cmd_ExecuteString( string text ) {	
 			cmd_function_t	*cmd, **prev;
 
 			// execute the command line
@@ -674,7 +678,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_List_f
 		============
 		*/
-		void Cmd_List_f (void)
+		private static void Cmd_List_f ()
 		{
 			cmd_function_t	*cmd;
 			int				i;
@@ -701,7 +705,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Init
 		============
 		*/
-		void Cmd_Init (void) {
+		private static void Cmd_Init () {
 			Cmd_AddCommand ("cmdlist",Cmd_List_f);
 			Cmd_AddCommand ("exec",Cmd_Exec_f);
 			Cmd_AddCommand ("vstr",Cmd_Vstr_f);

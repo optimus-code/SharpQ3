@@ -45,9 +45,9 @@ namespace SharpQ3.Engine.qcommon
 
 
 	private static FileStream debuglogfile;
-	private static static fileHandle_t logfile;
-	private static fileHandle_t com_journalFile;            // events are written here
-	private static fileHandle_t com_journalDataFile;        // config files are written here
+	private static int logfile;
+	private static int com_journalFile;            // events are written here
+	private static int com_journalDataFile;        // config files are written here
 
 	private static cvar_t com_viewlog;
 	private static cvar_t com_speeds;
@@ -83,10 +83,7 @@ namespace SharpQ3.Engine.qcommon
 	private static bool com_errorEntered;
 	private static bool com_fullyInitialized;
 
-	private static char com_errorMessage[MAXPRINTMSG];
-
-	void Com_WriteConfig_f( );
-	void CIN_CloseAllVideos();
+	private static string com_errorMessage;//[MAXPRINTMSG];
 
 	//============================================================================
 
@@ -140,7 +137,7 @@ namespace SharpQ3.Engine.qcommon
 				rd_flush(rd_buffer);
 				*rd_buffer = 0;
 			}
-			Q_strcat(rd_buffer, rd_buffersize, msg);
+			q_shared.Q_strcat(ref rd_buffer, rd_buffersize, msg);
 		// TTimo nooo .. that would defeat the purpose
 			//rd_flush(rd_buffer);			
 			//*rd_buffer = 0;
@@ -150,7 +147,7 @@ namespace SharpQ3.Engine.qcommon
 		// echo to console if we're not a dedicated server
 		if ( com_dedicated != null && com_dedicated.integer == 0 ) 
 		{
-			CL_ConsolePrint( msg );
+			cl_console.CL_ConsolePrint( msg );
 		}
 
 		// echo to dedicated console and early console
@@ -371,9 +368,9 @@ namespace SharpQ3.Engine.qcommon
 		int		i;
 
 		for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
-			Cmd_TokenizeString( com_consoleLines[i] );
-			if ( !Q_stricmp( Cmd_Argv(0), "safe" )
-				|| !Q_stricmp( Cmd_Argv(0), "cvar_restart" ) ) {
+			cmd.Cmd_TokenizeString( com_consoleLines[i] );
+			if ( !q_shared.Q_stricmp( Cmd_Argv(0), "safe" )
+				|| !q_shared.Q_stricmp( Cmd_Argv(0), "cvar_restart" ) ) {
 				com_consoleLines[i][0] = 0;
 				return true;
 			}
@@ -393,21 +390,21 @@ namespace SharpQ3.Engine.qcommon
 	be after execing the config and default.
 	===============
 	*/
-	private static void Com_StartupVariable( const char *match ) {
+	private static void Com_StartupVariable( string match ) {
 		int		i;
 		char	*s;
 		cvar_t	*cv;
 
 		for (i=0 ; i < com_numConsoleLines ; i++) {
-			Cmd_TokenizeString( com_consoleLines[i] );
+			cmd.Cmd_TokenizeString( com_consoleLines[i] );
 			if ( strcmp( Cmd_Argv(0), "set" ) ) {
 				continue;
 			}
 
-			s = Cmd_Argv(1);
+			s = cmd.Cmd_Argv(1);
 			if ( !match || !strcmp( s, match ) ) {
-				Cvar_Set( s, Cmd_Argv(2) );
-				cv = Cvar_Get( s, "", 0 );
+				cvar.Cvar_Set( s, cmd.Cmd_Argv(2) );
+				cv = cvar.Cvar_Get( s, "", 0 );
 				cv->flags |= CVAR_USER_CREATED;
 	//			com_consoleLines[i] = 0;
 			}
@@ -434,7 +431,7 @@ namespace SharpQ3.Engine.qcommon
 		added = false;
 		// quote every token, so args with semicolons can work
 		for (i=0 ; i < com_numConsoleLines ; i++) {
-			if ( !com_consoleLines[i] || !com_consoleLines[i][0] ) {
+			if ( com_consoleLines[i] == null || com_consoleLines[i][0] == 0 ) {
 				continue;
 			}
 
@@ -442,8 +439,8 @@ namespace SharpQ3.Engine.qcommon
 			if ( Q_stricmpn( com_consoleLines[i], "set", 3 ) ) {
 				added = true;
 			}
-			Cbuf_AddText( com_consoleLines[i] );
-			Cbuf_AddText( "\n" );
+			cmd.Cbuf_AddText( com_consoleLines[i] );
+			cmd.Cbuf_AddText( "\n" );
 		}
 
 		return added;
@@ -452,32 +449,34 @@ namespace SharpQ3.Engine.qcommon
 
 	//============================================================================
 
-	private static void Info_Print( const char *s )
+	private static void Info_Print( string s )
 	{
-		char	key[512];
-		char	value[512];
-		char	*o;
+		string	key;
+		string value;
+		string o;
 		int		l;
+		var sI = 0;
 
-		if (*s == '\\')
-			s++;
-		while (*s)
+		if (s[0] == '\\')
+			sI++;
+
+		while ( sI < s.Length )
 		{
 			o = key;
-			while (*s && *s != '\\')
-				*o++ = *s++;
+			while ( sI < s.Length && s[sI] != '\\' )
+				o += s[sI++];
 
-			l = o - key;
+			l = o.Length - key.Length;
 			if (l < 20)
 			{
-				Com_Memset (o, ' ', 20-l);
+				com.Com_Memset (o, ' ', 20-l);
 				key[20] = 0;
 			}
 			else
 				*o = 0;
 			Com_Printf ("%s", key);
 
-			if (!*s)
+			if ( sI >= s.Length )
 			{
 				Com_Printf ("MISSING VALUE\n");
 				return;
@@ -485,12 +484,12 @@ namespace SharpQ3.Engine.qcommon
 
 			o = value;
 			s++;
-			while (*s && *s != '\\')
-				*o++ = *s++;
+			while ( sI < s.Length && s[sI] != '\\' )
+				o += s[sI++];
 			*o = 0;
 
-			if (*s)
-				s++;
+			if ( sI < s.Length )
+				sI++;
 			Com_Printf ("%s\n", value);
 		}
 	}
@@ -500,29 +499,12 @@ namespace SharpQ3.Engine.qcommon
 	Com_StringContains
 	============
 	*/
-	private static char *Com_StringContains(char *str1, char *str2, int casesensitive) 
+	private static string Com_StringContains( string str1, string str2, int casesensitive) 
 	{
-		int len, i, j;
-
-		len = (int)strlen(str1) - (int)strlen(str2);
-		for (i = 0; i <= len; i++, str1++) {
-			for (j = 0; str2[j]; j++) {
-				if (casesensitive) {
-					if (str1[j] != str2[j]) {
-						break;
-					}
-				}
-				else {
-					if (toupper(str1[j]) != toupper(str2[j])) {
-						break;
-					}
-				}
-			}
-			if (!str2[j]) {
-				return str1;
-			}
-		}
-		return NULL;
+		if ( str1.Contains( str2, casesensitive == 1 ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase ) )
+			return str1;
+		else
+			return null;
 	}
 
 	/*
@@ -610,7 +592,7 @@ namespace SharpQ3.Engine.qcommon
 	Com_FilterPath
 	============
 	*/
-	private static int Com_FilterPath(char *filter, char *name, int casesensitive)
+	private static int Com_FilterPath(string filter, string name, int casesensitive)
 	{
 		int i;
 		char new_filter[MAX_QPATH];
@@ -642,12 +624,13 @@ namespace SharpQ3.Engine.qcommon
 	Com_HashKey
 	============
 	*/
-	private static int Com_HashKey(char *string, int maxlen) {
-		int register hash, i;
+	private static int Com_HashKey( string str, int maxlen)
+	{
+		int hash, i;
 
 		hash = 0;
-		for (i = 0; i < maxlen && string[i] != '\0'; i++) {
-			hash += string[i] * (119 + i);
+		for (i = 0; i < maxlen && str[i] != '\0'; i++) {
+			hash += str[i] * (119 + i);
 		}
 		hash = (hash ^ (hash >> 10) ^ (hash >> 20));
 		return hash;
@@ -658,7 +641,7 @@ namespace SharpQ3.Engine.qcommon
 	Com_RealTime
 	================
 	*/
-	int Com_RealTime(qtime_t *qtime) {
+	int Com_RealTime(ref qtime_t qtime) {
 		time_t t;
 		struct tm *tms;
 
@@ -699,32 +682,33 @@ namespace SharpQ3.Engine.qcommon
 	public const int ZONEID = 0x1d4a11;
 	public const int MINFRAGMENT = 64;
 
-	typedef struct zonedebug_s {
-		char *label;
-		char *file;
+	public struct zonedebug_t {
+		string label;
+		string file;
 		int line;
 		int allocSize;
-	} zonedebug_t;
+	}
 
-	typedef struct memblock_s {
+	public class memblock_t {
 		int		size;           // including the header and possibly tiny fragments
 		int     tag;            // a tag of 0 is a free block
-		struct memblock_s       *next, *prev;
+		memblock_t next;
+		memblock_t prev;
 		int     id;        		// should be ZONEID
-	} memblock_t;
+	}
 
-	typedef struct {
+	public class memzone_t {
 		int		size;			// total bytes malloced, including header
 		int		used;			// total bytes used
 		memblock_t	blocklist;	// start / end cap for linked list
-		memblock_t	*rover;
-	} memzone_t;
+		memblock_t	rover;
+	} ;
 
 	// main zone for all "dynamic" memory allocation
-	memzone_t	*mainzone;
+	memzone_t	mainzone;
 	// we also have a small zone for small allocations that would only
 	// fragment the main zone (think of cvar and cmd strings)
-	memzone_t	*smallzone;
+	memzone_t	smallzone;
 
 	private static void Z_CheckHeap( void );
 
@@ -733,24 +717,24 @@ namespace SharpQ3.Engine.qcommon
 	Z_ClearZone
 	========================
 	*/
-	private static void Z_ClearZone( memzone_t *zone, int size ) {
-		memblock_t	*block;
+	private static void Z_ClearZone( memzone_t zone, int size ) {
+		memblock_t	block;
 	
 		// set the entire zone to one free block
 
-		zone->blocklist.next = zone->blocklist.prev = block =
+		zone.blocklist.next = zone->blocklist.prev = block =
 			(memblock_t *)( (byte *)zone + sizeof(memzone_t) );
-		zone->blocklist.tag = 1;	// in use block
-		zone->blocklist.id = 0;
-		zone->blocklist.size = 0;
-		zone->rover = block;
-		zone->size = size;
-		zone->used = 0;
+		zone.blocklist.tag = 1;	// in use block
+		zone.blocklist.id = 0;
+		zone.blocklist.size = 0;
+		zone.rover = block;
+		zone.size = size;
+		zone.used = 0;
 	
-		block->prev = block->next = &zone->blocklist;
-		block->tag = 0;			// free block
-		block->id = ZONEID;
-		block->size = size - sizeof(memzone_t);
+		block.prev = block->next = &zone->blocklist;
+		block.tag = 0;			// free block
+		block.id = ZONEID;
+		block.size = size - sizeof(memzone_t);
 	}
 
 	/*
@@ -1060,20 +1044,8 @@ namespace SharpQ3.Engine.qcommon
 			memory from a memstatic_t might be returned
 	========================
 	*/
-	private static char *CopyString( const char *in ) {
-		char	*out;
-
-		if (!in[0]) {
-			return ((char *)&emptystring) + sizeof(memblock_t);
-		}
-		else if (!in[1]) {
-			if (in[0] >= '0' && in[0] <= '9') {
-				return ((char *)&numberstring[in[0]-'0']) + sizeof(memblock_t);
-			}
-		}
-		out = (char*) S_Malloc ((int)strlen(in)+1);
-		strcpy (out, in);
-		return out;
+	private static string CopyString( string input ) {
+		return new string( input );
 	}
 
 	/*
@@ -1111,36 +1083,39 @@ namespace SharpQ3.Engine.qcommon
 	*/
 
 
-	#define	HUNK_MAGIC	0x89537892
-	#define	HUNK_FREE_MAGIC	0x89537893
+	public const long	HUNK_MAGIC = 0x89537892;
+	public const long HUNK_FREE_MAGIC = 0x89537893;
 
-	typedef struct {
-		int		magic;
-		int		size;
-	} hunkHeader_t;
+	public struct hunkHeader_t
+	{
+		public int magic;
+		public int size;
+	}
 
-	typedef struct {
-		int		mark;
-		int		permanent;
-		int		temp;
-		int		tempHighwater;
-	} hunkUsed_t;
+	public struct hunkUsed_t
+	{
+		public int		mark;
+		public int		permanent;
+		public int		temp;
+		public int		tempHighwater;
+	} ;
 
-	typedef struct hunkblock_s {
+	public class hunkblock_t
+	{
 		int size;
 		byte printed;
-		struct hunkblock_s *next;
-		char *label;
-		char *file;
+		hunkblock_t next;
+		string label;
+		string file;
 		int line;
-	} hunkblock_t;
+	}
 
-	static	hunkblock_t *hunkblocks;
+	static	hunkblock_t hunkblocks;
 
 	static	hunkUsed_t	hunk_low, hunk_high;
 	static	hunkUsed_t	*hunk_permanent, *hunk_temp;
 
-	static	byte	*s_hunkData = NULL;
+	static	byte[]	s_hunkData = null;
 	static	int		s_hunkTotal;
 
 	static	int		s_zoneTotal;
@@ -1165,7 +1140,7 @@ namespace SharpQ3.Engine.qcommon
 		rendererBytes = 0;
 		zoneBlocks = 0;
 		for (block = mainzone->blocklist.next ; ; block = block->next) {
-			if ( Cmd_Argc() != 1 ) {
+			if ( cmd.Cmd_Argc() != 1 ) {
 				Com_Printf ("block:%p    size:%7i    tag:%3i\n",
 					block, block->size, block->tag);
 			}
@@ -1450,7 +1425,7 @@ namespace SharpQ3.Engine.qcommon
 		s_hunkData = (byte *) ( ( (intptr_t)s_hunkData + 31 ) & ~31 );
 		Hunk_Clear();
 
-		Cmd_AddCommand( "meminfo", Com_Meminfo_f );
+		cmd.Cmd_AddCommand( "meminfo", Com_Meminfo_f );
 	}
 
 	/*
@@ -2073,7 +2048,7 @@ namespace SharpQ3.Engine.qcommon
 	=============
 	*/
 	private static void Com_Error_f () {
-		if ( Cmd_Argc() > 1 ) {
+		if ( cmd.Cmd_Argc() > 1 ) {
 			Com_Error( ERR_DROP, "Testing drop error" );
 		} else {
 			Com_Error( ERR_FATAL, "Testing fatal error" );
@@ -2093,11 +2068,11 @@ namespace SharpQ3.Engine.qcommon
 		float	s;
 		int		start, now;
 
-		if ( Cmd_Argc() != 2 ) {
+		if ( cmd.Cmd_Argc() != 2 ) {
 			Com_Printf( "freeze <seconds>\n" );
 			return;
 		}
-		s = atof( Cmd_Argv(1) );
+		s = atof( cmd.Cmd_Argv(1) );
 
 		start = Com_Milliseconds();
 
@@ -2149,7 +2124,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_Init ();
 
 		Com_InitZoneMemory();
-		Cmd_Init ();
+		cmd.Cmd_Init ();
 
 		// override anything from the config files with command line args
 		Com_StartupVariable( NULL );
@@ -2224,13 +2199,13 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		if ( com_developer && com_developer->integer ) {
-			Cmd_AddCommand ("error", Com_Error_f);
-			Cmd_AddCommand ("crash", Com_Crash_f );
-			Cmd_AddCommand ("freeze", Com_Freeze_f);
+			cmd.Cmd_AddCommand ("error", Com_Error_f);
+			cmd.Cmd_AddCommand ("crash", Com_Crash_f );
+			cmd.Cmd_AddCommand ("freeze", Com_Freeze_f);
 		}
-		Cmd_AddCommand ("quit", Com_Quit_f);
-		Cmd_AddCommand ("changeVectors", MSG_ReportChangeVectors_f );
-		Cmd_AddCommand ("writeconfig", Com_WriteConfig_f );
+		cmd.Cmd_AddCommand ("quit", Com_Quit_f);
+		cmd.Cmd_AddCommand ("changeVectors", MSG_ReportChangeVectors_f );
+		cmd.Cmd_AddCommand ("writeconfig", Com_WriteConfig_f );
 
 		s = va("%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
 		com_version = Cvar_Get ("version", s, CVAR_ROM | CVAR_SERVERINFO );
@@ -2326,12 +2301,12 @@ namespace SharpQ3.Engine.qcommon
 	private static void Com_WriteConfig_f( void ) {
 		char	filename[MAX_QPATH];
 
-		if ( Cmd_Argc() != 2 ) {
+		if ( cmd.Cmd_Argc() != 2 ) {
 			Com_Printf( "Usage: writeconfig <filename>\n" );
 			return;
 		}
 
-		Q_strncpyz( filename, Cmd_Argv(1), sizeof( filename ) );
+		Q_strncpyz( filename, cmd.Cmd_Argv(1), sizeof( filename ) );
 		COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
 		Com_Printf( "Writing %s.\n", filename );
 		Com_WriteConfigToFile( filename );
@@ -2682,9 +2657,9 @@ namespace SharpQ3.Engine.qcommon
 		int		i;
 		char	*arg;
 
-		for ( i = 1 ; i < Cmd_Argc() ; i++ ) {
+		for ( i = 1 ; i < cmd.Cmd_Argc() ; i++ ) {
 			Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
-			arg = Cmd_Argv( i );
+			arg = cmd.Cmd_Argv( i );
 			while (*arg) {
 				if (*arg == ' ') {
 					Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"");
@@ -2692,7 +2667,7 @@ namespace SharpQ3.Engine.qcommon
 				}
 				arg++;
 			}
-			Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  Cmd_Argv( i ) );
+			Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  cmd.Cmd_Argv( i ) );
 			if (*arg == ' ') {
 				Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"");
 			}
@@ -2727,9 +2702,9 @@ namespace SharpQ3.Engine.qcommon
 		completionField = field;
 
 		// only look at the first token for completion purposes
-		Cmd_TokenizeString( completionField->buffer );
+		cmd.Cmd_TokenizeString( completionField->buffer );
 
-		completionString = Cmd_Argv(0);
+		completionString = cmd.Cmd_Argv(0);
 		if ( completionString[0] == '\\' || completionString[0] == '/' ) {
 			completionString++;
 		}
@@ -2740,7 +2715,7 @@ namespace SharpQ3.Engine.qcommon
 			return;
 		}
 
-		Cmd_CommandCompletion( FindMatches );
+		cmd.Cmd_CommandCompletion( FindMatches );
 		Cvar_CommandCompletion( FindMatches );
 
 		if ( matchCount == 0 ) {
@@ -2751,7 +2726,7 @@ namespace SharpQ3.Engine.qcommon
 
 		if ( matchCount == 1 ) {
 			Com_sprintf( completionField->buffer, sizeof( completionField->buffer ), "\\%s", shortestMatch );
-			if ( Cmd_Argc() == 1 ) {
+			if ( cmd.Cmd_Argc() == 1 ) {
 				Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
 			} else {
 				ConcatRemaining( temp.buffer, completionString );
@@ -2768,7 +2743,7 @@ namespace SharpQ3.Engine.qcommon
 		Com_Printf( "]%s\n", completionField->buffer );
 
 		// run through again, printing matches
-		Cmd_CommandCompletion( PrintMatches );
+		cmd.Cmd_CommandCompletion( PrintMatches );
 		Cvar_CommandCompletion( PrintMatches );
 	}
 }
