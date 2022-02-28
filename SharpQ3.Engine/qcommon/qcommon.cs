@@ -319,22 +319,22 @@ namespace SharpQ3.Engine.qcommon
 		// centralized and cleaned, that's the max string you can send to a Com_Printf / Com_DPrintf (above gets truncated)
 		public const int MAXPRINTMSG =	4096;
 
-		public static q_shared.cvar_t	com_developer;
-		public static q_shared.cvar_t	com_dedicated;
-		public static q_shared.cvar_t	com_speeds;
-		public static q_shared.cvar_t	com_timescale;
-		public static q_shared.cvar_t	com_sv_running;
-		public static q_shared.cvar_t	com_cl_running;
-		public static q_shared.cvar_t	com_viewlog;           // 0 = hidden, 1 = visible, 2 = minimized
-		public static q_shared.cvar_t	com_version;
-		public static q_shared.cvar_t	com_blood;
-		public static q_shared.cvar_t	com_buildScript;       // for building release pak files
-		public static q_shared.cvar_t	com_journal;
-		public static q_shared.cvar_t	com_cameraMode;
+		public static cvar_t	com_developer;
+		public static cvar_t	com_dedicated;
+		public static cvar_t	com_speeds;
+		public static cvar_t	com_timescale;
+		public static cvar_t	com_sv_running;
+		public static cvar_t	com_cl_running;
+		public static cvar_t	com_viewlog;           // 0 = hidden, 1 = visible, 2 = minimized
+		public static cvar_t	com_version;
+		public static cvar_t	com_blood;
+		public static cvar_t	com_buildScript;       // for building release pak files
+		public static cvar_t	com_journal;
+		public static cvar_t	com_cameraMode;
 
 		// both client and server must agree to pause
-		public static q_shared.cvar_t	cl_paused;
-		public static q_shared.cvar_t	sv_paused;
+		public static cvar_t	cl_paused;
+		public static cvar_t	sv_paused;
 
 		// com_speeds times
 		public static int		time_game;
@@ -452,9 +452,9 @@ namespace SharpQ3.Engine.qcommon
 			int			blocNode;
 			int			blocPtrs;
 
-			node_t*		tree;
-			node_t*		lhead;
-			node_t*		ltail;
+			node_t		tree;
+			node_t		lhead;
+			node_t		ltail;
 			node_t*		loc[HMAX+1];
 			node_t**	freelist;
 
@@ -474,5 +474,36 @@ namespace SharpQ3.Engine.qcommon
 		public const int SV_DECODE_START = 12;
 		public const int CL_ENCODE_START = 12;
 		public const int CL_DECODE_START = 4;
+	}
+
+	// optimus-code - Stub - write a better implementation later
+	public struct vec3_t
+    {
+		public float x;
+		public float y;
+		public float z;
+
+		public float[] all
+        {
+			get
+            {
+				return new float[] { x, y, z };
+            }
+        }
+	}
+
+	// optimus-code - Stub - write a better implementation later
+	public struct vec2_t
+	{
+		public float x;
+		public float y;
+
+		public float[] all
+		{
+			get
+			{
+				return new float[] { x, y };
+			}
+		}
 	}
 }

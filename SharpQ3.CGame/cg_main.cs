@@ -20,16 +20,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine;
+using System.Runtime.InteropServices;
+
 namespace SharpQ3.CGame
 {
 	// cg_main.c -- initialization and primary entry point for cgame
 	public static class cg_main
 	{
-		int forceModelModificationCount = -1;
-
-		void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum );
-		void CG_Shutdown( void );
-
+		static int forceModelModificationCount = -1;
 
 		/*
 		================
@@ -39,272 +38,283 @@ namespace SharpQ3.CGame
 		This must be the very first function compiled into the .q3vm file
 		================
 		*/
-		intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, int arg9, int arg10, int arg11  ) {
-
-			switch ( command ) {
-			case CG_INIT:
-				CG_Init( arg0, arg1, arg2 );
-				return 0;
-			case CG_SHUTDOWN:
-				CG_Shutdown();
-				return 0;
-			case CG_CONSOLE_COMMAND:
-				return CG_ConsoleCommand();
-			case CG_DRAW_ACTIVE_FRAME:
-				CG_DrawActiveFrame( arg0, arg1, arg2 );
-				return 0;
-			case CG_CROSSHAIR_PLAYER:
-				return CG_CrosshairPlayer();
-			case CG_LAST_ATTACKER:
-				return CG_LastAttacker();
-			case CG_KEY_EVENT:
-				CG_KeyEvent(arg0, arg1);
-				return 0;
-			case CG_MOUSE_EVENT:
-				CG_MouseEvent(arg0, arg1);
-				return 0;
-			case CG_EVENT_HANDLING:
-				CG_EventHandling(arg0);
-				return 0;
-			default:
-				CG_Error( "vmMain: unknown command %i", command );
-				break;
+		static int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, int arg9, int arg10, int arg11  ) 
+		{
+			switch ( ( cgameExport_t ) command ) 
+			{
+				case cgameExport_t.CG_INIT:
+					CG_Init( arg0, arg1, arg2 );
+					return 0;
+				case cgameExport_t.CG_SHUTDOWN:
+					CG_Shutdown();
+					return 0;
+				case cgameExport_t.CG_CONSOLE_COMMAND:
+					return CG_ConsoleCommand();
+				case cgameExport_t.CG_DRAW_ACTIVE_FRAME:
+					CG_DrawActiveFrame( arg0, arg1, arg2 );
+					return 0;
+				case cgameExport_t.CG_CROSSHAIR_PLAYER:
+					return CG_CrosshairPlayer();
+				case cgameExport_t.CG_LAST_ATTACKER:
+					return CG_LastAttacker();
+				case cgameExport_t.CG_KEY_EVENT:
+					CG_KeyEvent(arg0, arg1 == 1);
+					return 0;
+				case cgameExport_t.CG_MOUSE_EVENT:
+					CG_MouseEvent(arg0, arg1);
+					return 0;
+				case cgameExport_t.CG_EVENT_HANDLING:
+					CG_EventHandling(arg0);
+					return 0;
+				default:
+					CG_Error( "vmMain: unknown command %i", command );
+					break;
 			}
 			return -1;
 		}
 
 
-		cg_t				cg;
-		cgs_t				cgs;
-		centity_t			cg_entities[MAX_GENTITIES];
-		weaponInfo_t		cg_weapons[MAX_WEAPONS];
-		itemInfo_t			cg_items[MAX_ITEMS];
+		static cg_t				cg;
+		static cgs_t				cgs;
+		static centity_t			cg_entities[MAX_GENTITIES];
+		static weaponInfo_t		cg_weapons[MAX_WEAPONS];
+		static itemInfo_t			cg_items[MAX_ITEMS];
 
 
-		vmCvar_t	cg_railTrailTime;
-		vmCvar_t	cg_centertime;
-		vmCvar_t	cg_runpitch;
-		vmCvar_t	cg_runroll;
-		vmCvar_t	cg_bobup;
-		vmCvar_t	cg_bobpitch;
-		vmCvar_t	cg_bobroll;
-		vmCvar_t	cg_swingSpeed;
-		vmCvar_t	cg_shadows;
-		vmCvar_t	cg_gibs;
-		vmCvar_t	cg_drawTimer;
-		vmCvar_t	cg_drawFPS;
-		vmCvar_t	cg_drawSnapshot;
-		vmCvar_t	cg_draw3dIcons;
-		vmCvar_t	cg_drawIcons;
-		vmCvar_t	cg_drawAmmoWarning;
-		vmCvar_t	cg_drawCrosshair;
-		vmCvar_t	cg_drawCrosshairNames;
-		vmCvar_t	cg_drawRewards;
-		vmCvar_t	cg_crosshairSize;
-		vmCvar_t	cg_crosshairX;
-		vmCvar_t	cg_crosshairY;
-		vmCvar_t	cg_crosshairHealth;
-		vmCvar_t	cg_draw2D;
-		vmCvar_t	cg_drawStatus;
-		vmCvar_t	cg_animSpeed;
-		vmCvar_t	cg_debugAnim;
-		vmCvar_t	cg_debugPosition;
-		vmCvar_t	cg_debugEvents;
-		vmCvar_t	cg_errorDecay;
-		vmCvar_t	cg_nopredict;
-		vmCvar_t	cg_noPlayerAnims;
-		vmCvar_t	cg_showmiss;
-		vmCvar_t	cg_footsteps;
-		vmCvar_t	cg_addMarks;
-		vmCvar_t	cg_brassTime;
-		vmCvar_t	cg_viewsize;
-		vmCvar_t	cg_drawGun;
-		vmCvar_t	cg_gun_frame;
-		vmCvar_t	cg_gun_x;
-		vmCvar_t	cg_gun_y;
-		vmCvar_t	cg_gun_z;
-		vmCvar_t	cg_tracerChance;
-		vmCvar_t	cg_tracerWidth;
-		vmCvar_t	cg_tracerLength;
-		vmCvar_t	cg_autoswitch;
-		vmCvar_t	cg_ignore;
-		vmCvar_t	cg_simpleItems;
-		vmCvar_t	cg_fov;
-		vmCvar_t	cg_zoomFov;
-		vmCvar_t	cg_thirdPerson;
-		vmCvar_t	cg_thirdPersonRange;
-		vmCvar_t	cg_thirdPersonAngle;
-		vmCvar_t	cg_stereoSeparation;
-		vmCvar_t	cg_lagometer;
-		vmCvar_t	cg_drawAttacker;
-		vmCvar_t	cg_synchronousClients;
-		vmCvar_t 	cg_teamChatTime;
-		vmCvar_t 	cg_teamChatHeight;
-		vmCvar_t 	cg_stats;
-		vmCvar_t 	cg_buildScript;
-		vmCvar_t 	cg_forceModel;
-		vmCvar_t	cg_paused;
-		vmCvar_t	cg_blood;
-		vmCvar_t	cg_predictItems;
-		vmCvar_t	cg_deferPlayers;
-		vmCvar_t	cg_drawTeamOverlay;
-		vmCvar_t	cg_teamOverlayUserinfo;
-		vmCvar_t	cg_drawFriend;
-		vmCvar_t	cg_teamChatsOnly;
-		vmCvar_t	cg_noVoiceChats;
-		vmCvar_t	cg_noVoiceText;
-		vmCvar_t	cg_hudFiles;
-		vmCvar_t 	cg_scorePlum;
-		vmCvar_t 	cg_smoothClients;
-		vmCvar_t	pmove_fixed;
-		//vmCvar_t	cg_pmove_fixed;
-		vmCvar_t	pmove_msec;
-		vmCvar_t	cg_pmove_msec;
-		vmCvar_t	cg_cameraMode;
-		vmCvar_t	cg_cameraOrbit;
-		vmCvar_t	cg_cameraOrbitDelay;
-		vmCvar_t	cg_timescaleFadeEnd;
-		vmCvar_t	cg_timescaleFadeSpeed;
-		vmCvar_t	cg_timescale;
-		vmCvar_t	cg_smallFont;
-		vmCvar_t	cg_bigFont;
-		vmCvar_t	cg_noTaunt;
-		vmCvar_t	cg_noProjectileTrail;
-		vmCvar_t	cg_oldRail;
-		vmCvar_t	cg_oldRocket;
-		vmCvar_t	cg_oldPlasma;
-		vmCvar_t	cg_trueLightning;
+		static vmCvar_t cg_railTrailTime;
+		static vmCvar_t cg_centertime;
+		static vmCvar_t cg_runpitch;
+		static vmCvar_t cg_runroll;
+		static vmCvar_t cg_bobup;
+		static vmCvar_t cg_bobpitch;
+		static vmCvar_t cg_bobroll;
+		static vmCvar_t cg_swingSpeed;
+		static vmCvar_t cg_shadows;
+		static vmCvar_t cg_gibs;
+		static vmCvar_t cg_drawTimer;
+		static vmCvar_t cg_drawFPS;
+		static vmCvar_t cg_drawSnapshot;
+		static vmCvar_t cg_draw3dIcons;
+		static vmCvar_t cg_drawIcons;
+		static vmCvar_t cg_drawAmmoWarning;
+		static vmCvar_t cg_drawCrosshair;
+		static vmCvar_t cg_drawCrosshairNames;
+		static vmCvar_t cg_drawRewards;
+		static vmCvar_t cg_crosshairSize;
+		static vmCvar_t cg_crosshairX;
+		static vmCvar_t cg_crosshairY;
+		static vmCvar_t cg_crosshairHealth;
+		static vmCvar_t cg_draw2D;
+		static vmCvar_t cg_drawStatus;
+		static vmCvar_t cg_animSpeed;
+		static vmCvar_t cg_debugAnim;
+		static vmCvar_t cg_debugPosition;
+		static vmCvar_t cg_debugEvents;
+		static vmCvar_t cg_errorDecay;
+		static vmCvar_t cg_nopredict;
+		static vmCvar_t cg_noPlayerAnims;
+		static vmCvar_t cg_showmiss;
+		static vmCvar_t cg_footsteps;
+		static vmCvar_t cg_addMarks;
+		static vmCvar_t cg_brassTime;
+		static vmCvar_t cg_viewsize;
+		static vmCvar_t cg_drawGun;
+		static vmCvar_t cg_gun_frame;
+		static vmCvar_t cg_gun_x;
+		static vmCvar_t cg_gun_y;
+		static vmCvar_t cg_gun_z;
+		static vmCvar_t cg_tracerChance;
+		static vmCvar_t cg_tracerWidth;
+		static vmCvar_t cg_tracerLength;
+		static vmCvar_t cg_autoswitch;
+		static vmCvar_t cg_ignore;
+		static vmCvar_t cg_simpleItems;
+		static vmCvar_t cg_fov;
+		static vmCvar_t cg_zoomFov;
+		static vmCvar_t cg_thirdPerson;
+		static vmCvar_t cg_thirdPersonRange;
+		static vmCvar_t cg_thirdPersonAngle;
+		static vmCvar_t cg_stereoSeparation;
+		static vmCvar_t cg_lagometer;
+		static vmCvar_t cg_drawAttacker;
+		static vmCvar_t cg_synchronousClients;
+		static vmCvar_t cg_teamChatTime;
+		static vmCvar_t cg_teamChatHeight;
+		static vmCvar_t cg_stats;
+		static vmCvar_t cg_buildScript;
+		static vmCvar_t cg_forceModel;
+		static vmCvar_t cg_paused;
+		static vmCvar_t cg_blood;
+		static vmCvar_t cg_predictItems;
+		static vmCvar_t cg_deferPlayers;
+		static vmCvar_t cg_drawTeamOverlay;
+		static vmCvar_t cg_teamOverlayUserinfo;
+		static vmCvar_t cg_drawFriend;
+		static vmCvar_t cg_teamChatsOnly;
+		static vmCvar_t cg_noVoiceChats;
+		static vmCvar_t cg_noVoiceText;
+		static vmCvar_t cg_hudFiles;
+		static vmCvar_t cg_scorePlum;
+		static vmCvar_t cg_smoothClients;
+		static vmCvar_t pmove_fixed;
+		//static vmCvar_t	cg_pmove_fixed;
+		static vmCvar_t pmove_msec;
+		static vmCvar_t cg_pmove_msec;
+		static vmCvar_t cg_cameraMode;
+		static vmCvar_t cg_cameraOrbit;
+		static vmCvar_t cg_cameraOrbitDelay;
+		static vmCvar_t cg_timescaleFadeEnd;
+		static vmCvar_t cg_timescaleFadeSpeed;
+		static vmCvar_t cg_timescale;
+		static vmCvar_t cg_smallFont;
+		static vmCvar_t cg_bigFont;
+		static vmCvar_t cg_noTaunt;
+		static vmCvar_t cg_noProjectileTrail;
+		static vmCvar_t cg_oldRail;
+		static vmCvar_t cg_oldRocket;
+		static vmCvar_t cg_oldPlasma;
+		static vmCvar_t	cg_trueLightning;
 
-		typedef struct {
-			vmCvar_t	*vmCvar;
-			char		*cvarName;
-			char		*defaultString;
-			int			cvarFlags;
-		} cvarTable_t;
+		public struct cvarTable_t
+		{
+			vmCvar_t	vmCvar;
+			string		cvarName;
+			string		defaultString;
+			CVAR		cvarFlags;
 
-		static cvarTable_t cvarTable[] = { // bk001129
-			{ &cg_ignore, "cg_ignore", "0", 0 },	// used for debugging
-			{ &cg_autoswitch, "cg_autoswitch", "1", CVAR_ARCHIVE },
-			{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
-			{ &cg_zoomFov, "cg_zoomfov", "22.5", CVAR_ARCHIVE },
-			{ &cg_fov, "cg_fov", "90", CVAR_ARCHIVE },
-			{ &cg_viewsize, "cg_viewsize", "100", CVAR_ARCHIVE },
-			{ &cg_stereoSeparation, "cg_stereoSeparation", "0.4", CVAR_ARCHIVE  },
-			{ &cg_shadows, "cg_shadows", "1", CVAR_ARCHIVE  },
-			{ &cg_gibs, "cg_gibs", "1", CVAR_ARCHIVE  },
-			{ &cg_draw2D, "cg_draw2D", "1", CVAR_ARCHIVE  },
-			{ &cg_drawStatus, "cg_drawStatus", "1", CVAR_ARCHIVE  },
-			{ &cg_drawTimer, "cg_drawTimer", "0", CVAR_ARCHIVE  },
-			{ &cg_drawFPS, "cg_drawFPS", "0", CVAR_ARCHIVE  },
-			{ &cg_drawSnapshot, "cg_drawSnapshot", "0", CVAR_ARCHIVE  },
-			{ &cg_draw3dIcons, "cg_draw3dIcons", "1", CVAR_ARCHIVE  },
-			{ &cg_drawIcons, "cg_drawIcons", "1", CVAR_ARCHIVE  },
-			{ &cg_drawAmmoWarning, "cg_drawAmmoWarning", "1", CVAR_ARCHIVE  },
-			{ &cg_drawAttacker, "cg_drawAttacker", "1", CVAR_ARCHIVE  },
-			{ &cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
-			{ &cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
-			{ &cg_drawRewards, "cg_drawRewards", "1", CVAR_ARCHIVE },
-			{ &cg_crosshairSize, "cg_crosshairSize", "24", CVAR_ARCHIVE },
-			{ &cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR_ARCHIVE },
-			{ &cg_crosshairX, "cg_crosshairX", "0", CVAR_ARCHIVE },
-			{ &cg_crosshairY, "cg_crosshairY", "0", CVAR_ARCHIVE },
-			{ &cg_brassTime, "cg_brassTime", "2500", CVAR_ARCHIVE },
-			{ &cg_simpleItems, "cg_simpleItems", "0", CVAR_ARCHIVE },
-			{ &cg_addMarks, "cg_marks", "1", CVAR_ARCHIVE },
-			{ &cg_lagometer, "cg_lagometer", "1", CVAR_ARCHIVE },
-			{ &cg_railTrailTime, "cg_railTrailTime", "400", CVAR_ARCHIVE  },
-			{ &cg_gun_x, "cg_gunX", "0", CVAR_CHEAT },
-			{ &cg_gun_y, "cg_gunY", "0", CVAR_CHEAT },
-			{ &cg_gun_z, "cg_gunZ", "0", CVAR_CHEAT },
-			{ &cg_centertime, "cg_centertime", "3", CVAR_CHEAT },
-			{ &cg_runpitch, "cg_runpitch", "0.002", CVAR_ARCHIVE},
-			{ &cg_runroll, "cg_runroll", "0.005", CVAR_ARCHIVE },
-			{ &cg_bobup , "cg_bobup", "0.005", CVAR_CHEAT },
-			{ &cg_bobpitch, "cg_bobpitch", "0.002", CVAR_ARCHIVE },
-			{ &cg_bobroll, "cg_bobroll", "0.002", CVAR_ARCHIVE },
-			{ &cg_swingSpeed, "cg_swingSpeed", "0.3", CVAR_CHEAT },
-			{ &cg_animSpeed, "cg_animspeed", "1", CVAR_CHEAT },
-			{ &cg_debugAnim, "cg_debuganim", "0", CVAR_CHEAT },
-			{ &cg_debugPosition, "cg_debugposition", "0", CVAR_CHEAT },
-			{ &cg_debugEvents, "cg_debugevents", "0", CVAR_CHEAT },
-			{ &cg_errorDecay, "cg_errordecay", "100", 0 },
-			{ &cg_nopredict, "cg_nopredict", "0", 0 },
-			{ &cg_noPlayerAnims, "cg_noplayeranims", "0", CVAR_CHEAT },
-			{ &cg_showmiss, "cg_showmiss", "0", 0 },
-			{ &cg_footsteps, "cg_footsteps", "1", CVAR_CHEAT },
-			{ &cg_tracerChance, "cg_tracerchance", "0.4", CVAR_CHEAT },
-			{ &cg_tracerWidth, "cg_tracerwidth", "1", CVAR_CHEAT },
-			{ &cg_tracerLength, "cg_tracerlength", "100", CVAR_CHEAT },
-			{ &cg_thirdPersonRange, "cg_thirdPersonRange", "40", CVAR_CHEAT },
-			{ &cg_thirdPersonAngle, "cg_thirdPersonAngle", "0", CVAR_CHEAT },
-			{ &cg_thirdPerson, "cg_thirdPerson", "0", 0 },
-			{ &cg_teamChatTime, "cg_teamChatTime", "3000", CVAR_ARCHIVE  },
-			{ &cg_teamChatHeight, "cg_teamChatHeight", "0", CVAR_ARCHIVE  },
-			{ &cg_forceModel, "cg_forceModel", "0", CVAR_ARCHIVE  },
-			{ &cg_predictItems, "cg_predictItems", "1", CVAR_ARCHIVE },
-			{ &cg_deferPlayers, "cg_deferPlayers", "1", CVAR_ARCHIVE },
-			{ &cg_drawTeamOverlay, "cg_drawTeamOverlay", "0", CVAR_ARCHIVE },
-			{ &cg_teamOverlayUserinfo, "teamoverlay", "0", CVAR_ROM | CVAR_USERINFO },
-			{ &cg_stats, "cg_stats", "0", 0 },
-			{ &cg_drawFriend, "cg_drawFriend", "1", CVAR_ARCHIVE },
-			{ &cg_teamChatsOnly, "cg_teamChatsOnly", "0", CVAR_ARCHIVE },
-			{ &cg_noVoiceChats, "cg_noVoiceChats", "0", CVAR_ARCHIVE },
-			{ &cg_noVoiceText, "cg_noVoiceText", "0", CVAR_ARCHIVE },
-			// the following variables are created in other parts of the system,
-			// but we also reference them here
-			{ &cg_buildScript, "com_buildScript", "0", 0 },	// force loading of all possible data amd error on failures
-			{ &cg_paused, "cl_paused", "0", CVAR_ROM },
-			{ &cg_blood, "com_blood", "1", CVAR_ARCHIVE },
-			{ &cg_synchronousClients, "g_synchronousClients", "0", 0 },	// communicated by systeminfo
-			{ &cg_cameraOrbit, "cg_cameraOrbit", "0", CVAR_CHEAT},
-			{ &cg_cameraOrbitDelay, "cg_cameraOrbitDelay", "50", CVAR_ARCHIVE},
-			{ &cg_timescaleFadeEnd, "cg_timescaleFadeEnd", "1", 0},
-			{ &cg_timescaleFadeSpeed, "cg_timescaleFadeSpeed", "0", 0},
-			{ &cg_timescale, "timescale", "1", 0},
-			{ &cg_scorePlum, "cg_scorePlums", "1", CVAR_USERINFO | CVAR_ARCHIVE},
-			{ &cg_smoothClients, "cg_smoothClients", "0", CVAR_USERINFO | CVAR_ARCHIVE},
-			{ &cg_cameraMode, "com_cameraMode", "0", CVAR_CHEAT},
-
-			{ &pmove_fixed, "pmove_fixed", "0", 0},
-			{ &pmove_msec, "pmove_msec", "8", 0},
-			{ &cg_noTaunt, "cg_noTaunt", "0", CVAR_ARCHIVE},
-			{ &cg_noProjectileTrail, "cg_noProjectileTrail", "0", CVAR_ARCHIVE},
-			{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},
-			{ &cg_bigFont, "ui_bigFont", "0.4", CVAR_ARCHIVE},
-			{ &cg_oldRail, "cg_oldRail", "1", CVAR_ARCHIVE},
-			{ &cg_oldRocket, "cg_oldRocket", "1", CVAR_ARCHIVE},
-			{ &cg_oldPlasma, "cg_oldPlasma", "1", CVAR_ARCHIVE},
-			{ &cg_trueLightning, "cg_trueLightning", "0.0", CVAR_ARCHIVE}
-		//	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
+			public cvarTable_t( vmCvar_t vmCvar, string cvarName, string defaultString, CVAR cvarFlags )
+            {
+				this.vmCvar = vmCvar;
+				this.cvarName = cvarName;
+				this.defaultString = defaultString;
+				this.cvarFlags = cvarFlags;
+			}
 		};
 
-		static int  cvarTableSize = sizeof( cvarTable ) / sizeof( cvarTable[0] );
+		static cvarTable_t[] cvarTable = new []{ // bk001129
+			new cvarTable_t( cg_ignore, "cg_ignore", "0", 0 ),	// used for debugging
+			new cvarTable_t( cg_autoswitch, "cg_autoswitch", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_drawGun, "cg_drawGun", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_zoomFov, "cg_zoomfov", "22.5", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_fov, "cg_fov", "90", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_viewsize, "cg_viewsize", "100", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_stereoSeparation, "cg_stereoSeparation", "0.4", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_shadows, "cg_shadows", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_gibs, "cg_gibs", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_draw2D, "cg_draw2D", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawStatus, "cg_drawStatus", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawTimer, "cg_drawTimer", "0", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawFPS, "cg_drawFPS", "0", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawSnapshot, "cg_drawSnapshot", "0", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_draw3dIcons, "cg_draw3dIcons", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawIcons, "cg_drawIcons", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawAmmoWarning, "cg_drawAmmoWarning", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawAttacker, "cg_drawAttacker", "1", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_drawCrosshair, "cg_drawCrosshair", "4", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_drawCrosshairNames, "cg_drawCrosshairNames", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_drawRewards, "cg_drawRewards", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_crosshairSize, "cg_crosshairSize", "24", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_crosshairHealth, "cg_crosshairHealth", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_crosshairX, "cg_crosshairX", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_crosshairY, "cg_crosshairY", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_brassTime, "cg_brassTime", "2500", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_simpleItems, "cg_simpleItems", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_addMarks, "cg_marks", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_lagometer, "cg_lagometer", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_railTrailTime, "cg_railTrailTime", "400", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_gun_x, "cg_gunX", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_gun_y, "cg_gunY", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_gun_z, "cg_gunZ", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_centertime, "cg_centertime", "3", CVAR.CHEAT ),
+			new cvarTable_t( cg_runpitch, "cg_runpitch", "0.002", CVAR.ARCHIVE),
+			new cvarTable_t( cg_runroll, "cg_runroll", "0.005", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_bobup , "cg_bobup", "0.005", CVAR.CHEAT ),
+			new cvarTable_t( cg_bobpitch, "cg_bobpitch", "0.002", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_bobroll, "cg_bobroll", "0.002", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_swingSpeed, "cg_swingSpeed", "0.3", CVAR.CHEAT ),
+			new cvarTable_t( cg_animSpeed, "cg_animspeed", "1", CVAR.CHEAT ),
+			new cvarTable_t( cg_debugAnim, "cg_debuganim", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_debugPosition, "cg_debugposition", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_debugEvents, "cg_debugevents", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_errorDecay, "cg_errordecay", "100", 0 ),
+			new cvarTable_t( cg_nopredict, "cg_nopredict", "0", 0 ),
+			new cvarTable_t( cg_noPlayerAnims, "cg_noplayeranims", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_showmiss, "cg_showmiss", "0", 0 ),
+			new cvarTable_t( cg_footsteps, "cg_footsteps", "1", CVAR.CHEAT ),
+			new cvarTable_t( cg_tracerChance, "cg_tracerchance", "0.4", CVAR.CHEAT ),
+			new cvarTable_t( cg_tracerWidth, "cg_tracerwidth", "1", CVAR.CHEAT ),
+			new cvarTable_t( cg_tracerLength, "cg_tracerlength", "100", CVAR.CHEAT ),
+			new cvarTable_t( cg_thirdPersonRange, "cg_thirdPersonRange", "40", CVAR.CHEAT ),
+			new cvarTable_t( cg_thirdPersonAngle, "cg_thirdPersonAngle", "0", CVAR.CHEAT ),
+			new cvarTable_t( cg_thirdPerson, "cg_thirdPerson", "0", 0 ),
+			new cvarTable_t( cg_teamChatTime, "cg_teamChatTime", "3000", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_teamChatHeight, "cg_teamChatHeight", "0", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_forceModel, "cg_forceModel", "0", CVAR.ARCHIVE  ),
+			new cvarTable_t( cg_predictItems, "cg_predictItems", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_deferPlayers, "cg_deferPlayers", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_drawTeamOverlay, "cg_drawTeamOverlay", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_teamOverlayUserinfo, "teamoverlay", "0", CVAR.ROM | CVAR.USERINFO ),
+			new cvarTable_t( cg_stats, "cg_stats", "0", 0 ),
+			new cvarTable_t( cg_drawFriend, "cg_drawFriend", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_teamChatsOnly, "cg_teamChatsOnly", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_noVoiceChats, "cg_noVoiceChats", "0", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_noVoiceText, "cg_noVoiceText", "0", CVAR.ARCHIVE ),
+			// the following variables are created in other parts of the system,
+			// but we also reference them here
+			new cvarTable_t( cg_buildScript, "com_buildScript", "0", 0 ),	// force loading of all possible data amd error on failures
+			new cvarTable_t( cg_paused, "cl_paused", "0", CVAR.ROM ),
+			new cvarTable_t( cg_blood, "com_blood", "1", CVAR.ARCHIVE ),
+			new cvarTable_t( cg_synchronousClients, "g_synchronousClients", "0", 0 ),	// communicated by systeminfo
+			new cvarTable_t( cg_cameraOrbit, "cg_cameraOrbit", "0", CVAR.CHEAT),
+			new cvarTable_t( cg_cameraOrbitDelay, "cg_cameraOrbitDelay", "50", CVAR.ARCHIVE),
+			new cvarTable_t( cg_timescaleFadeEnd, "cg_timescaleFadeEnd", "1", 0),
+			new cvarTable_t( cg_timescaleFadeSpeed, "cg_timescaleFadeSpeed", "0", 0),
+			new cvarTable_t( cg_timescale, "timescale", "1", 0),
+			new cvarTable_t( cg_scorePlum, "cg_scorePlums", "1", CVAR.USERINFO | CVAR.ARCHIVE),
+			new cvarTable_t( cg_smoothClients, "cg_smoothClients", "0", CVAR.USERINFO | CVAR.ARCHIVE),
+			new cvarTable_t( cg_cameraMode, "com_cameraMode", "0", CVAR.CHEAT),
+
+			new cvarTable_t( pmove_fixed, "pmove_fixed", "0", 0),
+			new cvarTable_t( pmove_msec, "pmove_msec", "8", 0),
+			new cvarTable_t( cg_noTaunt, "cg_noTaunt", "0", CVAR.ARCHIVE),
+			new cvarTable_t( cg_noProjectileTrail, "cg_noProjectileTrail", "0", CVAR.ARCHIVE),
+			new cvarTable_t( cg_smallFont, "ui_smallFont", "0.25", CVAR.ARCHIVE),
+			new cvarTable_t( cg_bigFont, "ui_bigFont", "0.4", CVAR.ARCHIVE),
+			new cvarTable_t( cg_oldRail, "cg_oldRail", "1", CVAR.ARCHIVE),
+			new cvarTable_t( cg_oldRocket, "cg_oldRocket", "1", CVAR.ARCHIVE),
+			new cvarTable_t( cg_oldPlasma, "cg_oldPlasma", "1", CVAR.ARCHIVE),
+			new cvarTable_t( cg_trueLightning, "cg_trueLightning", "0.0", CVAR.ARCHIVE)
+		//	new cvarTable_t( cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR.USERINFO | CVAR.ARCHIVE )
+		};
+
+		static int cvarTableSize = Marshal.SizeOf( typeof( cvarTable_t ) ) * cvarTable.Length;// sizeof( cvarTable ) / sizeof( cvarTable[0] );
 
 		/*
 		=================
 		CG_RegisterCvars
 		=================
 		*/
-		void CG_RegisterCvars( void ) {
+		static void CG_RegisterCvars( ) 
+		{
 			int			i;
 			cvarTable_t	*cv;
 			char		var[MAX_TOKEN_CHARS];
 
 			for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
-				trap_Cvar_Register( cv->vmCvar, cv->cvarName,
+				cg_syscalls.trap_Cvar_Register( cv->vmCvar, cv->cvarName,
 					cv->defaultString, cv->cvarFlags );
 			}
 
 			// see if we are also running the server on this machine
-			trap_Cvar_VariableStringBuffer( "sv_running", var, sizeof( var ) );
+			cg_syscalls.trap_Cvar_VariableStringBuffer( "sv_running", var, sizeof( var ) );
 			cgs.localServer = atoi( var );
 
 			forceModelModificationCount = cg_forceModel.modificationCount;
 
-			trap_Cvar_Register(NULL, "model", DEFAULT_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
-			trap_Cvar_Register(NULL, "headmodel", DEFAULT_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
-			trap_Cvar_Register(NULL, "team_model", DEFAULT_TEAM_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
-			trap_Cvar_Register(NULL, "team_headmodel", DEFAULT_TEAM_HEAD, CVAR_USERINFO | CVAR_ARCHIVE );
+			cg_syscalls.trap_Cvar_Register(NULL, "model", DEFAULT_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
+			cg_syscalls.trap_Cvar_Register(NULL, "headmodel", DEFAULT_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
+			cg_syscalls.trap_Cvar_Register(NULL, "team_model", DEFAULT_TEAM_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
+			cg_syscalls.trap_Cvar_Register(NULL, "team_headmodel", DEFAULT_TEAM_HEAD, CVAR_USERINFO | CVAR_ARCHIVE );
 		}
 
 		/*																																			
@@ -347,12 +357,12 @@ namespace SharpQ3.CGame
 				drawTeamOverlayModificationCount = cg_drawTeamOverlay.modificationCount;
 
 				if ( cg_drawTeamOverlay.integer > 0 ) {
-					trap_Cvar_Set( "teamoverlay", "1" );
+					cg_syscalls.trap_Cvar_Set( "teamoverlay", "1" );
 				} else {
-					trap_Cvar_Set( "teamoverlay", "0" );
+					cg_syscalls.trap_Cvar_Set( "teamoverlay", "0" );
 				}
 				// FIXME E3 HACK
-				trap_Cvar_Set( "teamoverlay", "1" );
+				cg_syscalls.trap_Cvar_Set( "teamoverlay", "1" );
 			}
 
 			// if force model changed
@@ -362,62 +372,44 @@ namespace SharpQ3.CGame
 			}
 		}
 
-		int CG_CrosshairPlayer( void ) {
+		static int CG_CrosshairPlayer( ) {
 			if ( cg.time > ( cg.crosshairClientTime + 1000 ) ) {
 				return -1;
 			}
 			return cg.crosshairClientNum;
 		}
 
-		int CG_LastAttacker( void ) {
+		static int CG_LastAttacker( ) {
 			if ( !cg.attackerTime ) {
 				return -1;
 			}
 			return cg.snap->ps.persistant[PERS_ATTACKER];
 		}
 
-		void QDECL CG_Printf( const char *msg, ... ) {
-			va_list		argptr;
-			char		text[1024];
+		public static void CG_Printf( string msg, params object[] parameters )
+		{
+			var text = SprintfNET.StringFormatter.PrintF( msg, parameters );			
 
-			va_start (argptr, msg);
-			vsprintf (text, msg, argptr);
-			va_end (argptr);
-
-			trap_Print( text );
+			cg_syscalls.trap_Print( text );
 		}
 
-		void QDECL CG_Error( const char *msg, ... ) {
-			va_list		argptr;
-			char		text[1024];
-
-			va_start (argptr, msg);
-			vsprintf (text, msg, argptr);
-			va_end (argptr);
-
-			trap_Error( text );
+		public static void CG_Error( string msg, params object[] parameters ) 
+		{
+			var text = SprintfNET.StringFormatter.PrintF( msg, parameters );
+		
+			cg_syscalls.trap_Error( text );
 		}
 
 		// this is only here so the functions in q_shared.c and bg_*.c can link (FIXME)
 
-		void QDECL Com_Error( int level, const char *error, ... ) {
-			va_list		argptr;
-			char		text[1024];
-
-			va_start (argptr, error);
-			vsprintf (text, error, argptr);
-			va_end (argptr);
-
+		public static void Com_Error( int level, string msg, params object[] parameters )
+		{
 			CG_Error( "%s", text);
 		}
 
-		void QDECL Com_Printf( const char *msg, ... ) {
-			va_list		argptr;
-			char		text[1024];
-
-			va_start (argptr, msg);
-			vsprintf (text, msg, argptr);
-			va_end (argptr);
+		public static void Com_Printf( string msg, params object[] parameters )
+		{ 
+			var text = SprintfNET.StringFormatter.PrintF( msg, parameters );
 
 			CG_Printf ("%s", text);
 		}
@@ -950,7 +942,7 @@ namespace SharpQ3.CGame
 		Will perform callbacks to make the loading info screen update.
 		=================
 		*/
-		void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
+		static void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
 			const char	*s;
 
 			// clear everything
@@ -1048,7 +1040,8 @@ namespace SharpQ3.CGame
 		Called before every level change or subsystem restart
 		=================
 		*/
-		void CG_Shutdown( void ) {
+		static void CG_Shutdown( ) 
+		{
 			// some mods may need to do cleanup work here,
 			// like closing files or archiving session data
 		}
@@ -1063,7 +1056,8 @@ namespace SharpQ3.CGame
 		      2 - hud editor
 
 		*/
-		void CG_EventHandling(int type) {
+		static void CG_EventHandling(int type) 
+		{
 		}
 
 
@@ -1071,7 +1065,8 @@ namespace SharpQ3.CGame
 		void CG_KeyEvent(int key, bool down) {
 		}
 
-		void CG_MouseEvent(int x, int y) {
+		static void CG_MouseEvent(int x, int y)
+		{
 		}
 	}
 }

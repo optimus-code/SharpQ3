@@ -27,6 +27,17 @@ using System.Runtime.InteropServices;
 
 namespace SharpQ3.Engine
 {
+	// the modules that run in the virtual machine can't access the cvar_t directly,
+	// so they must ask for structured updates
+	public class vmCvar_t
+	{
+		public int handle;
+		public int modificationCount;
+		public float value;
+		public int integer;
+		public string @string;
+	}
+
 	// q_shared.h -- included first by ALL program modules.
 	public static class q_shared
 	{
@@ -264,7 +275,7 @@ namespace SharpQ3.Engine
 		public const char COLOR_CYAN = '5';
 		public const char COLOR_MAGENTA = '6';
 		public const char COLOR_WHITE = '7';
-		#define ColorIndex(c)	( ( (c) - '0' ) & 7 )
+		//#define ColorIndex(c)	( ( (c) - '0' ) & 7 )
 
 		public const string S_COLOR_BLACK = "^0";
 		public const string S_COLOR_RED = "^1";
@@ -277,8 +288,8 @@ namespace SharpQ3.Engine
 
 		public static vec4_t[] g_color_table = new vec4_t[8];
 
-		#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
-		#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
+		//#define MAKERGB( v, r, g, b ) v[0]=r;v[1]=g;v[2]=b
+		//#define MAKERGBA( v, r, g, b, a ) v[0]=r;v[1]=g;v[2]=b;v[3]=a
 
 		public static float DEG2RAD( float a ) 
 		{
@@ -457,16 +468,6 @@ namespace SharpQ3.Engine
 
 		//typedef int cvarHandle_t;
 
-		// the modules that run in the virtual machine can't access the cvar_t directly,
-		// so they must ask for structured updates
-		public class vmCvar_t
-		{
-			public int handle;
-			public int modificationCount;
-			public float value;
-			public int integer;
-			public string @string;
-		}
 
 		/*
 		==============================================================
@@ -2083,7 +2084,7 @@ namespace SharpQ3.Engine
 
 			if (key.IndexOf( ';' ) != -1 || value.IndexOf( ';' ) != -1 )
 			{
-				Com_Printf ("Can't use keys or values with a semicolon\n");
+				common.Com_Printf ("Can't use keys or values with a semicolon\n");
 				return;
 			}
 

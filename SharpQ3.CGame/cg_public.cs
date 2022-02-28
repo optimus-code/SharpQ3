@@ -71,9 +71,10 @@ namespace SharpQ3.CGame
 		==================================================================
 		*/
 
-		#define	CGAME_IMPORT_API_VERSION	4
+		public const int CGAME_IMPORT_API_VERSION = 4;
 
-		typedef enum {
+		public enum cgameImport_t
+		{
 			CG_PRINT,
 			CG_ERROR,
 			CG_MILLISECONDS,
@@ -185,7 +186,7 @@ namespace SharpQ3.CGame
 			CG_TESTPRINTINT,
 			CG_TESTPRINTFLOAT,
 			CG_ACOS
-		} cgameImport_t;
+		};
 
 
 		/*
@@ -196,7 +197,8 @@ namespace SharpQ3.CGame
 		==================================================================
 		*/
 
-		typedef enum {
+		public enum cgameExport_t
+		{
 			CG_INIT,
 		//	void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum )
 			// called when the level loads or when the renderer is restarted
@@ -235,7 +237,7 @@ namespace SharpQ3.CGame
 		//	void	(*CG_MouseEvent)( int dx, int dy );
 			CG_EVENT_HANDLING
 		//	void (*CG_EventHandling)(int type);
-		} cgameExport_t;
+		};
 
 		//----------------------------------------------
 	}

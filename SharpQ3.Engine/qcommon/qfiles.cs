@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using System.Runtime.InteropServices;
+
 namespace SharpQ3.Engine.qcommon
 {
 	// qfiles.h: quake file formats
@@ -27,8 +29,7 @@ namespace SharpQ3.Engine.qcommon
 	{
 		// surface geometry should not exceed these limits
 		const int SHADER_MAX_VERTEXES = 1000;
-		const int SHADER_MAX_INDEXES = 6*qfiles.SHADER_MAX_VERTEXES;
-
+		const int SHADER_MAX_INDEXES = 6 * SHADER_MAX_VERTEXES;
 
 		// the maximum size of game relative pathnames
 		const int MAX_QPATH = 64;
@@ -43,7 +44,8 @@ namespace SharpQ3.Engine.qcommon
 
 		const int VM_MAGIC = 0x12721444;
 
-		private struct vmHeader_t {
+		private struct vmHeader_t 
+		{
 			int		vmMagic;
 
 			int		instructionCount;
@@ -66,20 +68,27 @@ namespace SharpQ3.Engine.qcommon
 		========================================================================
 		*/
 
-		private struct pcx_t {
+		private struct pcx_t 
+		{
 		    char	manufacturer;
 		    char	version;
 		    char	encoding;
 		    char	bits_per_pixel;
-		    unsigned short	xmin,ymin,xmax,ymax;
-		    unsigned short	hres,vres;
-		    unsigned char	palette[48];
+		    ushort	xmin,ymin,xmax,ymax;
+		    ushort	hres,vres;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 48 )]
+			byte[]	palette;
+
 		    char	reserved;
 		    char	color_planes;
-		    unsigned short	bytes_per_line;
-		    unsigned short	palette_type;
-		    char	filler[58];
-		    unsigned char	data;			// unbounded
+		    ushort	bytes_per_line;
+		    ushort	palette_type;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 58 )]
+			char[]	filler;
+
+		    byte	data;			// unbounded
 		}
 
 
@@ -92,11 +101,11 @@ namespace SharpQ3.Engine.qcommon
 		*/
 
 		private struct TargaHeader {
-			unsigned char 	id_length, colormap_type, image_type;
-			unsigned short	colormap_index, colormap_length;
-			unsigned char	colormap_size;
-			unsigned short	x_origin, y_origin, width, height;
-			unsigned char	pixel_size, attributes;
+			byte 	id_length, colormap_type, image_type;
+			ushort	colormap_index, colormap_length;
+			byte	colormap_size;
+			ushort	x_origin, y_origin, width, height;
+			byte	pixel_size, attributes;
 		}
 
 
@@ -109,32 +118,38 @@ namespace SharpQ3.Engine.qcommon
 		========================================================================
 		*/
 
-		#define MD3_IDENT			(('3'<<24)+('P'<<16)+('D'<<8)+'I')
-		#define MD3_VERSION			15
+		public const string MD3_IDENT = "IDP3";// (('3'<<24)+('P'<<16)+('D'<<8)+'I')
+		public const int MD3_VERSION = 15;
 
 		// limits
-		#define MD3_MAX_LODS		3
-		#define	MD3_MAX_TRIANGLES	8192	// per surface
-		#define MD3_MAX_VERTS		4096	// per surface
-		#define MD3_MAX_SHADERS		256		// per surface
-		#define MD3_MAX_FRAMES		1024	// per model
-		#define	MD3_MAX_SURFACES	32		// per model
-		#define MD3_MAX_TAGS		16		// per frame
+		public const int MD3_MAX_LODS = 3;
+		public const int MD3_MAX_TRIANGLES = 8192;	// per surface
+		public const int MD3_MAX_VERTS = 4096;		// per surface
+		public const int MD3_MAX_SHADERS = 256;		// per surface
+		public const int MD3_MAX_FRAMES = 1024;		// per model
+		public const int MD3_MAX_SURFACES = 32;		// per model
+		public const int MD3_MAX_TAGS = 6;			// per frame
 
 		// vertex scales
-		#define	MD3_XYZ_SCALE		(1.0/64)
+		public const float MD3_XYZ_SCALE = (1.0f/64);
 
-		private struct md3Frame_t {
-			vec3_t		bounds[2];
+		private struct md3Frame_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			vec3_t[]	bounds;
 			vec3_t		localOrigin;
 			float		radius;
-			char		name[16];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 16 )]
+			char[]		name;
 		}
 
-		private struct md3Tag_t {
-			char		name[MAX_QPATH];	// tag name
+		private struct md3Tag_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		name;	// tag name
 			vec3_t		origin;
-			vec3_t		axis[3];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			vec3_t[]	axis;
 		}
 
 		/*
@@ -147,10 +162,12 @@ namespace SharpQ3.Engine.qcommon
 		** st				sizeof( md3St_t ) * numVerts
 		** XyzNormals		sizeof( md3XyzNormal_t ) * numVerts * numFrames
 		*/
-		private struct md3Surface_t {
-			int		ident;				// 
+		private struct md3Surface_t
+		{
+			int		ident;              // 
 
-			char	name[MAX_QPATH];	// polyset name
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]	name;	// polyset name
 
 			int		flags;
 			int		numFrames;			// all surfaces in a model should have the same
@@ -168,21 +185,29 @@ namespace SharpQ3.Engine.qcommon
 			int		ofsEnd;				// next surface follows
 		}
 
-		private struct md3Shader_t {
-			char			name[MAX_QPATH];
+		private struct md3Shader_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]			name;
 			int				shaderIndex;	// for in-game use
 		}
 
-		private struct md3Triangle_t {
-			int			indexes[3];
+		private struct md3Triangle_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[]			indexes;
 		}
 
-		private struct md3St_t {
-			float		st[2];
+		private struct md3St_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			float[]		st;
 		}
 
-		private struct md3XyzNormal_t {
-			short		xyz[3];
+		private struct md3XyzNormal_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			short[]		xyz;
 			short		normal;
 		}
 
@@ -190,7 +215,8 @@ namespace SharpQ3.Engine.qcommon
 			int			ident;
 			int			version;
 
-			char		name[MAX_QPATH];	// model name
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		name;	// model name
 
 			int			flags;
 
@@ -215,32 +241,42 @@ namespace SharpQ3.Engine.qcommon
 		==============================================================================
 		*/
 
-		#define MD4_IDENT			(('4'<<24)+('P'<<16)+('D'<<8)+'I')
-		#define MD4_VERSION			1
-		#define	MD4_MAX_BONES		128
+		public const string MD4_IDENT = "IDP4";// (('4'<<24)+('P'<<16)+('D'<<8)+'I')
+		public const int MD4_VERSION = 1;
+		public const int MD4_MAX_BONES = 128;
 
-		private struct md4Weight_t {
+		private struct md4Weight_t 
+		{
 			int			boneIndex;		// these are indexes into the boneReferences,
 			float		   boneWeight;		// not the global per-frame bone list
 			vec3_t		offset;
 		}
 
-		private struct md4Vertex_t {
+		private struct md4Vertex_t 
+		{
 			vec3_t		normal;
 			vec2_t		texCoords;
 			int			numWeights;
-			md4Weight_t	weights[1];		// variable sized
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 1 )]
+			md4Weight_t[]	weights;		// variable sized
 		}
 
-		private struct md4Triangle_t {
-			int			indexes[3];
+		private struct md4Triangle_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int			indexes;
 		}
 
-		private struct md4Surface_t {
+		private struct md4Surface_t 
+		{
 			int			ident;
 
-			char		name[MAX_QPATH];	// polyset name
-			char		shader[MAX_QPATH];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		name;   // polyset name
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		shader;
+
 			int			shaderIndex;		// for in-game use
 
 			int			ofsHeader;			// this will be a negative number
@@ -262,28 +298,36 @@ namespace SharpQ3.Engine.qcommon
 			int			ofsEnd;				// next surface follows
 		}
 
-		private struct md4Bone_t {
+		private struct md4Bone_t
+		{
 			float		matrix[3][4];
 		}
 
-		private struct md4Frame_t {
-			vec3_t		bounds[2];			// bounds of all surfaces of all LOD's for this frame
+		private struct md4Frame_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			vec3_t[]	bounds;			// bounds of all surfaces of all LOD's for this frame
 			vec3_t		localOrigin;		// midpoint of bounds, used for sphere cull
-			float		radius;				// dist from localOrigin to corner
-			md4Bone_t	bones[1];			// [numBones]
+			float		radius;             // dist from localOrigin to corner
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 1 )]
+			md4Bone_t[]	bones;			// [numBones]
 		}
 
-		private struct md4LOD_t {
+		private struct md4LOD_t 
+		{
 			int			numSurfaces;
 			int			ofsSurfaces;		// first surface, others follow
 			int			ofsEnd;				// next lod follows
 		}
 
-		private struct md4Header_t {
+		private struct md4Header_t 
+		{
 			int			ident;
 			int			version;
 
-			char		name[MAX_QPATH];	// model name
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		name;	// model name
 
 			// frames and bones are shared by all levels of detail
 			int			numFrames;
@@ -308,11 +352,10 @@ namespace SharpQ3.Engine.qcommon
 		*/
 
 
-		#define BSP_IDENT	(('P'<<24)+('S'<<16)+('B'<<8)+'I')
-				// little-endian "IBSP"
+		public const string BSP_IDENT = "IBSP";	// (('P'<<24)+('S'<<16)+('B'<<8)+'I')
+												// little-endian "IBSP"
 
-		#define BSP_VERSION			46
-
+		public const int BSP_VERSION = 46;
 
 		// there shouldn't be any problem with increasing these values at the
 		// expense of more memory allocation in the utilities
@@ -358,7 +401,8 @@ namespace SharpQ3.Engine.qcommon
 		//=============================================================================
 
 
-		private struct lump_t {
+		private struct lump_t 
+		{
 			int		fileofs, filelen;
 		}
 
@@ -381,45 +425,65 @@ namespace SharpQ3.Engine.qcommon
 		const int LUMP_VISIBILITY = 16;
 		const int HEADER_LUMPS = 17;
 
-		private struct dheader_t {
+		private struct dheader_t 
+		{
 			int			ident;
 			int			version;
 
-			lump_t		lumps[HEADER_LUMPS];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = HEADER_LUMPS )]
+			lump_t[]	lumps;
 		}
 
-		private struct dmodel_t {
-			float		mins[3], maxs[3];
+		private struct dmodel_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			float[]		mins;
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			float[]		maxs;
 			int			firstSurface, numSurfaces;
 			int			firstBrush, numBrushes;
 		}
 
-		private struct dshader_t {
-			char		shader[MAX_QPATH];
+		private struct dshader_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		shader;
 			int			surfaceFlags;
 			int			contentFlags;
 		}
 
 		// planes x^1 is allways the opposite of plane x
 
-		private struct dplane_t {
-			float		normal[3];
+		private struct dplane_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			float[]		normal;
 			float		dist;
 		}
 
-		private struct dnode_t {
+		private struct dnode_t 
+		{
 			int			planeNum;
-			int			children[2];	// negative numbers are -(leafs+1), not nodes
-			int			mins[3];		// for frustom culling
-			int			maxs[3];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			int[]		children;   // negative numbers are -(leafs+1), not nodes
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[]		mins;       // for frustom culling
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[]		maxs;
 		}
 
-		private struct dleaf_t {
+		private struct dleaf_t 
+		{
 			int			cluster;			// -1 = opaque cluster (do I still store these?)
 			int			area;
 
-			int			mins[3];			// for frustum culling
-			int			maxs[3];
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[]		mins;            // for frustum culling
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			int[]		maxs;
 
 			int			firstLeafSurface;
 			int			numLeafSurfaces;
@@ -428,32 +492,45 @@ namespace SharpQ3.Engine.qcommon
 			int			numLeafBrushes;
 		}
 
-		private struct dbrushside_t {
+		private struct dbrushside_t 
+		{
 			int			planeNum;			// positive plane side faces out of the leaf
 			int			shaderNum;
 		}
 
-		private struct dbrush_t {
+		private struct dbrush_t 
+		{
 			int			firstSide;
 			int			numSides;
 			int			shaderNum;		// the shader that determines the contents flags
 		}
 
-		private struct dfog_t {
-			char		shader[MAX_QPATH];
+		private struct dfog_t
+		{
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
+			char[]		shader;
 			int			brushNum;
 			int			visibleSide;	// the brush side that ray tests need to clip against (-1 == none)
 		}
 
-		private struct drawVert_t {
+		private struct drawVert_t 
+		{
 			vec3_t		xyz;
-			float		st[2];
-			float		lightmap[2];
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			float[]		st;
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+			float[]		lightmap;
+
 			vec3_t		normal;
-			byte		color[4];
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 4 )]
+			byte[]		color;
 		}
 
-		private enum mapSurfaceType_t {
+		private enum mapSurfaceType_t 
+		{
 			MST_BAD,
 			MST_PLANAR,
 			MST_PATCH,
@@ -461,7 +538,8 @@ namespace SharpQ3.Engine.qcommon
 			MST_FLARE
 		}
 
-		private struct dsurface_t {
+		private struct dsurface_t 
+		{
 			int			shaderNum;
 			int			fogNum;
 			int			surfaceType;
@@ -477,7 +555,9 @@ namespace SharpQ3.Engine.qcommon
 			int			lightmapWidth, lightmapHeight;
 
 			vec3_t		lightmapOrigin;
-			vec3_t		lightmapVecs[3];	// for patches, [0] and [1] are lodbounds
+
+			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+			vec3_t[]		lightmapVecs;	// for patches, [0] and [1] are lodbounds
 
 			int			patchWidth;
 			int			patchHeight;
