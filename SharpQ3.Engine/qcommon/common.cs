@@ -25,6 +25,7 @@ using System;
 using System.IO;
 using System.Text;
 using SharpQ3.Engine.client;
+using static SharpQ3.Engine.q_shared;
 
 namespace SharpQ3.Engine.qcommon
 {
@@ -213,7 +214,7 @@ namespace SharpQ3.Engine.qcommon
 	do the apropriate things.
 	=============
 	*/
-	private static void Com_Error( int code, string fmt, params object[] args )
+	public static void Com_Error( errorParm_t code, string fmt, params object[] args )
 	{
 		int			currentTime;
 
@@ -221,7 +222,7 @@ namespace SharpQ3.Engine.qcommon
 		// know if anything failed
 		if ( com_buildScript != null && com_buildScript.integer ) 
 		{
-			code = ERR_FATAL;
+			code = errorParm_t.ERR_FATAL;
 		}
 
 		// make sure we can get at our local stuff
@@ -231,7 +232,7 @@ namespace SharpQ3.Engine.qcommon
 		currentTime = Sys_Milliseconds();
 		if ( currentTime - lastErrorTime < 100 ) {
 			if ( ++errorCount > 3 ) {
-				code = ERR_FATAL;
+				code = errorParm_t.ERR_FATAL;
 			}
 		} else {
 			errorCount = 0;
@@ -245,16 +246,16 @@ namespace SharpQ3.Engine.qcommon
 
 		com_errorMessage = StringFormatter.PrintF( fmt, args );
 
-		if ( code != ERR_DISCONNECT ) {
+		if ( code != errorParm_t.ERR_DISCONNECT ) {
 			Cvar.Cvar_Set("com_errorMessage", com_errorMessage);
 		}
 
-		if ( code == ERR_SERVERDISCONNECT ) {
+		if ( code == errorParm_t.ERR_SERVERDISCONNECT ) {
 			CL_Disconnect( true );
 			CL_FlushMemory( );
 			com_errorEntered = false;
 			longjmp (abortframe, -1);
-		} else if ( code == ERR_DROP || code == ERR_DISCONNECT ) {
+		} else if ( code == errorParm_t.ERR_DROP || code == errorParm_t.ERR_DISCONNECT ) {
 			Com_Printf ("********************\nERROR: %s\n********************\n", com_errorMessage);
 			SV_Shutdown (va("Server crashed: %s\n",  com_errorMessage));
 			CL_Disconnect( true );
@@ -1477,7 +1478,7 @@ namespace SharpQ3.Engine.qcommon
 	private static void Hunk_Clear( ) 
 	{
 
-	#ifdef DEDICATED
+	#if DEDICATED
 		SV_ShutdownGameProgs();
 	#else
 		CL_ShutdownCGame();
@@ -1528,7 +1529,8 @@ namespace SharpQ3.Engine.qcommon
 	Allocate permanent (until the hunk is cleared) memory
 	=================
 	*/
-	private static void *Hunk_Alloc( int size, ha_pref preference ) {
+	private static void *Hunk_Alloc( int size, ha_pref preference ) 
+	{
 		void	*buf;
 
 		if ( s_hunkData == NULL)
@@ -1578,7 +1580,8 @@ namespace SharpQ3.Engine.qcommon
 	When the files-in-use count reaches zero, all temp memory will be deleted
 	=================
 	*/
-	private static void *Hunk_AllocateTempMemory( int size ) {
+	private static void *Hunk_AllocateTempMemory( int size )
+	{
 		void		*buf;
 		hunkHeader_t	*hdr;
 
@@ -1627,7 +1630,8 @@ namespace SharpQ3.Engine.qcommon
 	Hunk_FreeTempMemory
 	==================
 	*/
-	private static void Hunk_FreeTempMemory( void *buf ) {
+	private static void Hunk_FreeTempMemory( void *buf )
+	{
 		hunkHeader_t	*hdr;
 
 		  // free with Z_Free if the hunk has not been initialized
@@ -1675,8 +1679,10 @@ namespace SharpQ3.Engine.qcommon
 	permanent allocs use this side.
 	=================
 	*/
-	private static void Hunk_ClearTempMemory( void ) {
-		if ( s_hunkData != NULL ) {
+	private static void Hunk_ClearTempMemory( ) 
+	{
+		if ( s_hunkData != null ) 
+		{
 			hunk_temp->temp = hunk_temp->permanent;
 		}
 	}
@@ -1686,7 +1692,8 @@ namespace SharpQ3.Engine.qcommon
 	Hunk_Trash
 	=================
 	*/
-	private static void Hunk_Trash( void ) {
+	private static void Hunk_Trash( ) 
+	{
 		int length, i, rnd;
 		char *buf, value;
 
@@ -1729,7 +1736,7 @@ namespace SharpQ3.Engine.qcommon
 	// bk001129 - here we go again: upped from 64
 	// FIXME TTimo blunt upping from 256 to 1024
 	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=5
-	#define	MAX_PUSHED_EVENTS	            1024
+	static ContextStaticAttribute int MAX_PUSHED_EVENTS = 1024;
 	// bk001129 - init, also static
 	static int com_pushedEventsHead = 0;
 	static int com_pushedEventsTail = 0;
@@ -1741,7 +1748,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_InitJournaling
 	=================
 	*/
-	private static void Com_InitJournaling( void ) {
+	private static void Com_InitJournaling( ) 
+	{
 		Com_StartupVariable( "journal" );
 		com_journal = Cvar_Get ("journal", "0", CVAR_INIT);
 		if ( !com_journal->integer ) {
@@ -1771,7 +1779,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_GetRealEvent
 	=================
 	*/
-	private static sysEvent_t Com_GetRealEvent( void ) {
+	private static sysEvent_t Com_GetRealEvent( ) 
+	{
 		int			r;
 		sysEvent_t	ev;
 
@@ -1816,7 +1825,8 @@ namespace SharpQ3.Engine.qcommon
 	=================
 	*/
 	// bk001129 - added
-	private static void Com_InitPushEvent( void ) {
+	private static void Com_InitPushEvent( ) 
+	{
 	  // clear the static buffer array
 	  // this requires SE_NONE to be accepted as a valid but NOP event
 	  memset( com_pushedEvents, 0, sizeof(com_pushedEvents) );
@@ -2028,12 +2038,12 @@ namespace SharpQ3.Engine.qcommon
 	test error shutdown procedures
 	=============
 	*/
-	private static void Com_Error_f () {
-		if ( cmd.Cmd_Argc() > 1 ) {
-			Com_Error( ERR_DROP, "Testing drop error" );
-		} else {
-			Com_Error( ERR_FATAL, "Testing fatal error" );
-		}
+	public static void Com_Error_f () 
+	{
+		if ( cmd.Cmd_Argc() > 1 ) 
+			Com_Error( errorParm_t.ERR_DROP, "Testing drop error" );
+		else 
+			Com_Error( errorParm_t.ERR_FATAL, "Testing fatal error" );
 	}
 
 
@@ -2083,8 +2093,9 @@ namespace SharpQ3.Engine.qcommon
 	Com_Init
 	=================
 	*/
-	private static void Com_Init( string commandLine ) {
-		char	*s;
+	public static void Com_Init( string commandLine ) 
+	{
+		string s;
 
 		Com_Printf( "%s %s %s\n", q_shared.Q3_VERSION, q_shared.CPUSTRING, DateTime.Now );
 
@@ -2092,8 +2103,8 @@ namespace SharpQ3.Engine.qcommon
 			Sys_Error ("Error during initialization");
 		}
 
-	  // bk001129 - do this before anything else decides to push events
-	  Com_InitPushEvent();
+		// bk001129 - do this before anything else decides to push events
+		Com_InitPushEvent();
 
 		Com_InitSmallZoneMemory();
 		Cvar_Init ();
@@ -2234,7 +2245,8 @@ namespace SharpQ3.Engine.qcommon
 
 	//==================================================================
 
-	private static void Com_WriteConfigToFile( const char *filename ) {
+	private static void Com_WriteConfigToFile( string filename )
+	{
 		fileHandle_t	f;
 
 		f = FS_FOpenFileWrite( filename );
@@ -2257,7 +2269,8 @@ namespace SharpQ3.Engine.qcommon
 	Writes key bindings and archived cvars to config file if modified
 	===============
 	*/
-	private static void Com_WriteConfiguration( void ) {
+	private static void Com_WriteConfiguration( ) 
+	{
 		// if we are quiting without fully initializing, make sure
 		// we don't write out anything
 		if ( !com_fullyInitialized ) {
@@ -2280,7 +2293,8 @@ namespace SharpQ3.Engine.qcommon
 	Write the config file to a specific name
 	===============
 	*/
-	private static void Com_WriteConfig_f( void ) {
+	private static void Com_WriteConfig_f( ) 
+	{
 		char	filename[MAX_QPATH];
 
 		if ( cmd.Cmd_Argc() != 2 ) {
@@ -2299,7 +2313,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_ModifyMsec
 	================
 	*/
-	private static int Com_ModifyMsec( int msec ) {
+	private static int Com_ModifyMsec( int msec ) 
+	{
 		int		clampTime;
 
 		//
@@ -2350,7 +2365,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_Frame
 	=================
 	*/
-	private static void Com_Frame( void ) {
+	public static void Com_Frame( ) 
+	{
 
 		int		msec, minMsec;
 		static int	lastTime;
@@ -2520,7 +2536,8 @@ namespace SharpQ3.Engine.qcommon
 	Com_Shutdown
 	=================
 	*/
-	private static void Com_Shutdown (void) {
+	public static void Com_Shutdown () 
+	{
 		if (logfile) {
 			FS_FCloseFile (logfile);
 			logfile = 0;
@@ -2533,14 +2550,16 @@ namespace SharpQ3.Engine.qcommon
 
 	}
 
-	private static void Com_Memcpy (void* dest, const void* src, const size_t count)
+	public static void Com_Memcpy (Array dest, Array src, int count)
 	{
-		memcpy(dest, src, count);
+		Buffer.BlockCopy( src, 0, dest, 0, count );
 	}
 
-	private static void Com_Memset (void* dest, const int val, const size_t count)
+	public static void Com_Memset (Array dest, int val, int count)
 	{
-		memset(dest, val, count);
+		var values = new int[count];
+		Array.Fill( values, val );
+		dest = values;
 	}
 
 	//------------------------------------------------------------------------

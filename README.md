@@ -96,15 +96,15 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 		- [ ] cm_polylib.cs - 1%
 		- [ ] cm_test.cs - 1%
 		- [ ] cm_trace.cs - 1%
-		- [ ] cmd.cs - 1%
-		- [ ] common.cs - 5%
+		- [ ] cmd.cs - 53%
+		- [ ] common.cs - 6%
 		- [ ] cvar.cs - 5%
-		- [ ] files.cs - 1%
+		- [ ] files.cs - 5%
 		- [ ] huffman.cs - 1%
 		- [ ] md4.cs - 1%
 		- [ ] msg.cs - 1%
 		- [ ] net_chan.cs - 1%
-		- [ ] q_shared.cs - 40%
+		- [ ] q_shared.cs - 46%
 		- [ ] qcommon.cs - 95%
 		- [ ] qfiles.cs - 95%
 		- [ ] vm.cs - 1%

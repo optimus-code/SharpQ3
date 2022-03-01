@@ -131,7 +131,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// copy the new text in
-			Com_Memcpy( cmd_text.data, text, len - 1 );
+			cmd_text.data = Encoding.ASCII.GetBytes( text );
 
 			// add a \n
 			cmd_text.data[ len - 1 ] = (byte)'\n';
@@ -163,7 +163,7 @@ namespace SharpQ3.Engine.qcommon
 				Cbuf_AddText (text);
 				break;
 			default:
-				Com_Error (ERR_FATAL, "Cbuf_ExecuteText: bad exec_when");
+				common.Com_Error ( errorParm_t.ERR_FATAL, "Cbuf_ExecuteText: bad exec_when");
 				break;
 			}
 		}
@@ -207,7 +207,7 @@ namespace SharpQ3.Engine.qcommon
 					i = MAX_CMD_LINE - 1;
 				}
 						
-				Com_Memcpy (line, text, i);
+				common.Com_Memcpy (line, text, i);
 				line[i] = (char)0;
 				
 		// delete the text from the command buffer and move remaining commands down

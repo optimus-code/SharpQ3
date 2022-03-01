@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
 using SprintfNET;
 using System;
 using System.IO;
@@ -36,6 +37,34 @@ namespace SharpQ3.Engine
 		public float value;
 		public int integer;
 		public string @string;
+	}
+
+	// paramters for command buffer stuffing
+	public enum cbufExec_t
+	{
+		EXEC_NOW,           // don't return until completed, a VM should NEVER use this,
+							// because some commands might cause the VM to be unloaded...
+		EXEC_INSERT,        // insert at current position, but don't run yet
+		EXEC_APPEND         // add to end of the command buffer (normal case)
+	}
+
+	// print levels from renderer (FIXME: set up for game / cgame?)
+	public enum printParm_t
+	{
+		PRINT_ALL,
+		PRINT_DEVELOPER,        // only print when "developer 1"
+		PRINT_WARNING,
+		PRINT_ERROR
+	}
+
+	// parameters to the main Error routine
+	public enum errorParm_t
+	{
+		ERR_FATAL,                  // exit the entire game with a popup window
+		ERR_DROP,                   // print to console and disconnect from game
+		ERR_SERVERDISCONNECT,       // don't kill server
+		ERR_DISCONNECT,             // client disconnected from the server
+		ERR_NEED_CD                 // pop up the need-cd dialog
 	}
 
 	// q_shared.h -- included first by ALL program modules.
@@ -121,38 +150,11 @@ namespace SharpQ3.Engine
 
 		public const int MAX_SAY_TEXT = 150;
 
-		// paramters for command buffer stuffing
-		public enum cbufExec_t
-		{
-			EXEC_NOW,           // don't return until completed, a VM should NEVER use this,
-								// because some commands might cause the VM to be unloaded...
-			EXEC_INSERT,        // insert at current position, but don't run yet
-			EXEC_APPEND         // add to end of the command buffer (normal case)
-		}
 
 		//
 		// these aren't needed by any of the VMs.  put in another header?
 		//
 		public const int MAX_MAP_AREA_BYTES = 32;	// bit vector of area visibility
-
-		// print levels from renderer (FIXME: set up for game / cgame?)
-		public enum printParm_t 
-		{
-			PRINT_ALL,
-			PRINT_DEVELOPER,        // only print when "developer 1"
-			PRINT_WARNING,
-			PRINT_ERROR
-		}
-
-		// parameters to the main Error routine
-		public enum errorParm_t
-		{
-			ERR_FATAL,                  // exit the entire game with a popup window
-			ERR_DROP,                   // print to console and disconnect from game
-			ERR_SERVERDISCONNECT,       // don't kill server
-			ERR_DISCONNECT,             // client disconnected from the server
-			ERR_NEED_CD                 // pop up the need-cd dialog
-		}
 
 
 		// font rendering values used by ui and cgame
@@ -1754,7 +1756,7 @@ namespace SharpQ3.Engine
 
 			if ( output.Length >= size ) 
 			{
-				Com_Printf( "Com_sprintf: overflow of %i in %i\n", len, size);
+				common.Com_Printf( "Com_sprintf: overflow of %i in %i\n", len, size);
 			}
 			Q_strncpyz( out dest, output, size );
 		}
