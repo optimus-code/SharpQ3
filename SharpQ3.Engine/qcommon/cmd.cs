@@ -276,16 +276,16 @@ namespace SharpQ3.Engine.qcommon
 		Inserts the current value of a variable as command text
 		===============
 		*/
-		private static void Cmd_Vstr_f( ) {
-			char	*v;
-
-			if (Cmd_Argc () != 2) {
+		private static void Cmd_Vstr_f( )
+		{
+			if (Cmd_Argc () != 2) 
+			{
 				common.Com_Printf ("vstr <variablename> : execute a variable command\n");
 				return;
 			}
 
-			v = Cvar.Cvar_VariableString( Cmd_Argv( 1 ) );
-			Cbuf_InsertText( va("%s\n", v ) );
+			var v = Cvar.Cvar_VariableString( Cmd_Argv( 1 ) );
+			Cbuf_InsertText( $"{v}\n" );
 		}
 
 
@@ -297,10 +297,8 @@ namespace SharpQ3.Engine.qcommon
 		===============
 		*/
 		private static void Cmd_Echo_f ()
-		{
-			int		i;
-			
-			for (i=1 ; i<Cmd_Argc() ; i++)
+		{			
+			for (var i=1 ; i<Cmd_Argc() ; i++)
 				common.Com_Printf ("%s ",Cmd_Argv(i));
 			common.Com_Printf ("\n");
 		}

@@ -194,7 +194,7 @@ namespace SharpQ3.Engine.qcommon
 	A Com_Printf that only shows up if the "developer" cvar is set
 	================
 	*/
-	private static void Com_DPrintf( string fmt, params object[] args )
+	public static void Com_DPrintf( string fmt, params object[] args )
 	{		
 		if ( com_developer == null || com_developer.integer != 1 ) {
 			return;			// don't confuse non-developers with techie stuff...
@@ -367,7 +367,7 @@ namespace SharpQ3.Engine.qcommon
 	skip loading of q3config.cfg
 	===================
 	*/
-	private static bool Com_SafeMode( ) 
+	public static bool Com_SafeMode( ) 
 	{
 		int		i;
 
@@ -394,7 +394,7 @@ namespace SharpQ3.Engine.qcommon
 	be after execing the config and default.
 	===============
 	*/
-	private static void Com_StartupVariable( string match ) {
+	public static void Com_StartupVariable( string match ) {
 		int		i;
 		string s;
 		cvar_t	cv;
@@ -598,7 +598,7 @@ namespace SharpQ3.Engine.qcommon
 	Com_FilterPath
 	============
 	*/
-	private static bool Com_FilterPath(string filter, string name, int casesensitive)
+	public static bool Com_FilterPath(string filter, string name, bool casesensitive)
 	{
 		int i;
 		StringBuilder new_filter = new StringBuilder( q_shared.MAX_QPATH );

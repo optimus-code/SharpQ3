@@ -22,8 +22,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 using SharpQ3.Engine;
 using SharpQ3.Engine.qcommon;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace SharpQ3.Engine.qcommon
 {
@@ -35,49 +39,53 @@ namespace SharpQ3.Engine.qcommon
 	 * $Archive: /MissionPack/code/qcommon/files.c $
 	 *
 	 *****************************************************************************/
+	public struct fileHandle_t
+    {
+		public int ID;
+    }
 
 	public class fileInPack_t
 	{
-		string name;        // name of the file
-		ulong pos;        // file info position in zip
-		fileInPack_t next;      // next file in the hash
+		public string name;			// name of the file
+		public ulong pos;			// file info position in zip
+		public fileInPack_t next;   // next file in the hash
 	}
 
 	public class pack_t
 	{
 		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_OSPATH )]
-		byte[] pakFilename;    // c:\quake3\baseq3\pak0.pk3
+		public byte[] pakFilename;    // c:\quake3\baseq3\pak0.pk3
 
 		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_OSPATH )]
-		byte[] pakBasename;   // pak0
+		public byte[] pakBasename;   // pak0
 
 		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_OSPATH )]
-		byte[] pakGamename; // baseq3
-		unzFile handle;                     // handle to zip file
-		int checksum;                   // regular checksum
-		int pure_checksum;              // checksum for pure
-		int numfiles;                   // number of files in pk3
-		int referenced;                 // referenced file flags
-		int hashSize;                   // hash table size (power of 2)
-		fileInPack_t[] hashTable;                   // hash table
-		fileInPack_t buildBuffer;               // buffer with the filenames etc.
+		public byte[] pakGamename; // baseq3
+		public unzFile handle;                     // handle to zip file
+		public int checksum;                   // regular checksum
+		public int pure_checksum;              // checksum for pure
+		public int numfiles;                   // number of files in pk3
+		public int referenced;                 // referenced file flags
+		public int hashSize;                   // hash table size (power of 2)
+		public fileInPack_t[] hashTable;                   // hash table
+		public fileInPack_t buildBuffer;               // buffer with the filenames etc.
 	}
 
 	public class directory_t
 	{
 		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_OSPATH )]
-		byte[] path;       // c:\quake3
+		public byte[] path;       // c:\quake3
 
 		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_OSPATH )]
-		byte[] gamedir; // baseq3
+		public byte[] gamedir; // baseq3
 	}
 
 	public class searchpath_t
 	{
-		searchpath_t next;
+		public searchpath_t next;
 
-		pack_t pack;        // only one of pack / dir will be non NULL
-		directory_t dir;
+		public pack_t pack;        // only one of pack / dir will be non NULL
+		public directory_t dir;
 	}
 
 	public static class files
@@ -257,7 +265,7 @@ namespace SharpQ3.Engine.qcommon
 		const int MAX_SEARCH_PATHS = 4096;
 		const int MAX_FILEHASH_SIZE = 1024;
 
-		static	char		fs_gamedir[q_shared.MAX_OSPATH];	// this will be a single file name with no separators
+		static	string		fs_gamedir;//[q_shared.MAX_OSPATH];	// this will be a single file name with no separators
 		static	cvar_t		fs_debug;
 		static	cvar_t		fs_homepath;
 		static	cvar_t		fs_basepath;
@@ -274,28 +282,32 @@ namespace SharpQ3.Engine.qcommon
 		static int fs_fakeChkSum;
 		static int fs_checksumFeed;
 
-		typedef union qfile_gus {
-			FILE*		o;
-			unzFile		z;
-		} qfile_gut;
+		public struct qfile_gut
+		{
+			public FileStream o;
+			public ZipArchive z;
+			public Stream zf;
+		}
 
-		typedef struct qfile_us {
-			qfile_gut	file;
-			bool	unique;
-		} qfile_ut;
+		public struct qfile_ut
+		{
+			public qfile_gut file;
+			public bool unique;
+		}
 
-		typedef struct {
-			qfile_ut	handleFiles;
-			bool	handleSync;
-			int			baseOffset;
-			int			fileSize;
-			int			zipFilePos;
-			bool	zipFile;
-			bool	streamed;
-			char		name[MAX_ZPATH];
-		} fileHandleData_t;
+		struct fileHandleData_t
+		{
+			public qfile_ut handleFiles;
+			public bool handleSync;
+			public int baseOffset;
+			public int fileSize;
+			public int zipFilePos;
+			public bool zipFile;
+			public bool streamed;
+			public string name;//[MAX_ZPATH]; optimus-code TODO
+		} ;
 
-		static fileHandleData_t	fsh[qcommon.MAX_FILE_HANDLES];
+		static fileHandleData_t[] fsh = new fileHandleData_t[qcommon.MAX_FILE_HANDLES];
 
 		// TTimo - https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=540
 		// wether we did a reorder on the current search path when joining the server
@@ -303,18 +315,18 @@ namespace SharpQ3.Engine.qcommon
 
 		// never load anything from pk3 files that are not present at the server when pure
 		static int		fs_numServerPaks;
-		static int		fs_serverPaks[MAX_SEARCH_PATHS];				// checksums
-		static char		*fs_serverPakNames[MAX_SEARCH_PATHS];			// pk3 names
+		static int[]		fs_serverPaks = new int[MAX_SEARCH_PATHS];					// checksums
+		static string[] fs_serverPakNames = new string[MAX_SEARCH_PATHS];				// pk3 names
 
 		// only used for autodownload, to make sure the client has at least
 		// all the pk3 files that are referenced at the server side
 		static int		fs_numServerReferencedPaks;
-		static int		fs_serverReferencedPaks[MAX_SEARCH_PATHS];			// checksums
-		static char		*fs_serverReferencedPakNames[MAX_SEARCH_PATHS];		// pk3 names
+		static int[]	fs_serverReferencedPaks = new int[MAX_SEARCH_PATHS];			// checksums
+		static string[] fs_serverReferencedPakNames = new string[MAX_SEARCH_PATHS];     // pk3 names
 
 		// last valid game folder used
-		char lastValidBase[q_shared.MAX_OSPATH];
-		char lastValidGame[q_shared.MAX_OSPATH];
+		static string lastValidBase;//[q_shared.MAX_OSPATH];
+		static string lastValidGame;//[q_shared.MAX_OSPATH];
 
 		// productId: This file is copyright 1999 Id Software, and may not be duplicated except during a licensed installation of the full commercial version of Quake 3:Arena
 		static byte[] fs_scrambledProductId = new byte[] 
@@ -345,7 +357,7 @@ namespace SharpQ3.Engine.qcommon
 					// FIXME: also use hashed file names
 					// NOTE TTimo: a pk3 with same checksum but different name would be validated too
 					//   I don't see this as allowing for any exploit, it would only happen if the client does manips of it's file names 'not a bug'
-					if ( pack->checksum == fs_serverPaks[i] ) {
+					if ( pack.checksum == fs_serverPaks[i] ) {
 						return true;		// on the aproved list
 					}
 				}
@@ -371,7 +383,8 @@ namespace SharpQ3.Engine.qcommon
 		return a hash value for the filename
 		================
 		*/
-		static long FS_HashFileName( string fname, int hashSize ) {
+		static long FS_HashFileName( string fname, int hashSize ) 
+		{
 			int		i;
 			long	hash;
 			char	letter;
@@ -379,10 +392,10 @@ namespace SharpQ3.Engine.qcommon
 			hash = 0;
 			i = 0;
 			while (fname[i] != '\0') {
-				letter = tolower(fname[i]);
+				letter = Char.ToLower(fname[i]);
 				if (letter =='.') break;				// don't include extension
 				if (letter =='\\') letter = '/';		// damn path names
-				if (letter == PATH_SEP) letter = '/';		// damn path names
+				if (letter == q_shared.PATH_SEP) letter = '/';		// damn path names
 				hash+=(long)(letter)*(i+119);
 				i++;
 			}
@@ -395,34 +408,39 @@ namespace SharpQ3.Engine.qcommon
 		{
 			int		i;
 
-			for ( i = 1 ; i < qcommon.MAX_FILE_HANDLES ; i++ ) {
-				if ( fsh[i].handleFiles.file.o == null ) {
-					return i;
+			for ( i = 1 ; i < qcommon.MAX_FILE_HANDLES ; i++ ) 
+			{
+				if ( fsh[i].handleFiles.file.o == null ) 
+				{
+					return new fileHandle_t { ID = i };
 				}
 			}
 			common.Com_Error( errorParm_t.ERR_DROP, "FS_HandleForFile: none free" );
-			return 0;
+			return new fileHandle_t { ID = 0 };
 		}
 
-		static FILE	*FS_FileForHandle( fileHandle_t f ) {
-			if ( f < 0 || f > qcommon.MAX_FILE_HANDLES ) {
+		static FileStream FS_FileForHandle( fileHandle_t f ) 
+		{
+			if ( f.ID < 0 || f.ID > qcommon.MAX_FILE_HANDLES ) 
+			{
 				common.Com_Error( errorParm_t.ERR_DROP, "FS_FileForHandle: out of reange" );
 			}
-			if (fsh[f].zipFile == true) {
+			if (fsh[f.ID].zipFile == true) 
+			{
 				common.Com_Error( errorParm_t.ERR_DROP, "FS_FileForHandle: can't get FILE on zip file" );
 			}
-			if ( ! fsh[f].handleFiles.file.o ) {
+			if (fsh[f.ID].handleFiles.file.o == null) 
+			{
 				common.Com_Error( errorParm_t.ERR_DROP, "FS_FileForHandle: NULL" );
 			}
 			
-			return fsh[f].handleFiles.file.o;
+			return fsh[f.ID].handleFiles.file.o;
 		}
 
-		public static void FS_ForceFlush( fileHandle_t f ) {
-			FILE *file;
-
-			file = FS_FileForHandle(f);
-			setvbuf( file, NULL, _IONBF, 0 );
+		public static void FS_ForceFlush( fileHandle_t f ) 
+		{
+			var file = FS_FileForHandle(f);
+			file?.Dispose( );
 		}
 
 		/*
@@ -434,18 +452,10 @@ namespace SharpQ3.Engine.qcommon
 		size of the file.
 		================
 		*/
-		int FS_filelength( fileHandle_t f ) {
-			int		pos;
-			int		end;
-			FILE*	h;
-
-			h = FS_FileForHandle(f);
-			pos = ftell (h);
-			fseek (h, 0, SEEK_END);
-			end = ftell (h);
-			fseek (h, pos, SEEK_SET);
-
-			return end;
+		public static long FS_filelength( fileHandle_t f ) 
+		{
+			var h = FS_FileForHandle(f);			
+			return h.Length;
 		}
 
 		/*
@@ -467,10 +477,10 @@ namespace SharpQ3.Engine.qcommon
 		Qpath may have either forward or backwards slashes
 		===================
 		*/
-		static string FS_BuildOSPath( string basePath, string game, string qpath ) 
+		public static string FS_BuildOSPath( string basePath, string game, string qpath ) 
 		{
 			string[] ospath = new string[2];
-			int toggle;
+			int toggle = 0;
 			
 			toggle ^= 1;		// flip-flop to allow two returns without clash
 
@@ -494,21 +504,22 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		static bool FS_CreatePath (string OSPath) {
-			char	*ofs;
+			string ofs;
 			
 			// make absolutely sure that it can't back up the path
 			// FIXME: is c: allowed???
-			if ( strstr( OSPath, ".." ) || strstr( OSPath, "::" ) ) {
+			if ( OSPath.Contains( ".." ) || OSPath.Contains( "::" ) ) 
+			{
 				common.Com_Printf( "WARNING: refusing to create relative path \"%s\"\n", OSPath );
 				return true;
 			}
 
 			for (ofs = OSPath+1 ; *ofs ; ofs++) {
-				if (*ofs == PATH_SEP) {	
+				if (*ofs == q_shared.PATH_SEP) {	
 					// create the directory
 					*ofs = 0;
 					Sys_Mkdir (OSPath);
-					*ofs = PATH_SEP;
+					*ofs = q_shared.PATH_SEP;
 				}
 			}
 			return false;
@@ -521,45 +532,24 @@ namespace SharpQ3.Engine.qcommon
 		Copy a fully specified file from one place to another
 		=================
 		*/
-		static void FS_CopyFile( char *fromOSPath, char *toOSPath ) {
-			FILE	*f;
-			int		len;
-			byte	*buf;
-
+		static void FS_CopyFile( string fromOSPath, string toOSPath )
+		{
 			common.Com_Printf( "copy %s to %s\n", fromOSPath, toOSPath );
 
-			if (strstr(fromOSPath, "journal.dat") || strstr(fromOSPath, "journaldata.dat")) {
+			if (fromOSPath.Contains("journal.dat") || fromOSPath.Contains("journaldata.dat")) 
+			{
 				common.Com_Printf( "Ignoring journal files\n");
 				return;
 			}
 
-			f = fopen( fromOSPath, "rb" );
-			if ( !f ) {
-				return;
+			try
+			{
+				File.Copy( fromOSPath, toOSPath, true );
 			}
-			fseek (f, 0, SEEK_END);
-			len = ftell (f);
-			fseek (f, 0, SEEK_SET);
-
-			// we are using direct malloc instead of Z_Malloc here, so it
-			// probably won't work on a mac... Its only for developers anyway...
-			buf = (byte*) malloc( len );
-			if (fread( buf, 1, len, f ) != len)
-				Com_Error( ERR_FATAL, "Short read in FS_Copyfiles()\n" );
-			fclose( f );
-
-			if( FS_CreatePath( toOSPath ) ) {
-				return;
-			}
-
-			f = fopen( toOSPath, "wb" );
-			if ( !f ) {
-				return;
-			}
-			if (fwrite( buf, 1, len, f ) != len)
-				Com_Error( ERR_FATAL, "Short write in FS_Copyfiles()\n" );
-			fclose( f );
-			free( buf );
+			catch ( IOException ex )
+			{
+				common.Com_Error( errorParm_t.ERR_FATAL, $"FS_CopyFile exception:\n{ex.ToString()}" );
+			}			
 		}
 
 		/*
@@ -568,8 +558,10 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		static void FS_Remove( const char *osPath ) {
-			remove( osPath );
+		static void FS_Remove( string osPath ) 
+		{
+			if ( File.Exists( osPath ) )
+				File.Delete( osPath );
 		}
 
 		/*
@@ -582,19 +574,11 @@ namespace SharpQ3.Engine.qcommon
 		NOTE TTimo: this goes with FS_FOpenFileWrite for opening the file afterwards
 		================
 		*/
-		bool FS_FileExists( const char *file )
+		public static bool FS_FileExists( string file )
 		{
-			FILE *f;
-			char *testpath;
+			var testpath = FS_BuildOSPath( fs_homepath.@string, fs_gamedir, file );
 
-			testpath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, file );
-
-			f = fopen( testpath, "rb" );
-			if (f) {
-				fclose( f );
-				return true;
-			}
-			return false;
+			return File.Exists( testpath );
 		}
 
 		/*
@@ -604,20 +588,12 @@ namespace SharpQ3.Engine.qcommon
 		Tests if the file exists 
 		================
 		*/
-		bool FS_SV_FileExists( const char *file )
+		public static bool FS_SV_FileExists( string file )
 		{
-			FILE *f;
-			char *testpath;
+			var testpath = FS_BuildOSPath( fs_homepath.@string, file, "");
+			//testpath[strlen(testpath)-1] = '\0';
 
-			testpath = FS_BuildOSPath( fs_homepath->string, file, "");
-			testpath[strlen(testpath)-1] = '\0';
-
-			f = fopen( testpath, "rb" );
-			if (f) {
-				fclose( f );
-				return true;
-			}
-			return false;
+			return File.Exists( testpath );
 		}
 
 
@@ -627,37 +603,33 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		fileHandle_t FS_SV_FOpenFileWrite( const char *filename ) {
-			char *ospath;
-			fileHandle_t	f;
-
-			if ( fs_searchpaths == null ) {
+		public static fileHandle_t FS_SV_FOpenFileWrite( string filename )
+		{
+			if ( fs_searchpaths == null )
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
-			}
 
-			ospath = FS_BuildOSPath( fs_homepath->string, filename, "" );
-			ospath[strlen(ospath)-1] = '\0';
+			var ospath = FS_BuildOSPath( fs_homepath.@string, filename, "" );
+			//ospath[strlen(ospath)-1] = '\0';
 
-			f = FS_HandleForFile();
-			fsh[f].zipFile = false;
+			var f = FS_HandleForFile( );
+			fsh[f.ID].zipFile = false;
 
-			if ( fs_debug->integer ) {
+			if ( fs_debug.integer == 1 )
 				common.Com_Printf( "FS_SV_FOpenFileWrite: %s\n", ospath );
-			}
 
-			if( FS_CreatePath( ospath ) ) {
-				return 0;
-			}
+			if ( FS_CreatePath( ospath ) )
+				return new fileHandle_t { ID = 0 };
 
-			Com_DPrintf( "writing to: %s\n", ospath );
-			fsh[f].handleFiles.file.o = fopen( ospath, "wb" );
+			common.Com_DPrintf( "writing to: %s\n", ospath );
+			fsh[f.ID].handleFiles.file.o = File.OpenWrite( ospath );
 
-			Q_strncpyz( fsh[f].name, filename, sizeof( fsh[f].name ) );
+			q_shared.Q_strncpyz( out fsh[f.ID].name, filename, fsh[f.ID].name.Length );
 
-			fsh[f].handleSync = false;
-			if (!fsh[f].handleFiles.file.o) {
-				f = 0;
-			}
+			fsh[f.ID].handleSync = false;
+
+			if ( fsh[f.ID].handleFiles.file.o == null ) 
+				f = new fileHandle_t { ID = 0 };
+
 			return f;
 		}
 
@@ -668,79 +640,83 @@ namespace SharpQ3.Engine.qcommon
 		we search in that order, matching FS_SV_FOpenFileRead order
 		===========
 		*/
-		static int FS_SV_FOpenFileRead( string filename, out FileStream fp ) {
-			char *ospath;
-			FileStream	f = 0;
+		public static long FS_SV_FOpenFileRead( string filename, out fileHandle_t fp ) 
+		{
+			string ospath;
 
-			if ( fs_searchpaths == null ) {
+			if ( fs_searchpaths == null ) 
+			{
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			f = FS_HandleForFile();
-			fsh[f].zipFile = false;
+			var f = FS_HandleForFile();
+			fsh[f.ID].zipFile = false;
 
-			Q_strncpyz( fsh[f].name, filename, sizeof( fsh[f].name ) );
+			q_shared.Q_strncpyz( out fsh[f.ID].name, filename, fsh[f.ID].name.Length );
 
 			// don't let sound stutter
 			S_ClearSoundBuffer();
 
-		  // search homepath
-			ospath = FS_BuildOSPath( fs_homepath->string, filename, "" );
+			// search homepath
+			ospath = FS_BuildOSPath( fs_homepath.@string, filename, "" );
 			// remove trailing slash
-			ospath[strlen(ospath)-1] = '\0';
+			//ospath[strlen(ospath)-1] = '\0';
 
-			if ( fs_debug->integer ) {
+			if ( fs_debug.integer == 1 ) {
 				common.Com_Printf( "FS_SV_FOpenFileRead (fs_homepath): %s\n", ospath );
 			}
 
-			fsh[f].handleFiles.file.o = fopen( ospath, "rb" );
-			fsh[f].handleSync = false;
-		  if (!fsh[f].handleFiles.file.o)
+			fsh[f.ID].handleFiles.file.o = File.OpenRead( ospath );
+			fsh[f.ID].handleSync = false;
+		  if (fsh[f.ID].handleFiles.file.o == null)
 		  {
 		    // NOTE TTimo on non *nix systems, fs_homepath == fs_basepath, might want to avoid
-		    if (Q_stricmp(fs_homepath->string,fs_basepath->string))
+		    if (q_shared.Q_stricmp(fs_homepath.@string,fs_basepath.@string) == 1)
 		    {
 		      // search basepath
-		      ospath = FS_BuildOSPath( fs_basepath->string, filename, "" );
-		      ospath[strlen(ospath)-1] = '\0';
+		      ospath = FS_BuildOSPath( fs_basepath.@string, filename, "" );
+		      //ospath[strlen(ospath)-1] = '\0';
 
-		      if ( fs_debug->integer )
+		      if ( fs_debug.integer == 1 )
 		      {
 		        common.Com_Printf( "FS_SV_FOpenFileRead (fs_basepath): %s\n", ospath );
 		      }
 
-		      fsh[f].handleFiles.file.o = fopen( ospath, "rb" );
-		      fsh[f].handleSync = false;
+		      fsh[f.ID].handleFiles.file.o = File.OpenRead( ospath );
+		      fsh[f.ID].handleSync = false;
 
-		      if ( !fsh[f].handleFiles.file.o )
+		      if ( fsh[f.ID].handleFiles.file.o == null )
 		      {
-		        f = 0;
+		        f = new fileHandle_t();
 		      }
 		    }
 		  }
 
-			if (!fsh[f].handleFiles.file.o) {
+			if (fsh[f.ID].handleFiles.file.o == null) 
+			{
 		    // search cd path
-		    ospath = FS_BuildOSPath( fs_cdpath->string, filename, "" );
-		    ospath[strlen(ospath)-1] = '\0';
+		    ospath = FS_BuildOSPath( fs_cdpath.@string, filename, "" );
+		    //ospath[strlen(ospath)-1] = '\0';
 
-		    if (fs_debug->integer)
+		    if (fs_debug.integer == 1)
 		    {
 		      common.Com_Printf( "FS_SV_FOpenFileRead (fs_cdpath) : %s\n", ospath );
 		    }
 
-			  fsh[f].handleFiles.file.o = fopen( ospath, "rb" );
-			  fsh[f].handleSync = false;
+			  fsh[f.ID].handleFiles.file.o = File.OpenRead( ospath );
+			  fsh[f.ID].handleSync = false;
 
-			  if( !fsh[f].handleFiles.file.o ) {
-			    f = 0;
-			  }
+			  if( fsh[f.ID].handleFiles.file.o == null )
+				{
+					f = new fileHandle_t( );
+				}
 		  }
 		  
-			*fp = f;
-			if (f) {
+			fp = f;
+
+			if (f.ID != 0) 
 				return FS_filelength(f);
-			}
+
 			return 0;
 		}
 
@@ -751,8 +727,9 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		void FS_SV_Rename( const char *from, const char *to ) {
-			char			*from_ospath, *to_ospath;
+		public static void FS_SV_Rename( string from, string to ) 
+		{
+			string from_ospath, to_ospath;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
@@ -761,20 +738,17 @@ namespace SharpQ3.Engine.qcommon
 			// don't let sound stutter
 			S_ClearSoundBuffer();
 
-			from_ospath = FS_BuildOSPath( fs_homepath->string, from, "" );
-			to_ospath = FS_BuildOSPath( fs_homepath->string, to, "" );
-			from_ospath[strlen(from_ospath)-1] = '\0';
-			to_ospath[strlen(to_ospath)-1] = '\0';
+			from_ospath = FS_BuildOSPath( fs_homepath.@string, from, "" );
+			to_ospath = FS_BuildOSPath( fs_homepath.@string, to, "" );
+			//from_ospath[strlen(from_ospath)-1] = '\0';
+			//to_ospath[strlen(to_ospath)-1] = '\0';
 
-			if ( fs_debug->integer ) {
-				common.Com_Printf( "FS_SV_Rename: %s --> %s\n", from_ospath, to_ospath );
+			if ( fs_debug.integer == 1) {
+				common.Com_Printf( "FS_SV_Rename: %s -. %s\n", from_ospath, to_ospath );
 			}
 
-			if (rename( from_ospath, to_ospath )) {
-				// Failed, try copying it and deleting the original
-				FS_CopyFile ( from_ospath, to_ospath );
-				FS_Remove ( from_ospath );
-			}
+			FS_CopyFile ( from_ospath, to_ospath );
+			FS_Remove ( from_ospath );
 		}
 
 
@@ -785,8 +759,8 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		void FS_Rename( const char *from, const char *to ) {
-			char			*from_ospath, *to_ospath;
+		public static void FS_Rename( string from, string to ) {
+			string from_ospath, to_ospath;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
@@ -795,18 +769,15 @@ namespace SharpQ3.Engine.qcommon
 			// don't let sound stutter
 			S_ClearSoundBuffer();
 
-			from_ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, from );
-			to_ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, to );
+			from_ospath = FS_BuildOSPath( fs_homepath.@string, fs_gamedir, from );
+			to_ospath = FS_BuildOSPath( fs_homepath.@string, fs_gamedir, to );
 
-			if ( fs_debug->integer ) {
-				common.Com_Printf( "FS_Rename: %s --> %s\n", from_ospath, to_ospath );
+			if ( fs_debug.integer == 1 ) {
+				common.Com_Printf( "FS_Rename: %s -. %s\n", from_ospath, to_ospath );
 			}
 
-			if (rename( from_ospath, to_ospath )) {
-				// Failed, try copying it and deleting the original
-				FS_CopyFile ( from_ospath, to_ospath );
-				FS_Remove ( from_ospath );
-			}
+			FS_CopyFile ( from_ospath, to_ospath );
+			FS_Remove ( from_ospath );
 		}
 
 		/*
@@ -819,28 +790,30 @@ namespace SharpQ3.Engine.qcommon
 		on files returned by FS_FOpenFile...
 		==============
 		*/
-		void FS_FCloseFile( fileHandle_t f ) {
-			if ( fs_searchpaths == null ) {
+		public static void FS_FCloseFile( fileHandle_t f ) 
+		{
+			if ( fs_searchpaths == null ) 
+			{
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if (fsh[f].streamed) {
-				Sys_EndStreamedFile(f);
+			if (fsh[f.ID].streamed) 
+			{
+				Sys_EndStreamedFile(f.ID );
 			}
-			if (fsh[f].zipFile == true) {
-				unzCloseCurrentFile( fsh[f].handleFiles.file.z );
-				if ( fsh[f].handleFiles.unique ) {
-					unzClose( fsh[f].handleFiles.file.z );
-				}
-				Com_Memset( &fsh[f], 0, sizeof( fsh[f] ) );
+			if (fsh[f.ID].zipFile == true) 
+			{
+				fsh[f.ID].handleFiles.file.zf?.Dispose( );
+
+				if ( fsh[f.ID].handleFiles.unique ) 
+					fsh[f.ID].handleFiles.file.z?.Dispose( );
+				fsh[f.ID] = default;
 				return;
 			}
 
 			// we didn't find it as a pak, so close it as a unique file
-			if (fsh[f].handleFiles.file.o) {
-				fclose (fsh[f].handleFiles.file.o);
-			}
-			Com_Memset( &fsh[f], 0, sizeof( fsh[f] ) );
+			fsh[f.ID].handleFiles.file.o?.Dispose( );
+			fsh[f.ID] = default;
 		}
 
 		/*
@@ -849,38 +822,37 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		fileHandle_t FS_FOpenFileWrite( const char *filename ) {
-			char			*ospath;
-			fileHandle_t	f;
+		public static fileHandle_t FS_FOpenFileWrite( string filename ) 
+		{
+			string ospath;
 
-			if ( fs_searchpaths == null ) {
+			if ( fs_searchpaths == null ) 
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
-			}
 
-			f = FS_HandleForFile();
-			fsh[f].zipFile = false;
+			var f = FS_HandleForFile();
+			fsh[f.ID].zipFile = false;
 
-			ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+			ospath = FS_BuildOSPath( fs_homepath.@string, fs_gamedir, filename );
 
-			if ( fs_debug->integer ) {
+			if ( fs_debug.integer == 1 ) {
 				common.Com_Printf( "FS_FOpenFileWrite: %s\n", ospath );
 			}
 
-			if( FS_CreatePath( ospath ) ) {
-				return 0;
-			}
+			if( FS_CreatePath( ospath ) )
+				return default;
 
 			// enabling the following line causes a recursive function call loop
 			// when running with +set logfile 1 +set developer 1
 			//Com_DPrintf( "writing to: %s\n", ospath );
-			fsh[f].handleFiles.file.o = fopen( ospath, "wb" );
+			fsh[f.ID].handleFiles.file.o = File.OpenWrite( ospath );
 
-			Q_strncpyz( fsh[f].name, filename, sizeof( fsh[f].name ) );
+			q_shared.Q_strncpyz( out fsh[f.ID].name, filename, fsh[f.ID].name.Length );
 
-			fsh[f].handleSync = false;
-			if (!fsh[f].handleFiles.file.o) {
-				f = 0;
-			}
+			fsh[f.ID].handleSync = false;
+
+			if (fsh[f.ID].handleFiles.file.o == null)
+				f = default;
+
 			return f;
 		}
 
@@ -890,36 +862,36 @@ namespace SharpQ3.Engine.qcommon
 
 		===========
 		*/
-		fileHandle_t FS_FOpenFileAppend( const char *filename ) {
-			char			*ospath;
-			fileHandle_t	f;
+		public static fileHandle_t FS_FOpenFileAppend( string filename ) 
+		{
+			string ospath;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			f = FS_HandleForFile();
-			fsh[f].zipFile = false;
+			var f = FS_HandleForFile();
+			fsh[f.ID].zipFile = false;
 
-			Q_strncpyz( fsh[f].name, filename, sizeof( fsh[f].name ) );
+			q_shared.Q_strncpyz( out fsh[f.ID].name, filename, fsh[f.ID].name.Length );
 
 			// don't let sound stutter
 			S_ClearSoundBuffer();
 
-			ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+			ospath = FS_BuildOSPath( fs_homepath.@string, fs_gamedir, filename );
 
-			if ( fs_debug->integer ) {
+			if ( fs_debug.integer == 1 ) {
 				common.Com_Printf( "FS_FOpenFileAppend: %s\n", ospath );
 			}
 
 			if( FS_CreatePath( ospath ) ) {
-				return 0;
+				return default;
 			}
 
-			fsh[f].handleFiles.file.o = fopen( ospath, "ab" );
-			fsh[f].handleSync = false;
-			if (!fsh[f].handleFiles.file.o) {
-				f = 0;
+			fsh[f.ID].handleFiles.file.o = File.Open( ospath, FileMode.Append );
+			fsh[f.ID].handleSync = false;
+			if (fsh[f.ID].handleFiles.file.o == null) {
+				f = default;
 			}
 			return f;
 		}
@@ -931,33 +903,9 @@ namespace SharpQ3.Engine.qcommon
 		Ignore case and seprator char distinctions
 		===========
 		*/
-		bool FS_FilenameCompare( const char *s1, const char *s2 ) {
-			int		c1, c2;
-			
-			do {
-				c1 = *s1++;
-				c2 = *s2++;
-
-				if (c1 >= 'a' && c1 <= 'z') {
-					c1 -= ('a' - 'A');
-				}
-				if (c2 >= 'a' && c2 <= 'z') {
-					c2 -= ('a' - 'A');
-				}
-
-				if ( c1 == '\\' || c1 == ':' ) {
-					c1 = '/';
-				}
-				if ( c2 == '\\' || c2 == ':' ) {
-					c2 = '/';
-				}
-				
-				if (c1 != c2) {
-					return (bool) -1;		// strings not equal
-				}
-			} while (c1);
-			
-			return (bool) 0;		// strings are equal
+		public static bool FS_FilenameCompare( string s1, string s2 ) 
+		{
+			return s1.Replace( "\\", "/" ).Equals( s2.Replace( "\\", "/" ), StringComparison.InvariantCultureIgnoreCase );
 		}
 
 		/*
@@ -965,15 +913,22 @@ namespace SharpQ3.Engine.qcommon
 		FS_ShiftedStrStr
 		===========
 		*/
-		char *FS_ShiftedStrStr(const char *string, const char *substring, int shift) {
-			char buf[MAX_STRING_TOKENS];
-			int i;
+		static string FS_ShiftedStrStr( string @string, string substring, int shift )
+		{
+			var subStringBytes = Encoding.ASCII.GetBytes( substring );
+			var buf = new StringBuilder( q_shared.MAX_STRING_TOKENS );
 
-			for (i = 0; substring[i]; i++) {
-				buf[i] = substring[i] + shift;
-			}
-			buf[i] = '\0';
-			return (char*) strstr(string, buf);
+			for ( var i = 0; i < subStringBytes.Length; i++ )
+				buf.Append( ( byte ) ( subStringBytes[i] + shift ) );
+
+			buf.Append( ( Byte ) '\0' );
+
+			var ci = @string.IndexOf( buf.ToString( ) );
+
+			if ( ci >= 0 && ci < @string.Length )
+				return @string.Substring( ci );
+
+			return null;
 		}
 
 		/*
@@ -986,66 +941,75 @@ namespace SharpQ3.Engine.qcommon
 		separate file or a ZIP file.
 		===========
 		*/
-		extern bool		com_fullyInitialized;
+		public static bool		com_fullyInitialized;
 
-		int FS_FOpenFileRead( const char *filename, fileHandle_t *file, bool uniqueFILE ) {
-			searchpath_t	*search;
-			char			*netpath;
-			pack_t			*pak;
-			fileInPack_t	*pakFile;
-			directory_t		*dir;
+		public static bool FS_FOpenFileRead( string filename, out fileHandle_t file, bool uniqueFILE )
+		{
+			string			netpath;
+			pack_t			pak;
+			fileInPack_t	pakFile;
+			directory_t		dir;
 			long			hash;
-			unz_s			*zfi;
-			FILE			*temp;
+			unz_s			zfi;
+			FileStream		temp;
 			int				l;
-			char demoExt[16];
+			string demoExt;//[16];
 
 			hash = 0;
+			file = default;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( file == NULL ) {
+			if ( file.ID == 0 ) {
 				// just wants to see if file is there
-				for ( search = fs_searchpaths ; search ; search = search->next ) {
+				foreach ( var search in fs_searchpaths ) {
 					//
-					if ( search->pack ) {
-						hash = FS_HashFileName(filename, search->pack->hashSize);
+					if ( search.pack != null ) {
+						hash = FS_HashFileName(filename, search.pack.hashSize);
 					}
 					// is the element a pak file?
-					if ( search->pack && search->pack->hashTable[hash] ) {
+					if ( search.pack != null && search.pack.hashTable[hash] != null ) {
 						// look through all the pak file elements
-						pak = search->pack;
-						pakFile = pak->hashTable[hash];
+						pak = search.pack;
+						pakFile = pak.hashTable[hash];
 						do {
 							// case and separator insensitive comparisons
-							if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
+							if ( !FS_FilenameCompare( pakFile.name, filename ) ) {
 								// found it!
 								return true;
 							}
-							pakFile = pakFile->next;
-						} while(pakFile != NULL);
-					} else if ( search->dir ) {
-						dir = search->dir;
+							pakFile = pakFile.next;
+						} while(pakFile != null);
+					} else if ( search.dir != null ) {
+						dir = search.dir;
 					
-						netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
-						temp = fopen (netpath, "rb");
-						if ( !temp ) {
+						netpath = FS_BuildOSPath( dir.path, dir.gamedir, filename );
+                        try
+                        {
+							temp = File.OpenRead( netpath );
+						}
+                        catch ( IOException )
+                        {
 							continue;
 						}
-						fclose(temp);
+
+						if ( temp == null )
+							continue;
+
+						temp.Dispose();
 						return true;
 					}
 				}
 				return false;
 			}
 
-			if ( !filename ) {
-				Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
+			if ( filename == null ) {
+				common.Com_Error( errorParm_t.ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
 			}
 
-			Com_sprintf (demoExt, sizeof(demoExt), ".dm_%d",PROTOCOL_VERSION );
+			common.Com_sprintf (demoExt, sizeof(demoExt), ".dm_%d",PROTOCOL_VERSION );
 			// qpaths are not supposed to have a leading slash
 			if ( filename[0] == '/' || filename[0] == '\\' ) {
 				filename++;
@@ -1054,112 +1018,112 @@ namespace SharpQ3.Engine.qcommon
 			// make absolutely sure that it can't back up the path.
 			// The searchpaths do guarantee that something will always
 			// be prepended, so we don't need to worry about "c:" or "//limbo" 
-			if ( strstr( filename, ".." ) || strstr( filename, "::" ) ) {
-				*file = 0;
-				return -1;
+			if ( filename.Contains( ".." ) || filename.Contains( "::" ) ) {
+				file = default;
+				return false;
 			}
 
 			// make sure the q3key file is only readable by the quake3.exe at initialization
 			// any other time the key should only be accessed in memory using the provided functions
-			if( com_fullyInitialized && strstr( filename, "q3key" ) ) {
-				*file = 0;
-				return -1;
+			if( com_fullyInitialized && filename.Contains( "q3key" ) ) {
+				file = default;
+				return false;
 			}
 
 			//
 			// search through the path, one element at a time
 			//
 
-			*file = FS_HandleForFile();
-			fsh[*file].handleFiles.unique = uniqueFILE;
+			file = FS_HandleForFile();
+			fsh[file.ID].handleFiles.unique = uniqueFILE;
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			foreach ( var search in fs_searchpaths ) {
 				//
-				if ( search->pack ) {
-					hash = FS_HashFileName(filename, search->pack->hashSize);
+				if ( search.pack != null ) {
+					hash = FS_HashFileName(filename, search.pack.hashSize);
 				}
 				// is the element a pak file?
-				if ( search->pack && search->pack->hashTable[hash] ) {
+				if ( search.pack != null && search.pack.hashTable[hash] != null ) {
 					// disregard if it doesn't match one of the allowed pure pak files
-					if ( !FS_PakIsPure(search->pack) ) {
+					if ( !FS_PakIsPure(search.pack) ) {
 						continue;
 					}
 
 					// look through all the pak file elements
-					pak = search->pack;
-					pakFile = pak->hashTable[hash];
+					pak = search.pack;
+					pakFile = pak.hashTable[hash];
 					do {
 						// case and separator insensitive comparisons
-						if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
+						if ( !FS_FilenameCompare( pakFile.name, filename ) ) {
 							// found it!
 
 							// mark the pak as having been referenced and mark specifics on cgame and ui
 							// shaders, txt, arena files  by themselves do not count as a reference as 
 							// these are loaded from all pk3s 
 							// from every pk3 file.. 
-							l = (int)strlen( filename );
-							if ( !(pak->referenced & FS_GENERAL_REF)) {
-								if ( Q_stricmp(filename + l - 7, ".shader") != 0 &&
-									Q_stricmp(filename + l - 4, ".txt") != 0 &&
-									Q_stricmp(filename + l - 4, ".cfg") != 0 &&
-									Q_stricmp(filename + l - 7, ".config") != 0 &&
-									strstr(filename, "levelshots") == NULL &&
-									Q_stricmp(filename + l - 4, ".bot") != 0 &&
-									Q_stricmp(filename + l - 6, ".arena") != 0 &&
-									Q_stricmp(filename + l - 5, ".menu") != 0) {
-									pak->referenced |= FS_GENERAL_REF;
+							l = filename.Length;
+							if ( !(pak.referenced & FS_GENERAL_REF)) {
+								if ( q_shared.Q_stricmp(filename + l - 7, ".shader") != 0 &&
+									q_shared.Q_stricmp(filename + l - 4, ".txt") != 0 &&
+									q_shared.Q_stricmp(filename + l - 4, ".cfg") != 0 &&
+									q_shared.Q_stricmp(filename + l - 7, ".config") != 0 &&
+									!filename.Contains("levelshots") &&
+									q_shared.Q_stricmp(filename + l - 4, ".bot") != 0 &&
+									q_shared.Q_stricmp(filename + l - 6, ".arena") != 0 &&
+									q_shared.Q_stricmp(filename + l - 5, ".menu") != 0) {
+									pak.referenced |= FS_GENERAL_REF;
 								}
 							}
 
 							// qagame.qvm	- 13
 							// dTZT`X!di`
-							if (!(pak->referenced & FS_QAGAME_REF) && FS_ShiftedStrStr(filename, "dTZT`X!di`", 13)) {
-								pak->referenced |= FS_QAGAME_REF;
+							if (!(pak.referenced & FS_QAGAME_REF) && FS_ShiftedStrStr(filename, "dTZT`X!di`", 13)) {
+								pak.referenced |= FS_QAGAME_REF;
 							}
 							// cgame.qvm	- 7
 							// \`Zf^'jof
-							if (!(pak->referenced & FS_CGAME_REF) && FS_ShiftedStrStr(filename , "\\`Zf^'jof", 7)) {
-								pak->referenced |= FS_CGAME_REF;
+							if (!(pak.referenced & FS_CGAME_REF) && FS_ShiftedStrStr(filename , "\\`Zf^'jof", 7)) {
+								pak.referenced |= FS_CGAME_REF;
 							}
 							// ui.qvm		- 5
 							// pd)lqh
-							if (!(pak->referenced & FS_UI_REF) && FS_ShiftedStrStr(filename , "pd)lqh", 5)) {
-								pak->referenced |= FS_UI_REF;
+							if (!(pak.referenced & FS_UI_REF) && FS_ShiftedStrStr(filename , "pd)lqh", 5)) {
+								pak.referenced |= FS_UI_REF;
 							}
 
 							if ( uniqueFILE ) {
 								// open a new file on the pakfile
-								fsh[*file].handleFiles.file.z = unzReOpen (pak->pakFilename, pak->handle);
-								if (fsh[*file].handleFiles.file.z == NULL) {
-									Com_Error (ERR_FATAL, "Couldn't reopen %s", pak->pakFilename);
+								fsh[file.ID].handleFiles.file.z = unzReOpen (pak.pakFilename, pak.handle);
+								if (fsh[file.ID].handleFiles.file.z == null) {
+									common.Com_Error (errorParm_t.ERR_FATAL, "Couldn't reopen %s", pak.pakFilename);
 								}
 							} else {
-								fsh[*file].handleFiles.file.z = pak->handle;
+								fsh[file.ID].handleFiles.file.z = pak.handle;
 							}
-							Q_strncpyz( fsh[*file].name, filename, sizeof( fsh[*file].name ) );
-							fsh[*file].zipFile = true;
-							zfi = (unz_s *)fsh[*file].handleFiles.file.z;
+							q_shared.Q_strncpyz( out fsh[file.ID].name, filename, fsh[file.ID].name.Length );
+							fsh[file.ID].zipFile = true;
+							zfi = (unz_s *)fsh[file.ID].handleFiles.file.z;
 							// in case the file was new
-							temp = zfi->file;
+							temp = zfi.file;
 							// set the file position in the zip file (also sets the current file info)
-							unzSetCurrentFileInfoPosition(pak->handle, pakFile->pos);
+							unzSetCurrentFileInfoPosition(pak.handle, pakFile.pos);
 							// copy the file info into the unzip structure
-							Com_Memcpy( zfi, pak->handle, sizeof(unz_s) );
+							Com_Memcpy( zfi, pak.handle, sizeof(unz_s) );
 							// we copy this back into the structure
-							zfi->file = temp;
+							zfi.file = temp;
 							// open the file in the zip
 							unzOpenCurrentFile( fsh[*file].handleFiles.file.z );
-							fsh[*file].zipFilePos = pakFile->pos;
+							fsh[*file].zipFilePos = pakFile.pos;
 
-							if ( fs_debug->integer ) {
+							if ( fs_debug.integer ) {
 								common.Com_Printf( "FS_FOpenFileRead: %s (found in '%s')\n", 
-									filename, pak->pakFilename );
+									filename, pak.pakFilename );
 							}
-							return zfi->cur_file_info.uncompressed_size;
+							return zfi.cur_file_info.uncompressed_size;
 						}
-						pakFile = pakFile->next;
+						pakFile = pakFile.next;
 					} while(pakFile != NULL);
-				} else if ( search->dir ) {
+				} else if ( search.dir ) {
 					// check a file in the directory tree
 
 					// if we are running restricted, the only files we
@@ -1181,9 +1145,9 @@ namespace SharpQ3.Engine.qcommon
 						}
 					}
 
-					dir = search->dir;
+					dir = search.dir;
 					
-					netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
+					netpath = FS_BuildOSPath( dir.path, dir.gamedir, filename );
 					fsh[*file].handleFiles.file.o = fopen (netpath, "rb");
 					if ( !fsh[*file].handleFiles.file.o ) {
 						continue;
@@ -1199,17 +1163,17 @@ namespace SharpQ3.Engine.qcommon
 		      
 					Q_strncpyz( fsh[*file].name, filename, sizeof( fsh[*file].name ) );
 					fsh[*file].zipFile = false;
-					if ( fs_debug->integer ) {
+					if ( fs_debug.integer ) {
 						common.Com_Printf( "FS_FOpenFileRead: %s (found in '%s/%s')\n", filename,
-							dir->path, dir->gamedir );
+							dir.path, dir.gamedir );
 					}
 
 					// if we are getting it from the cdpath, optionally copy it
 					//  to the basepath
-					if ( fs_copyfiles->integer && !Q_stricmp( dir->path, fs_cdpath->string ) ) {
+					if ( fs_copyfiles.integer && !Q_stricmp( dir.path, fs_cdpath.string ) ) {
 						char	*copypath;
 
-						copypath = FS_BuildOSPath( fs_basepath->string, dir->gamedir, filename );
+						copypath = FS_BuildOSPath( fs_basepath.string, dir.gamedir, filename );
 						FS_CopyFile( netpath, copypath );
 					}
 
@@ -1230,52 +1194,54 @@ namespace SharpQ3.Engine.qcommon
 		Properly handles partial reads
 		=================
 		*/
-		int FS_Read2( void *buffer, int len, fileHandle_t f ) {
+		public static int FS_Read2( byte[] buffer, int len, fileHandle_t f ) {
 			if ( fs_searchpaths == null ) {
-				Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
+				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !f ) {
+			if ( f.ID == 0 ) {
 				return 0;
 			}
-			if (fsh[f].streamed) {
+			if (fsh[f.ID].streamed) {
 				int r;
-				fsh[f].streamed = false;
+				fsh[f.ID].streamed = false;
 				r = Sys_StreamedRead( buffer, len, 1, f);
-				fsh[f].streamed = true;
+				fsh[f.ID].streamed = true;
 				return r;
 			} else {
 				return FS_Read( buffer, len, f);
 			}
 		}
 
-		int FS_Read( void *buffer, int len, fileHandle_t f ) {
+		public static int FS_Read( byte[] buffer, int len, fileHandle_t f ) {
 			int		block, remaining;
 			int		read;
-			byte	*buf;
+			byte[]	buf;
+			int		bufI = 0;
 			int		tries;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !f ) {
+			if ( f.ID == 0 ) {
 				return 0;
 			}
 
-			buf = (byte *)buffer;
+			buf = buffer;
 			fs_readCount += len;
 
-			if (fsh[f].zipFile == false) {
+			if (fsh[f.ID].zipFile == false) {
 				remaining = len;
 				tries = 0;
-				while (remaining) {
+				while (remaining > 0) {
 					block = remaining;
-					read = (int)fread (buf, 1, block, fsh[f].handleFiles.file.o);
+					var readCount = Math.Min( block, len - bufI );
+					read = fsh[f.ID].handleFiles.file.o.Read( buf, bufI, readCount );
 					if (read == 0) {
 						// we might have been trying to read from a CD, which
 						// sometimes returns a 0 read on windows
-						if (!tries) {
+						if (tries == 0) {
 							tries = 1;
 						} else {
 							return len-remaining;	//Com_Error (ERR_FATAL, "FS_Read: 0 bytes read");
@@ -1283,15 +1249,15 @@ namespace SharpQ3.Engine.qcommon
 					}
 
 					if (read == -1) {
-						Com_Error (ERR_FATAL, "FS_Read: -1 bytes read");
+						common.Com_Error (errorParm_t.ERR_FATAL, "FS_Read: -1 bytes read");
 					}
 
 					remaining -= read;
-					buf += read;
+					bufI += read;
 				}
 				return len;
 			} else {
-				return unzReadCurrentFile(fsh[f].handleFiles.file.z, buffer, len);
+				return fsh[f.ID].handleFiles.file.zf.Read( buffer, 0, len);
 			}
 		}
 
@@ -1302,31 +1268,32 @@ namespace SharpQ3.Engine.qcommon
 		Properly handles partial writes
 		=================
 		*/
-		int FS_Write( const void *buffer, int len, fileHandle_t h ) {
+		public static int FS_Write( byte[] buffer, int len, fileHandle_t h ) {
 			int		block, remaining;
 			int		written;
-			byte	*buf;
+			byte[]	buf;
+			int		bufI = 0;
 			int		tries;
-			FILE	*f;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !h ) {
+			if ( h.ID == 0 ) {
 				return 0;
 			}
 
-			f = FS_FileForHandle(h);
-			buf = (byte *)buffer;
+			var f = FS_FileForHandle(h);
+			buf = buffer;
 
 			remaining = len;
 			tries = 0;
-			while (remaining) {
+			while (remaining > 0) {
 				block = remaining;
-				written = (int)fwrite (buf, 1, block, f);
+				written = Math.Min( block, len - bufI );
+				f.Write( buf, bufI, written );
 				if (written == 0) {
-					if (!tries) {
+					if (tries == 0) {
 						tries = 1;
 					} else {
 						common.Com_Printf( "FS_Write: 0 bytes written\n" );
@@ -1340,23 +1307,22 @@ namespace SharpQ3.Engine.qcommon
 				}
 
 				remaining -= written;
-				buf += written;
+				bufI += written;
 			}
-			if ( fsh[h].handleSync ) {
-				fflush( f );
+			if ( fsh[h.ID].handleSync ) {
+				f.Flush( );
 			}
 			return len;
 		}
 
-		void QDECL FS_Printf( fileHandle_t h, const char *fmt, ... ) {
-			va_list		argptr;
-			char		msg[MAXPRINTMSG];
+		public static void FS_Printf( fileHandle_t h, string fmt, params object[] parameters ) 
+		{
+			var msg = qcommon.Q_vsnprintf (fmt, parameters );
 
-			va_start (argptr,fmt);
-			Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
-			va_end (argptr);
+			if ( msg.Length > qcommon.MAXPRINTMSG )
+				msg = msg.Substring( 0, qcommon.MAXPRINTMSG );
 
-			FS_Write(msg, (int)strlen(msg), h);
+			FS_Write(Encoding.ASCII.GetBytes( msg ), msg.Length, h);
 		}
 
 		/*
@@ -1365,55 +1331,54 @@ namespace SharpQ3.Engine.qcommon
 
 		=================
 		*/
-		int FS_Seek( fileHandle_t f, long offset, int origin ) {
-			int		_origin;
-			char	foo[65536];
+		public static long FS_Seek( fileHandle_t f, long offset, SeekOrigin origin ) {
+			SeekOrigin		_origin;
+			string foo;//[65536];
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 				return -1;
 			}
 
-			if (fsh[f].streamed) {
-				fsh[f].streamed = false;
+			if (fsh[f.ID].streamed) {
+				fsh[f.ID].streamed = false;
 				Sys_StreamSeek( f, offset, origin );
-				fsh[f].streamed = true;
+				fsh[f.ID].streamed = true;
 			}
 
-			if (fsh[f].zipFile == true) {
-				if (offset == 0 && origin == FS_SEEK_SET) {
+			if (fsh[f.ID].zipFile == true) {
+				if (offset == 0 && origin == SeekOrigin.Begin) {
 					// set the file position in the zip file (also sets the current file info)
-					unzSetCurrentFileInfoPosition(fsh[f].handleFiles.file.z, fsh[f].zipFilePos);
-					return unzOpenCurrentFile(fsh[f].handleFiles.file.z);
+					unzSetCurrentFileInfoPosition(fsh[f.ID].handleFiles.file.z, fsh[f.ID].zipFilePos);
+					return unzOpenCurrentFile(fsh[f.ID].handleFiles.file.z);
 				} else if (offset<65536) {
 					// set the file position in the zip file (also sets the current file info)
-					unzSetCurrentFileInfoPosition(fsh[f].handleFiles.file.z, fsh[f].zipFilePos);
-					unzOpenCurrentFile(fsh[f].handleFiles.file.z);
+					unzSetCurrentFileInfoPosition(fsh[f.ID].handleFiles.file.z, fsh[f.ID].zipFilePos);
+					unzOpenCurrentFile(fsh[f.ID].handleFiles.file.z);
 					return FS_Read(foo, offset, f);
 				} else {
-					Com_Error( ERR_FATAL, "ZIP FILE FSEEK NOT YET IMPLEMENTED\n" );
+					common.Com_Error( errorParm_t.ERR_FATAL, "ZIP FILE FSEEK NOT YET IMPLEMENTED\n" );
 					return -1;
 				}
 			} else {
-				FILE *file;
-				file = FS_FileForHandle(f);
+				var file = FS_FileForHandle(f);
 				switch( origin ) {
-				case FS_SEEK_CUR:
-					_origin = SEEK_CUR;
+				case SeekOrigin.Current:
+					_origin = SeekOrigin.Current;
 					break;
-				case FS_SEEK_END:
-					_origin = SEEK_END;
+				case SeekOrigin.End:
+					_origin = SeekOrigin.End;
 					break;
-				case FS_SEEK_SET:
-					_origin = SEEK_SET;
+				case SeekOrigin.Begin:
+					_origin = SeekOrigin.Begin;
 					break;
 				default:
-					_origin = SEEK_CUR;
-					Com_Error( ERR_FATAL, "Bad origin in FS_Seek\n" );
+					_origin = SeekOrigin.Current;
+					common.Com_Error( errorParm_t.ERR_FATAL, "Bad origin in FS_Seek\n" );
 					break;
 				}
 
-				return fseek( file, offset, _origin );
+				return file.Seek( offset, _origin );
 			}
 		}
 
@@ -1426,64 +1391,63 @@ namespace SharpQ3.Engine.qcommon
 		======================================================================================
 		*/
 
-		int	FS_FileIsInPAK(const char *filename, int *pChecksum ) {
-			searchpath_t	*search;
-			pack_t			*pak;
-			fileInPack_t	*pakFile;
+		bool	FS_FileIsInPAK(string filename, out int pChecksum ) {
+			pack_t			pak;
+			fileInPack_t	pakFile;
 			long			hash = 0;
+
+			pChecksum = 0;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !filename ) {
-				Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
+			if ( filename == null ) {
+				common.Com_Error( errorParm_t.ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
 			}
 
 			// qpaths are not supposed to have a leading slash
 			if ( filename[0] == '/' || filename[0] == '\\' ) {
-				filename++;
+				filename = filename.Substring( 1 );
 			}
 
 			// make absolutely sure that it can't back up the path.
 			// The searchpaths do guarantee that something will always
 			// be prepended, so we don't need to worry about "c:" or "//limbo" 
-			if ( strstr( filename, ".." ) || strstr( filename, "::" ) ) {
-				return -1;
+			if ( filename.Contains( ".." ) || filename.Contains( "::" ) ) {
+				return false;
 			}
 
 			//
 			// search through the path, one element at a time
 			//
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			foreach ( var search in fs_searchpaths ) {
 				//
-				if (search->pack) {
-					hash = FS_HashFileName(filename, search->pack->hashSize);
+				if (search.pack != null) {
+					hash = FS_HashFileName(filename, search.pack.hashSize);
 				}
 				// is the element a pak file?
-				if ( search->pack && search->pack->hashTable[hash] ) {
+				if ( search.pack != null && search.pack.hashTable[hash] != null ) {
 					// disregard if it doesn't match one of the allowed pure pak files
-					if ( !FS_PakIsPure(search->pack) ) {
+					if ( !FS_PakIsPure(search.pack) ) {
 						continue;
 					}
 
 					// look through all the pak file elements
-					pak = search->pack;
-					pakFile = pak->hashTable[hash];
+					pak = search.pack;
+					pakFile = pak.hashTable[hash];
 					do {
 						// case and separator insensitive comparisons
-						if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
-							if (pChecksum) {
-								*pChecksum = pak->pure_checksum;
-							}
-							return 1;
+						if ( !FS_FilenameCompare( pakFile.name, filename ) ) {							
+							pChecksum = pak.pure_checksum;						
+							return true;
 						}
-						pakFile = pakFile->next;
-					} while(pakFile != NULL);
+						pakFile = pakFile.next;
+					} while(pakFile != null);
 				}
 			}
-			return -1;
+			return false;
 		}
 
 		/*
@@ -1504,7 +1468,7 @@ namespace SharpQ3.Engine.qcommon
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !qpath || !qpath[0] ) {
+			if ( qpath == null || qpath.Length == 0 ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "FS_ReadFile with empty name\n" );
 			}
 
@@ -1512,19 +1476,19 @@ namespace SharpQ3.Engine.qcommon
 
 			// if this is a .cfg file and we are playing back a journal, read
 			// it from the journal file
-			if ( strstr( qpath, ".cfg" ) ) {
+			if ( qpath.EndsWith( ".cfg" ) ) {
 				isConfig = true;
-				if ( com_journal && com_journal->integer == 2 ) {
+				if ( com_journal != null && com_journal.integer == 2 ) {
 					int		r;
 
-					Com_DPrintf( "Loading %s from journal file.\n", qpath );
+					common.Com_DPrintf( "Loading %s from journal file.\n", qpath );
 					r = FS_Read( &len, sizeof( len ), com_journalDataFile );
 					if ( r != sizeof( len ) ) {
-						if (buffer != null ) *buffer = NULL;
+						if (buffer != null ) *buffer = null;
 						return -1;
 					}
 					// if the file didn't exist when the journal was created
-					if (!len) {
+					if (len == 0) {
 						if (buffer == null ) {
 							return 1;			// hack for old journal files
 						}
@@ -1562,7 +1526,7 @@ namespace SharpQ3.Engine.qcommon
 					*buffer = null;
 				}
 				// if we are journalling and it is a config file, write a zero to the journal file
-				if ( isConfig && com_journal && com_journal->integer == 1 ) {
+				if ( isConfig && com_journal && com_journal.integer == 1 ) {
 					Com_DPrintf( "Writing zero for %s to journal file.\n", qpath );
 					len = 0;
 					FS_Write( &len, sizeof( len ), com_journalDataFile );
@@ -1572,7 +1536,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 			
 			if ( !buffer ) {
-				if ( isConfig && com_journal && com_journal->integer == 1 ) {
+				if ( isConfig && com_journal && com_journal.integer == 1 ) {
 					Com_DPrintf( "Writing len for %s to journal file.\n", qpath );
 					FS_Write( &len, sizeof( len ), com_journalDataFile );
 					FS_Flush( com_journalDataFile );
@@ -1594,7 +1558,7 @@ namespace SharpQ3.Engine.qcommon
 			FS_FCloseFile( h );
 
 			// if we are journalling and it is a config file, write it to the journal file
-			if ( isConfig && com_journal && com_journal->integer == 1 ) {
+			if ( isConfig && com_journal && com_journal.integer == 1 ) {
 				Com_DPrintf( "Writing %s to journal file.\n", qpath );
 				FS_Write( &len, sizeof( len ), com_journalDataFile );
 				FS_Write( buf, len, com_journalDataFile );
@@ -1632,19 +1596,19 @@ namespace SharpQ3.Engine.qcommon
 		Filename are reletive to the quake search path
 		============
 		*/
-		void FS_WriteFile( const char *qpath, const void *buffer, int size ) {
+		public static void FS_WriteFile( string qpath, byte[] buffer, int size ) {
 			fileHandle_t f;
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !qpath || !buffer ) {
+			if ( qpath == null || buffer == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "FS_WriteFile: NULL parameter" );
 			}
 
 			f = FS_FOpenFileWrite( qpath );
-			if ( !f ) {
+			if ( f.ID == 0 ) {
 				common.Com_Printf( "Failed to open %s\n", qpath );
 				return;
 			}
@@ -1672,11 +1636,11 @@ namespace SharpQ3.Engine.qcommon
 		of a zip file.
 		=================
 		*/
-		static pack_t *FS_LoadZipFile( char *zipfile, const char *basename )
+		static pack_t FS_LoadZipFile( string zipfile, string basename )
 		{
-			fileInPack_t	*buildBuffer;
-			pack_t			*pack;
-			unzFile			uf;
+			fileInPack_t	buildBuffer;
+			pack_t			pack;
+			ZipArchive			uf;
 			int				err;
 			unz_global_info gi;
 			char			filename_inzip[MAX_ZPATH];
@@ -1721,23 +1685,23 @@ namespace SharpQ3.Engine.qcommon
 				}
 			}
 
-			pack = (pack_t*) Z_Malloc( sizeof( pack_t ) + i * sizeof(fileInPack_t *) );
-			pack->hashSize = i;
-			pack->hashTable = (fileInPack_t **) (((char *) pack) + sizeof( pack_t ));
-			for(i = 0; i < pack->hashSize; i++) {
-				pack->hashTable[i] = NULL;
+			pack = new pack_t( );
+			pack.hashSize = i;
+			pack.hashTable = (fileInPack_t **) (((char *) pack) + sizeof( pack_t ));
+			for(i = 0; i < pack.hashSize; i++) {
+				pack.hashTable[i] = null;
 			}
 
-			Q_strncpyz( pack->pakFilename, zipfile, sizeof( pack->pakFilename ) );
-			Q_strncpyz( pack->pakBasename, basename, sizeof( pack->pakBasename ) );
+			q_shared.Q_strncpyz( pack.pakFilename, zipfile, sizeof( pack.pakFilename ) );
+			q_shared.Q_strncpyz( pack.pakBasename, basename, sizeof( pack.pakBasename ) );
 
 			// strip .pk3 if needed
-			if ( (int)strlen( pack->pakBasename ) > 4 && !Q_stricmp( pack->pakBasename + (int)strlen( pack->pakBasename ) - 4, ".pk3" ) ) {
-				pack->pakBasename[strlen( pack->pakBasename ) - 4] = 0;
+			if ( (int)strlen( pack.pakBasename ) > 4 && !q_shared.Q_stricmp( pack.pakBasename + (int)strlen( pack.pakBasename ) - 4, ".pk3" ) ) {
+				pack.pakBasename[strlen( pack.pakBasename ) - 4] = 0;
 			}
 
-			pack->handle = uf;
-			pack->numfiles = gi.number_entry;
+			pack.handle = uf;
+			pack.numfiles = gi.number_entry;
 			unzGoToFirstFile(uf);
 
 			for (i = 0; i < gi.number_entry; i++)
@@ -1749,27 +1713,27 @@ namespace SharpQ3.Engine.qcommon
 				if (file_info.uncompressed_size > 0) {
 					fs_headerLongs[fs_numHeaderLongs++] = LittleLong(file_info.crc);
 				}
-				Q_strlwr( filename_inzip );
-				hash = FS_HashFileName(filename_inzip, pack->hashSize);
+				q_shared.Q_strlwr( filename_inzip );
+				hash = FS_HashFileName(filename_inzip, pack.hashSize);
 				buildBuffer[i].name = namePtr;
 				strcpy( buildBuffer[i].name, filename_inzip );
 				namePtr += (int)strlen(filename_inzip) + 1;
 				// store the file position in the zip
 				unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos);
 				//
-				buildBuffer[i].next = pack->hashTable[hash];
-				pack->hashTable[hash] = &buildBuffer[i];
+				buildBuffer[i].next = pack.hashTable[hash];
+				pack.hashTable[hash] = &buildBuffer[i];
 				unzGoToNextFile(uf);
 			}
 
-			pack->checksum = Com_BlockChecksum( fs_headerLongs, 4 * fs_numHeaderLongs );
-			pack->pure_checksum = Com_BlockChecksumKey( fs_headerLongs, 4 * fs_numHeaderLongs, LittleLong(fs_checksumFeed) );
-			pack->checksum = LittleLong( pack->checksum );
-			pack->pure_checksum = LittleLong( pack->pure_checksum );
+			pack.checksum = Com_BlockChecksum( fs_headerLongs, 4 * fs_numHeaderLongs );
+			pack.pure_checksum = Com_BlockChecksumKey( fs_headerLongs, 4 * fs_numHeaderLongs, LittleLong(fs_checksumFeed) );
+			pack.checksum = LittleLong( pack.checksum );
+			pack.pure_checksum = LittleLong( pack.pure_checksum );
 
 			Z_Free(fs_headerLongs);
 
-			pack->buildBuffer = buildBuffer;
+			pack.buildBuffer = buildBuffer;
 			return pack;
 		}
 
@@ -1781,13 +1745,13 @@ namespace SharpQ3.Engine.qcommon
 		=================================================================================
 		*/
 
-		#define	MAX_FOUND_FILES	0x1000
+		private const int MAX_FOUND_FILES = 0x1000;
 
-		static int FS_ReturnPath( const char *zname, char *zpath, int *depth ) {
+		public static int FS_ReturnPath( string zname, out string zpath, out int depth ) {
 			int len, at, newdep;
 
 			newdep = 0;
-			zpath[0] = 0;
+			//zpath[0] = 0;
 			len = 0;
 			at = 0;
 
@@ -1799,9 +1763,9 @@ namespace SharpQ3.Engine.qcommon
 				}
 				at++;
 			}
-			strcpy(zpath, zname);
-			zpath[len] = 0;
-			*depth = newdep;
+			zpath = zname;
+			//zpath[len] = 0;
+			depth = newdep;
 
 			return len;
 		}
@@ -1811,14 +1775,14 @@ namespace SharpQ3.Engine.qcommon
 		FS_AddFileToList
 		==================
 		*/
-		static int FS_AddFileToList( char *name, char *list[MAX_FOUND_FILES], int nfiles ) {
+		static int FS_AddFileToList( string name, char *list[MAX_FOUND_FILES], int nfiles ) {
 			int		i;
 
 			if ( nfiles == MAX_FOUND_FILES - 1 ) {
 				return nfiles;
 			}
 			for ( i = 0 ; i < nfiles ; i++ ) {
-				if ( !Q_stricmp( name, list[i] ) ) {
+				if ( !q_shared.Q_stricmp( name, list[i] ) ) {
 					return nfiles;		// allready in list
 				}
 			}
@@ -1836,65 +1800,63 @@ namespace SharpQ3.Engine.qcommon
 		from all search paths
 		===============
 		*/
-		char **FS_ListFilteredFiles( const char *path, const char *extension, char *filter, int *numfiles ) {
+		public static string[] FS_ListFilteredFiles( string path, string extension, string filter, out int numfiles ) {
 			int				nfiles;
-			char			**listCopy;
-			char			*list[MAX_FOUND_FILES];
-			searchpath_t	*search;
+			var list = new List<string>( MAX_FOUND_FILES );
 			int				i;
 			int				pathLength;
 			int				extensionLength;
 			int				length, pathDepth, temp;
-			pack_t			*pak;
-			fileInPack_t	*buildBuffer;
-			char			zpath[MAX_ZPATH];
+			pack_t			pak;
+			fileInPack_t	buildBuffer;
+			string			zpath;//[MAX_ZPATH];
 
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
 
-			if ( !path ) {
-				*numfiles = 0;
-				return NULL;
+			if ( path == null ) {
+				numfiles = 0;
+				return null;
 			}
-			if ( !extension ) {
+			if ( extension == null ) {
 				extension = "";
 			}
 
-			pathLength = (int)strlen( path );
+			pathLength = path.Length;
 			if ( path[pathLength-1] == '\\' || path[pathLength-1] == '/' ) {
 				pathLength--;
 			}
-			extensionLength = (int)strlen( extension );
+			extensionLength = extension.Length;
 			nfiles = 0;
-			FS_ReturnPath(path, zpath, &pathDepth);
+			FS_ReturnPath(path, out zpath, out pathDepth);
 
 			//
 			// search through the path, one element at a time, adding to list
 			//
-			for (search = fs_searchpaths ; search ; search = search->next) {
+			foreach ( var search in fs_searchpaths ) {
 				// is the element a pak file?
-				if (search->pack) {
+				if (search.pack != null) {
 
 					//ZOID:  If we are pure, don't search for files on paks that
 					// aren't on the pure list
-					if ( !FS_PakIsPure(search->pack) ) {
+					if ( !FS_PakIsPure(search.pack) ) {
 						continue;
 					}
 
 					// look through all the pak file elements
-					pak = search->pack;
-					buildBuffer = pak->buildBuffer;
-					for (i = 0; i < pak->numfiles; i++) {
-						char	*name;
+					pak = search.pack;
+					buildBuffer = pak.buildBuffer;
+					for (i = 0; i < pak.numfiles; i++) {
+						string name;
 						int		zpathLen, depth;
 
 						// check for directory match
 						name = buildBuffer[i].name;
 						//
-						if (filter) {
+						if (filter != null) {
 							// case insensitive
-							if (!Com_FilterPath( filter, name, false ))
+							if (!common.Com_FilterPath( filter, name, false ))
 								continue;
 							// unique the match
 							nfiles = FS_AddFileToList( name, list, nfiles );
@@ -1903,39 +1865,39 @@ namespace SharpQ3.Engine.qcommon
 
 							zpathLen = FS_ReturnPath(name, zpath, &depth);
 
-							if ( (depth-pathDepth)>2 || pathLength > zpathLen || Q_stricmpn( name, path, pathLength ) ) {
+							if ( (depth-pathDepth)>2 || pathLength > zpathLen || q_shared.Q_stricmpn( name, path, pathLength ) ) {
 								continue;
 							}
 
 							// check for extension match
-							length = (int)strlen( name );
+							length = name.Length;
 							if ( length < extensionLength ) {
 								continue;
 							}
 
-							if ( Q_stricmp( name + length - extensionLength, extension ) ) {
+							if ( q_shared.Q_stricmp( name + length - extensionLength, extension ) ) {
 								continue;
 							}
 							// unique the match
 
 							temp = pathLength;
-							if (pathLength) {
+							if (pathLength > 0) {
 								temp++;		// include the '/'
 							}
 							nfiles = FS_AddFileToList( name + temp, list, nfiles );
 						}
 					}
-				} else if (search->dir) { // scan for files in the filesystem
-					char	*netpath;
-					int		numSysFiles;
-					char	**sysFiles;
-					char	*name;
+				} else if (search.dir != null) { // scan for files in the filesystem
+					string netpath;
+					int numSysFiles;
+					string[] sysFiles;
+					string name;
 
 					// don't scan directories for files if we are pure or restricted
-					if ( fs_numServerPaks ) {
+					if ( fs_numServerPaks > 0 ) {
 				        continue;
 				    } else {
-						netpath = FS_BuildOSPath( search->dir->path, search->dir->gamedir, path );
+						netpath = FS_BuildOSPath( search.dir.path, search.dir.gamedir, path );
 						sysFiles = Sys_ListFiles( netpath, extension, filter, &numSysFiles, false );
 						for ( i = 0 ; i < numSysFiles ; i++ ) {
 							// unique the match
@@ -1948,19 +1910,13 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// return a copy of the list
-			*numfiles = nfiles;
+			numfiles = nfiles;
 
-			if ( !nfiles ) {
-				return NULL;
+			if ( nfiles == 0 ) {
+				return null;
 			}
 
-			listCopy = (char**) Z_Malloc( ( nfiles + 1 ) * sizeof( *listCopy ) );
-			for ( i = 0 ; i < nfiles ; i++ ) {
-				listCopy[i] = list[i];
-			}
-			listCopy[i] = NULL;
-
-			return listCopy;
+			return list.ToArray();
 		}
 
 		/*
@@ -2126,9 +2082,9 @@ namespace SharpQ3.Engine.qcommon
 		  *listbuf = 0;
 		  nMods = nPotential = nTotal = 0;
 
-		  pFiles0 = Sys_ListFiles( fs_homepath->string, NULL, NULL, &dummy, true );
-		  pFiles1 = Sys_ListFiles( fs_basepath->string, NULL, NULL, &dummy, true );
-		  pFiles2 = Sys_ListFiles( fs_cdpath->string, NULL, NULL, &dummy, true );
+		  pFiles0 = Sys_ListFiles( fs_homepath.string, NULL, NULL, &dummy, true );
+		  pFiles1 = Sys_ListFiles( fs_basepath.string, NULL, NULL, &dummy, true );
+		  pFiles2 = Sys_ListFiles( fs_cdpath.string, NULL, NULL, &dummy, true );
 		  // we searched for mods in the three paths
 		  // it is likely that we have duplicate names now, which we will cleanup below
 		  pFiles = Sys_ConcatenateFileLists( pFiles0, pFiles1, pFiles2 );
@@ -2159,14 +2115,14 @@ namespace SharpQ3.Engine.qcommon
 		      // we didn't keep the information when we merged the directory names, as to what OS Path it was found under
 		      //   so it could be in base path, cd path or home path
 		      //   we will try each three of them here (yes, it's a bit messy)
-		      path = FS_BuildOSPath( fs_basepath->string, name, "" );
+		      path = FS_BuildOSPath( fs_basepath.string, name, "" );
 		      nPaks = 0;
 		      pPaks = Sys_ListFiles(path, ".pk3", NULL, &nPaks, false); 
 		      Sys_FreeFileList( pPaks ); // we only use Sys_ListFiles to check wether .pk3 files are present
 
 		      /* Try on cd path */
 		      if( nPaks <= 0 ) {
-		        path = FS_BuildOSPath( fs_cdpath->string, name, "" );
+		        path = FS_BuildOSPath( fs_cdpath.string, name, "" );
 		        nPaks = 0;
 		        pPaks = Sys_ListFiles( path, ".pk3", NULL, &nPaks, false );
 		        Sys_FreeFileList( pPaks );
@@ -2175,7 +2131,7 @@ namespace SharpQ3.Engine.qcommon
 		      /* try on home path */
 		      if ( nPaks <= 0 )
 		      {
-		        path = FS_BuildOSPath( fs_homepath->string, name, "" );
+		        path = FS_BuildOSPath( fs_homepath.string, name, "" );
 		        nPaks = 0;
 		        pPaks = Sys_ListFiles( path, ".pk3", NULL, &nPaks, false );
 		        Sys_FreeFileList( pPaks );
@@ -2388,18 +2344,18 @@ namespace SharpQ3.Engine.qcommon
 			int				i;
 
 			common.Com_Printf ("Current search path:\n");
-			for (s = fs_searchpaths; s; s = s->next) {
-				if (s->pack) {
-					common.Com_Printf ("%s (%i files)\n", s->pack->pakFilename, s->pack->numfiles);
+			for (s = fs_searchpaths; s; s = s.next) {
+				if (s.pack) {
+					common.Com_Printf ("%s (%i files)\n", s.pack.pakFilename, s.pack.numfiles);
 					if ( fs_numServerPaks ) {
-						if ( !FS_PakIsPure(s->pack) ) {
+						if ( !FS_PakIsPure(s.pack) ) {
 							common.Com_Printf( "    not on the pure list\n" );
 						} else {
 							common.Com_Printf( "    on the pure list\n" );
 						}
 					}
 				} else {
-					common.Com_Printf ("%s/%s\n", s->dir->path, s->dir->gamedir );
+					common.Com_Printf ("%s/%s\n", s.dir.path, s.dir.gamedir );
 				}
 			}
 
@@ -2467,8 +2423,8 @@ namespace SharpQ3.Engine.qcommon
 
 			// this fixes the case where fs_basepath is the same as fs_cdpath
 			// which happens on full installs
-			for ( sp = fs_searchpaths ; sp ; sp = sp->next ) {
-				if ( sp->dir && !Q_stricmp(sp->dir->path, path) && !Q_stricmp(sp->dir->gamedir, dir)) {
+			for ( sp = fs_searchpaths ; sp ; sp = sp.next ) {
+				if ( sp.dir && !Q_stricmp(sp.dir.path, path) && !Q_stricmp(sp.dir.gamedir, dir)) {
 					return;			// we've already got this one
 				}
 			}
@@ -2479,11 +2435,11 @@ namespace SharpQ3.Engine.qcommon
 			// add the directory to the search path
 			//
 			search = (searchpath_t*) Z_Malloc (sizeof(searchpath_t));
-			search->dir = (directory_t*) Z_Malloc( sizeof( *search->dir ) );
+			search.dir = (directory_t*) Z_Malloc( sizeof( *search.dir ) );
 
-			Q_strncpyz( search->dir->path, path, sizeof( search->dir->path ) );
-			Q_strncpyz( search->dir->gamedir, dir, sizeof( search->dir->gamedir ) );
-			search->next = fs_searchpaths;
+			Q_strncpyz( search.dir.path, path, sizeof( search.dir.path ) );
+			Q_strncpyz( search.dir.gamedir, dir, sizeof( search.dir.gamedir ) );
+			search.next = fs_searchpaths;
 			fs_searchpaths = search;
 
 			// find all pak files in this directory
@@ -2508,11 +2464,11 @@ namespace SharpQ3.Engine.qcommon
 				if ( ( pak = FS_LoadZipFile( pakfile, sorted[i] ) ) == 0 )
 					continue;
 				// store the game name for downloading
-				strcpy(pak->pakGamename, dir);
+				strcpy(pak.pakGamename, dir);
 
 				search = (searchpath_t*) Z_Malloc (sizeof(searchpath_t));
-				search->pack = pak;
-				search->next = fs_searchpaths;
+				search.pack = pak;
+				search.next = fs_searchpaths;
 				fs_searchpaths = search;
 			}
 
@@ -2586,8 +2542,8 @@ namespace SharpQ3.Engine.qcommon
 					continue;
 				}
 
-				for ( sp = fs_searchpaths ; sp ; sp = sp->next ) {
-					if ( sp->pack && sp->pack->checksum == fs_serverReferencedPaks[i] ) {
+				for ( sp = fs_searchpaths ; sp ; sp = sp.next ) {
+					if ( sp.pack && sp.pack.checksum == fs_serverReferencedPaks[i] ) {
 						havepak = true; // This is it!
 						break;
 					}
@@ -2659,15 +2615,15 @@ namespace SharpQ3.Engine.qcommon
 
 			// free everything
 			for ( p = fs_searchpaths ; p ; p = next ) {
-				next = p->next;
+				next = p.next;
 
-				if ( p->pack ) {
-					unzClose(p->pack->handle);
-					Z_Free( p->pack->buildBuffer );
-					Z_Free( p->pack );
+				if ( p.pack ) {
+					unzClose(p.pack.handle);
+					Z_Free( p.pack.buildBuffer );
+					Z_Free( p.pack );
 				}
-				if ( p->dir ) {
-					Z_Free( p->dir );
+				if ( p.dir ) {
+					Z_Free( p.dir );
 				}
 				Z_Free( p );
 			}
@@ -2704,19 +2660,19 @@ namespace SharpQ3.Engine.qcommon
 			p_insert_index = &fs_searchpaths; // we insert in order at the beginning of the list 
 			for ( i = 0 ; i < fs_numServerPaks ; i++ ) {
 				p_previous = p_insert_index; // track the pointer-to-current-item
-				for (s = *p_insert_index; s; s = s->next) {
+				for (s = *p_insert_index; s; s = s.next) {
 					// the part of the list before p_insert_index has been sorted already
-					if (s->pack && fs_serverPaks[i] == s->pack->checksum) {
+					if (s.pack && fs_serverPaks[i] == s.pack.checksum) {
 						fs_reordered = true;
 						// move this element to the insert list
-						*p_previous = s->next;
-						s->next = *p_insert_index;
+						*p_previous = s.next;
+						s.next = *p_insert_index;
 						*p_insert_index = s;
 						// increment insert list
-						p_insert_index = &s->next;
+						p_insert_index = &s.next;
 						break; // iterate to next server pack
 					}
-					p_previous = &s->next; 
+					p_previous = &s.next; 
 				}
 			}
 		}
@@ -2739,47 +2695,47 @@ namespace SharpQ3.Engine.qcommon
 			fs_basegame = Cvar_Get ("fs_basegame", "", CVAR_INIT );
 		  homePath = Sys_DefaultHomePath();
 		  if (!homePath || !homePath[0]) {
-				homePath = fs_basepath->string;
+				homePath = fs_basepath.string;
 			}
 			fs_homepath = Cvar_Get ("fs_homepath", homePath, CVAR_INIT );
 			fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
 
 			// add search path elements in reverse priority order
-			if (fs_cdpath->string[0]) {
-				FS_AddGameDirectory( fs_cdpath->string, gameName );
+			if (fs_cdpath.string[0]) {
+				FS_AddGameDirectory( fs_cdpath.string, gameName );
 			}
-			if (fs_basepath->string[0]) {
-				FS_AddGameDirectory( fs_basepath->string, gameName );
+			if (fs_basepath.string[0]) {
+				FS_AddGameDirectory( fs_basepath.string, gameName );
 			}
 		  // fs_homepath is somewhat particular to *nix systems, only add if relevant
 		  // NOTE: same filtering below for mods and basegame
-			if (fs_basepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
-				FS_AddGameDirectory ( fs_homepath->string, gameName );
+			if (fs_basepath.string[0] && Q_stricmp(fs_homepath.string,fs_basepath.string)) {
+				FS_AddGameDirectory ( fs_homepath.string, gameName );
 			}
 		        
 			// check for additional base game so mods can be based upon other mods
-			if ( fs_basegame->string[0] && !Q_stricmp( gameName, BASEGAME ) && Q_stricmp( fs_basegame->string, gameName ) ) {
-				if (fs_cdpath->string[0]) {
-					FS_AddGameDirectory(fs_cdpath->string, fs_basegame->string);
+			if ( fs_basegame.string[0] && !Q_stricmp( gameName, BASEGAME ) && Q_stricmp( fs_basegame.string, gameName ) ) {
+				if (fs_cdpath.string[0]) {
+					FS_AddGameDirectory(fs_cdpath.string, fs_basegame.string);
 				}
-				if (fs_basepath->string[0]) {
-					FS_AddGameDirectory(fs_basepath->string, fs_basegame->string);
+				if (fs_basepath.string[0]) {
+					FS_AddGameDirectory(fs_basepath.string, fs_basegame.string);
 				}
-				if (fs_homepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
-					FS_AddGameDirectory(fs_homepath->string, fs_basegame->string);
+				if (fs_homepath.string[0] && Q_stricmp(fs_homepath.string,fs_basepath.string)) {
+					FS_AddGameDirectory(fs_homepath.string, fs_basegame.string);
 				}
 			}
 
 			// check for additional game folder for mods
-			if ( fs_gamedirvar->string[0] && !Q_stricmp( gameName, BASEGAME ) && Q_stricmp( fs_gamedirvar->string, gameName ) ) {
-				if (fs_cdpath->string[0]) {
-					FS_AddGameDirectory(fs_cdpath->string, fs_gamedirvar->string);
+			if ( fs_gamedirvar.string[0] && !Q_stricmp( gameName, BASEGAME ) && Q_stricmp( fs_gamedirvar.string, gameName ) ) {
+				if (fs_cdpath.string[0]) {
+					FS_AddGameDirectory(fs_cdpath.string, fs_gamedirvar.string);
 				}
-				if (fs_basepath->string[0]) {
-					FS_AddGameDirectory(fs_basepath->string, fs_gamedirvar->string);
+				if (fs_basepath.string[0]) {
+					FS_AddGameDirectory(fs_basepath.string, fs_gamedirvar.string);
 				}
-				if (fs_homepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
-					FS_AddGameDirectory(fs_homepath->string, fs_gamedirvar->string);
+				if (fs_homepath.string[0] && Q_stricmp(fs_homepath.string,fs_basepath.string)) {
+					FS_AddGameDirectory(fs_homepath.string, fs_gamedirvar.string);
 				}
 			}
 
@@ -2798,7 +2754,7 @@ namespace SharpQ3.Engine.qcommon
 			// print the current search paths
 			FS_Path_f();
 
-			fs_gamedirvar->modified = false; // We just loaded, it's not modified
+			fs_gamedirvar.modified = false; // We just loaded, it's not modified
 
 			common.Com_Printf( "----------------------\n" );
 
@@ -2818,11 +2774,11 @@ namespace SharpQ3.Engine.qcommon
 
 			info[0] = 0;
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			for ( search = fs_searchpaths ; search ; search = search.next ) {
 				// is the element a pak file?
-				if ( search->pack ) {
-					if (search->pack->referenced & FS_QAGAME_REF) {
-						Com_sprintf(info, sizeof(info), "%d", search->pack->checksum);
+				if ( search.pack ) {
+					if (search.pack.referenced & FS_QAGAME_REF) {
+						Com_sprintf(info, sizeof(info), "%d", search.pack.checksum);
 					}
 				}
 			}
@@ -2844,13 +2800,13 @@ namespace SharpQ3.Engine.qcommon
 
 			info[0] = 0;
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			for ( search = fs_searchpaths ; search ; search = search.next ) {
 				// is the element a pak file? 
-				if ( !search->pack ) {
+				if ( !search.pack ) {
 					continue;
 				}
 
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
+				Q_strcat( info, sizeof( info ), va("%i ", search.pack.checksum ) );
 			}
 
 			return info;
@@ -2870,16 +2826,16 @@ namespace SharpQ3.Engine.qcommon
 
 			info[0] = 0;
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			for ( search = fs_searchpaths ; search ; search = search.next ) {
 				// is the element a pak file?
-				if ( !search->pack ) {
+				if ( !search.pack ) {
 					continue;
 				}
 
 				if (*info) {
 					Q_strcat(info, sizeof( info ), " " );
 				}
-				Q_strcat( info, sizeof( info ), search->pack->pakBasename );
+				Q_strcat( info, sizeof( info ), search.pack.pakBasename );
 			}
 
 			return info;
@@ -2900,13 +2856,13 @@ namespace SharpQ3.Engine.qcommon
 
 			info[0] = 0;
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			for ( search = fs_searchpaths ; search ; search = search.next ) {
 				// is the element a pak file? 
-				if ( !search->pack ) {
+				if ( !search.pack ) {
 					continue;
 				}
 
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
+				Q_strcat( info, sizeof( info ), va("%i ", search.pack.pure_checksum ) );
 			}
 
 			return info;
@@ -2927,11 +2883,11 @@ namespace SharpQ3.Engine.qcommon
 			info[0] = 0;
 
 
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			for ( search = fs_searchpaths ; search ; search = search.next ) {
 				// is the element a pak file?
-				if ( search->pack ) {
-					if (search->pack->referenced || Q_stricmpn(search->pack->pakGamename, BASEGAME, (int)strlen(BASEGAME))) {
-						Q_strcat( info, sizeof( info ), va("%i ", search->pack->checksum ) );
+				if ( search.pack ) {
+					if (search.pack.referenced || Q_stricmpn(search.pack.pakGamename, BASEGAME, (int)strlen(BASEGAME))) {
+						Q_strcat( info, sizeof( info ), va("%i ", search.pack.checksum ) );
 					}
 				}
 			}
@@ -2967,14 +2923,14 @@ namespace SharpQ3.Engine.qcommon
 					info[strlen(info)] = '@';
 					info[strlen(info)] = ' ';
 				}
-				for ( search = fs_searchpaths ; search ; search = search->next ) {
+				for ( search = fs_searchpaths ; search ; search = search.next ) {
 					// is the element a pak file and has it been referenced based on flag?
-					if ( search->pack && (search->pack->referenced & nFlags)) {
-						Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
+					if ( search.pack && (search.pack.referenced & nFlags)) {
+						Q_strcat( info, sizeof( info ), va("%i ", search.pack.pure_checksum ) );
 						if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
 							break;
 						}
-						checksum ^= search->pack->pure_checksum;
+						checksum ^= search.pack.pure_checksum;
 						numPaks++;
 					}
 				}
@@ -2998,24 +2954,23 @@ namespace SharpQ3.Engine.qcommon
 		The server will send this to the clients so they can check which files should be auto-downloaded. 
 		=====================
 		*/
-		const char *FS_ReferencedPakNames( void ) {
-			static char	info[BIG_INFO_STRING];
-			searchpath_t	*search;
+		private static string FS_ReferencedPakNames( ) {
+			string info = "";//[BIG_INFO_STRING];
 
-			info[0] = 0;
+			//info[0] = 0;
 
 			// we want to return ALL pk3's from the fs_game path
 			// and referenced one's from baseq3
-			for ( search = fs_searchpaths ; search ; search = search->next ) {
+			foreach ( var search in fs_searchpaths ) { 
 				// is the element a pak file?
-				if ( search->pack ) {
-					if (*info) {
-						Q_strcat(info, sizeof( info ), " " );
+				if ( search.pack != null ) {
+					if (info != null) {
+						q_shared.Q_strcat(info, sizeof( info ), " " );
 					}
-					if (search->pack->referenced || Q_stricmpn(search->pack->pakGamename, BASEGAME, (int)strlen(BASEGAME))) {
-						Q_strcat( info, sizeof( info ), search->pack->pakGamename );
-						Q_strcat( info, sizeof( info ), "/" );
-						Q_strcat( info, sizeof( info ), search->pack->pakBasename );
+					if (search.pack.referenced || Q_stricmpn(search.pack.pakGamename, BASEGAME, (int)strlen(BASEGAME))) {
+						q_shared.Q_strcat( info, sizeof( info ), search.pack.pakGamename );
+						q_shared.Q_strcat( info, sizeof( info ), "/" );
+						q_shared.Q_strcat( info, sizeof( info ), search.pack.pakBasename );
 					}
 				}
 			}
@@ -3028,16 +2983,14 @@ namespace SharpQ3.Engine.qcommon
 		FS_ClearPakReferences
 		=====================
 		*/
-		void FS_ClearPakReferences( int flags ) {
-			searchpath_t *search;
-
-			if ( !flags ) {
+		private static void FS_ClearPakReferences( int flags ) {
+			if ( flags == 0 ) {
 				flags = -1;
 			}
-			for ( search = fs_searchpaths; search; search = search->next ) {
+			foreach ( var search in fs_searchpaths ) { 
 				// is the element a pak file and has it been referenced?
-				if ( search->pack ) {
-					search->pack->referenced &= ~flags;
+				if ( search.pack ) {
+					search.pack.referenced &= ~flags;
 				}
 			}
 		}
@@ -3053,7 +3006,7 @@ namespace SharpQ3.Engine.qcommon
 		exception of .cfg and .dat files.
 		=====================
 		*/
-		void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
+		private static void FS_PureServerSetLoadedPaks( string pakSums, string pakNames ) {
 			int		i, c, d;
 
 			Cmd_TokenizeString( pakSums );
@@ -3070,7 +3023,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			if (fs_numServerPaks) {
-				Com_DPrintf( "Connected to a pure server.\n" );
+				common.Com_DPrintf( "Connected to a pure server.\n" );
 			}
 			else
 			{
@@ -3078,7 +3031,7 @@ namespace SharpQ3.Engine.qcommon
 				{
 					// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=540
 					// force a restart to make sure the search order will be correct
-					Com_DPrintf( "FS search reorder is required\n" );
+					common.Com_DPrintf( "FS search reorder is required\n" );
 					FS_Restart(fs_checksumFeed);
 					return;
 				}
@@ -3088,9 +3041,9 @@ namespace SharpQ3.Engine.qcommon
 				if (fs_serverPakNames[i]) {
 					Z_Free(fs_serverPakNames[i]);
 				}
-				fs_serverPakNames[i] = NULL;
+				fs_serverPakNames[i] = null;
 			}
-			if ( pakNames && *pakNames ) {
+			if ( pakNames != null && pakNames.Length > 0 ) {
 				Cmd_TokenizeString( pakNames );
 
 				d = Cmd_Argc();
@@ -3113,7 +3066,7 @@ namespace SharpQ3.Engine.qcommon
 		checksums to see if any pk3 files need to be auto-downloaded. 
 		=====================
 		*/
-		void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames ) {
+		public static void FS_PureServerSetReferencedPaks( string pakSums, string pakNames ) {
 			int		i, c, d;
 
 			Cmd_TokenizeString( pakSums );
@@ -3133,9 +3086,9 @@ namespace SharpQ3.Engine.qcommon
 				if (fs_serverReferencedPakNames[i]) {
 					Z_Free(fs_serverReferencedPakNames[i]);
 				}
-				fs_serverReferencedPakNames[i] = NULL;
+				fs_serverReferencedPakNames[i] = null;
 			}
-			if ( pakNames && *pakNames ) {
+			if ( pakNames != null && pakNames.Length > 0 ) {
 				Cmd_TokenizeString( pakNames );
 
 				d = Cmd_Argc();
@@ -3157,16 +3110,16 @@ namespace SharpQ3.Engine.qcommon
 		is resetting due to a game change
 		================
 		*/
-		void FS_InitFilesystem( void ) {
+		public static void FS_InitFilesystem( ) {
 			// allow command line parms to override our defaults
 			// we have to specially handle this, because normal command
 			// line variable sets don't happen until after the filesystem
 			// has already been initialized
-			Com_StartupVariable( "fs_cdpath" );
-			Com_StartupVariable( "fs_basepath" );
-			Com_StartupVariable( "fs_homepath" );
-			Com_StartupVariable( "fs_game" );
-			Com_StartupVariable( "fs_copyfiles" );
+			common.Com_StartupVariable( "fs_cdpath" );
+			common.Com_StartupVariable( "fs_basepath" );
+			common.Com_StartupVariable( "fs_homepath" );
+			common.Com_StartupVariable( "fs_game" );
+			common.Com_StartupVariable( "fs_copyfiles" );
 
 			// try to start up normally
 			FS_Startup( BASEGAME );
@@ -3174,13 +3127,13 @@ namespace SharpQ3.Engine.qcommon
 			// if we can't find default.cfg, assume that the paths are
 			// busted and error out now, rather than getting an unreadable
 			// graphics screen when the font fails to load
-			if ( FS_ReadFile( "default.cfg", NULL ) <= 0 ) {
-				Com_Error( ERR_FATAL, "Couldn't load default.cfg" );
+			if ( FS_ReadFile( "default.cfg", null ) <= 0 ) {
+				common.Com_Error( errorParm_t.ERR_FATAL, "Couldn't load default.cfg" );
 				// bk001208 - SafeMode see below, FIXME?
 			}
 
-			Q_strncpyz(lastValidBase, fs_basepath->string, sizeof(lastValidBase));
-			Q_strncpyz(lastValidGame, fs_gamedirvar->string, sizeof(lastValidGame));
+			q_shared.Q_strncpyz(lastValidBase, fs_basepath.string, sizeof(lastValidBase));
+			q_shared.Q_strncpyz(lastValidGame, fs_gamedirvar.string, sizeof(lastValidGame));
 
 		  // bk001208 - SafeMode see below, FIXME?
 		}
@@ -3218,22 +3171,22 @@ namespace SharpQ3.Engine.qcommon
 					lastValidBase[0] = '\0';
 					lastValidGame[0] = '\0';
 					FS_Restart(checksumFeed);
-					Com_Error( ERR_DROP, "Invalid game folder\n" );
+					common.Com_Error( errorParm_t.ERR_DROP, "Invalid game folder\n" );
 					return;
 				}
-				Com_Error( ERR_FATAL, "Couldn't load default.cfg" );
+				common.Com_Error( errorParm_t.ERR_FATAL, "Couldn't load default.cfg" );
 			}
 
 			// bk010116 - new check before safeMode
-			if ( Q_stricmp(fs_gamedirvar->string, lastValidGame) ) {
+			if ( Q_stricmp(fs_gamedirvar.@string, lastValidGame) ) {
 				// skip the q3config.cfg if "safe" is on the command line
-				if ( !Com_SafeMode() ) {
+				if ( !common.Com_SafeMode() ) {
 					Cbuf_AddText ("exec q3config.cfg\n");
 				}
 			}
 
-			Q_strncpyz(lastValidBase, fs_basepath->string, sizeof(lastValidBase));
-			Q_strncpyz(lastValidGame, fs_gamedirvar->string, sizeof(lastValidGame));
+			Q_strncpyz(lastValidBase, fs_basepath.string, sizeof(lastValidBase));
+			Q_strncpyz(lastValidGame, fs_gamedirvar.string, sizeof(lastValidGame));
 
 		}
 
@@ -3243,8 +3196,8 @@ namespace SharpQ3.Engine.qcommon
 		restart if necessary
 		=================
 		*/
-		bool FS_ConditionalRestart( int checksumFeed ) {
-			if( fs_gamedirvar->modified || checksumFeed != fs_checksumFeed ) {
+		public static bool FS_ConditionalRestart( int checksumFeed ) {
+			if( fs_gamedirvar.modified || checksumFeed != fs_checksumFeed ) {
 				FS_Restart( checksumFeed );
 				return true;
 			}
@@ -3259,56 +3212,58 @@ namespace SharpQ3.Engine.qcommon
 		========================================================================================
 		*/
 
-		int		FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode ) {
-			int		r;
+		public static int FS_FOpenFileByMode( string qpath, fileHandle_t f, q_shared.fsMode_t mode ) {
+			int		r = 0;
 			bool	sync;
 
 			sync = false;
 
-			switch( mode ) {
-			case FS_READ:
-				r = FS_FOpenFileRead( qpath, f, true );
-				break;
-			case FS_WRITE:
-				*f = FS_FOpenFileWrite( qpath );
-				r = 0;
-				if (*f == 0) {
-					r = -1;
-				}
-				break;
-			case FS_APPEND_SYNC:
-				sync = true;
-			case FS_APPEND:
-				*f = FS_FOpenFileAppend( qpath );
-				r = 0;
-				if (*f == 0) {
-					r = -1;
-				}
-				break;
-			default:
-				Com_Error( ERR_FATAL, "FSH_FOpenFile: bad mode" );
-				return -1;
+			switch( mode ) 
+			{
+				case q_shared.fsMode_t.FS_READ:
+					r = FS_FOpenFileRead( qpath, f, true );
+					break;
+				case q_shared.fsMode_t.FS_WRITE:
+					f = FS_FOpenFileWrite( qpath );
+					r = 0;
+					if (f.ID == 0) {
+						r = -1;
+					}
+					break;
+				case q_shared.fsMode_t.FS_APPEND_SYNC:
+					sync = true;
+					break;
+				case q_shared.fsMode_t.FS_APPEND:
+					f = FS_FOpenFileAppend( qpath );
+					r = 0;
+					if (f.ID == 0) {
+						r = -1;
+					}
+					break;
+				default:
+					common.Com_Error( errorParm_t.ERR_FATAL, "FSH_FOpenFile: bad mode" );
+					return -1;
 			}
 
-			if (!f) {
+			if (f.ID == 0) {
 				return r;
 			}
 
-			if ( *f ) {
-				if (fsh[*f].zipFile == true) {
-					fsh[*f].baseOffset = unztell(fsh[*f].handleFiles.file.z);
+			if ( f.ID > 0 ) {
+				if (fsh[f.ID].zipFile == true) {
+					fsh[f.ID].baseOffset = unztell(fsh[f.ID].handleFiles.file.z);
 				} else {
-					fsh[*f].baseOffset = ftell(fsh[*f].handleFiles.file.o);
+					fsh[f.ID].baseOffset = ftell(fsh[f.ID].handleFiles.file.o);
 				}
-				fsh[*f].fileSize = r;
-				fsh[*f].streamed = false;
+				fsh[f.ID].fileSize = r;
+				fsh[f.ID].streamed = false;
 
-				if (mode == FS_READ) {
-					Sys_BeginStreamedFile( *f, 0x4000 );
-					fsh[*f].streamed = true;
+				if (mode == q_shared.fsMode_t.FS_READ ) {
+					Sys_BeginStreamedFile( f, 0x4000 );
+					fsh[f.ID].streamed = true;
 				}
 			}
-			fsh[*f].handleSync = sync;
+			fsh[f.ID].handleSync = sync;
 
 			return r;
 		}
