@@ -25,6 +25,7 @@ using SprintfNET;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace SharpQ3.Engine
 {
@@ -369,7 +370,7 @@ namespace SharpQ3.Engine
 		{
 			float ilength;
 
-			ilength = Q_rsqrt( DotProduct( v, v ) );
+			ilength = q_shared.Q_rsqrt( DotProduct( v, v ) );
 
 			v.x *= ilength;
 			v.y *= ilength;
@@ -1200,14 +1201,14 @@ namespace SharpQ3.Engine
 		{
 			var str = StringFormatter.PrintF( format, parameters );
 
-			Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, str );
+			common.Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
 
 		public static void COM_ParseWarning( string format, params object[] parameters )
 		{
 			var str = StringFormatter.PrintF( format, parameters );
 
-			Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, str );
+			common.Com_Printf("WARNING: %s, line %d: %s\n", com_parsename, com_lines, str );
 		}
 
 		/*
@@ -1446,7 +1447,7 @@ namespace SharpQ3.Engine
 
 			token = COM_Parse( ref buf_p );
 			if ( token.IndexOf( match ) == -1 ) {
-				Com_Error( ERR_DROP, "MatchToken: %s != %s", token, match );
+				common.Com_Error( errorParm_t.ERR_DROP, "MatchToken: %s != %s", token, match );
 			}
 		}
 
@@ -1605,10 +1606,10 @@ namespace SharpQ3.Engine
 		public static void Q_strncpyz( out string dest, string src, int destsize ) {
 		  // bk001129 - also NULL dest
 			if ( src == null ) {
-				Com_Error( ERR_FATAL, "Q_strncpyz: NULL src" );
+				common.Com_Error( errorParm_t.ERR_FATAL, "Q_strncpyz: NULL src" );
 			}
 			if ( destsize < 1 ) {
-				Com_Error(ERR_FATAL,"Q_strncpyz: destsize < 1" ); 
+				common.Com_Error(errorParm_t.ERR_FATAL,"Q_strncpyz: destsize < 1" ); 
 			}
 
 			dest = new string( destsize < src.Length ? src.Substring( destsize ) : src );
@@ -1692,9 +1693,9 @@ namespace SharpQ3.Engine
 
 			l1 = (int) dest.Length;
 			if ( l1 >= size ) {
-				Com_Error( ERR_FATAL, "Q_strcat: already overflowed" );
+				common.Com_Error( errorParm_t.ERR_FATAL, "Q_strcat: already overflowed" );
 			}
-			Q_strncpyz( dest + l1, src, size - l1 );
+			q_shared.Q_strncpyz( dest + l1, src, size - l1 );
 		}
 
 
@@ -1710,7 +1711,7 @@ namespace SharpQ3.Engine
 			len = 0;
 			p = @string;
 			while( pI < p.Length ) {
-				if( q_shared.Q_IsColorString( p, pI ) ) {
+				if( Q_IsColorString( p, pI ) ) {
 					pI += 2;
 					continue;
 				}
@@ -1749,14 +1750,13 @@ namespace SharpQ3.Engine
 
 		public static void Com_sprintf( out string dest, int size, string fmt, params object[] parameters ) 
 		{
-			int		len;
 			char[]	bigbuffer = new char[32000];    // big, but small enough to fit in PPC stack
 
 			var output = StringFormatter.PrintF( fmt, parameters );
 
 			if ( output.Length >= size ) 
 			{
-				common.Com_Printf( "Com_sprintf: overflow of %i in %i\n", len, size);
+				common.Com_Printf( "Com_sprintf: overflow of %i in %i\n", output.Length, size );
 			}
 			Q_strncpyz( out dest, output, size );
 		}
@@ -1798,7 +1798,7 @@ namespace SharpQ3.Engine
 			}
 
 			if ( s.Length >= BIG_INFO_STRING ) {
-				Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring" );
+				common.Com_Error( errorParm_t.ERR_DROP, "Info_ValueForKey: oversize infostring" );
 			}
 
 			valueindex ^= 1;
@@ -1893,7 +1893,7 @@ namespace SharpQ3.Engine
 			int sI = 0, oI = 0;
 
 			if ( s.Length >= MAX_INFO_STRING ) {
-				Com_Error( ERR_DROP, "Info_RemoveKey: oversize infostring" );
+				common.Com_Error( errorParm_t.ERR_DROP, "Info_RemoveKey: oversize infostring" );
 			}
 
 			if (strchr (key, '\\')) {
@@ -1951,7 +1951,7 @@ namespace SharpQ3.Engine
 			int sI = 0, oI = 0;
 
 			if ( s.Length >= BIG_INFO_STRING ) {
-				Com_Error( ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
+				common.Com_Error( errorParm_t.ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
 			}
 
 			if (strchr (key, '\\')) {
@@ -2021,26 +2021,26 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey( string s, string key, string value ) {
+		public static void Info_SetValueForKey( out string s, string key, string value ) {
 			string newi;//[MAX_INFO_STRING];
 
 			if ( s.Length >= MAX_INFO_STRING ) {
-				common.Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
+				common.Com_Error( errorParm_t.ERR_DROP, "Info_SetValueForKey: oversize infostring" );
 			}
 
-			if (strchr (key, '\\') || strchr (value, '\\'))
+			if ( key.Contains('\\') || value.Contains( '\\' ))
 			{
 				common.Com_Printf ("Can't use keys or values with a \\\n");
 				return;
 			}
 
-			if (strchr (key, ';') || strchr (value, ';'))
+			if ( key.Contains( ';' ) || value.Contains( ';' ))
 			{
 				common.Com_Printf ("Can't use keys or values with a semicolon\n");
 				return;
 			}
 
-			if (strchr (key, '\"') || strchr (value, '\"'))
+			if ( key.Contains( '\"' ) || value.Contains( '\"' ))
 			{
 				common.Com_Printf ("Can't use keys or values with a \"\n");
 				return;
@@ -2050,16 +2050,16 @@ namespace SharpQ3.Engine
 			if (value == null || value.Length == 0)
 				return;
 
-			Com_sprintf( newi, sizeof(newi), "\\%s\\%s", key, value);
+			Com_sprintf( out newi, MAX_INFO_STRING, "\\%s\\%s", key, value);
 
 			if ( newi.Length + s.Length > MAX_INFO_STRING)
 			{
-				Com_Printf ("Info string length exceeded\n");
+				common.Com_Printf ("Info string length exceeded\n");
 				return;
 			}
 
-			strcat( newi, s );
-			strcpy( s, newi );
+			newi += s;
+			s = new string (newi );
 		}
 
 		/*
@@ -2069,18 +2069,16 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey_Big( string s, string key, string value ) 
+		public static void Info_SetValueForKey_Big( out string s, string key, string value ) 
 		{
-			char[]	newi = new char[BIG_INFO_STRING];
-
 			if ( s.Length >= BIG_INFO_STRING ) 
 			{
-				Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring" );
+				common.Com_Error( errorParm_t.ERR_DROP, "Info_SetValueForKey: oversize infostring" );
 			}
 
 			if (key.IndexOf( '\\') != -1 || value.IndexOf( '\\' ) != -1 )
 			{
-				Com_Printf ("Can't use keys or values with a \\\n");
+				common.Com_Printf ("Can't use keys or values with a \\\n");
 				return;
 			}
 
@@ -2092,7 +2090,7 @@ namespace SharpQ3.Engine
 
 			if (key.IndexOf( '\"' ) != -1 || value.IndexOf( '\"' ) != -1 )
 			{
-				Com_Printf ("Can't use keys or values with a \"\n");
+				common.Com_Printf ("Can't use keys or values with a \"\n");
 				return;
 			}
 
@@ -2100,11 +2098,11 @@ namespace SharpQ3.Engine
 			if ( value == null || value.Length == 0 )
 				return;
 
-			Com_sprintf (newi, sizeof(newi), "\\%s\\%s", key, value);
+			Com_sprintf ( out var newi, BIG_INFO_STRING, "\\%s\\%s", key, value);
 
 			if ( newi.Length + s.Length > BIG_INFO_STRING)
 			{
-				Com_Printf ("BIG Info string length exceeded\n");
+				common.Com_Printf ("BIG Info string length exceeded\n");
 				return;
 			}
 
@@ -2117,6 +2115,7 @@ namespace SharpQ3.Engine
 	// Used more like a class
 	public class cvar_t
 	{
+		public int handle; // index
 		public string name;
 		public string @string;
 		public string resetString;      // cvar_restart will reset to this value

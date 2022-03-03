@@ -98,7 +98,7 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 		- [ ] cm_trace.cs - 1%
 		- [ ] cmd.cs - 53%
 		- [ ] common.cs - 6%
-		- [ ] cvar.cs - 5%
+		- [x] cvar.cs - 100%
 		- [ ] files.cs - 5%
 		- [ ] huffman.cs - 1%
 		- [ ] md4.cs - 1%

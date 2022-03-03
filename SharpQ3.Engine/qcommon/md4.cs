@@ -49,11 +49,12 @@ namespace SharpQ3.Engine.qcommon
 		These notices must be retained in any copies of any part of this documentation and/or software. */
 
 		/* MD4 context. */
-		typedef struct {
+		struct MD4_CTX
+		{
 			UINT4 state[4];				/* state (ABCD) */
 			UINT4 count[2];				/* number of bits, modulo 2^64 (lsb first) */
 			unsigned char buffer[64]; 			/* input buffer */
-		} MD4_CTX;
+		}
 
 		void MD4Init (MD4_CTX *);
 		void MD4Update (MD4_CTX *, const unsigned char *, unsigned int);
@@ -77,18 +78,18 @@ namespace SharpQ3.Engine.qcommon
 		These notices must be retained in any copies of any part of this documentation and/or software. */
 
 		/* Constants for MD4Transform routine.  */
-		#define S11 3
-		#define S12 7
-		#define S13 11
-		#define S14 19
-		#define S21 3
-		#define S22 5
-		#define S23 9
-		#define S24 13
-		#define S31 3
-		#define S32 9
-		#define S33 11
-		#define S34 15
+		private const int S11 = 3;
+		private const int S12 = 7;
+		private const int S13 = 11;
+		private const int S14 = 19;
+		private const int S21 = 3;
+		private const int S22 = 5;
+		private const int S23 = 9;
+		private const int S24 = 13;
+		private const int S31 = 3;
+		private const int S32 = 9;
+		private const int S33 = 11;
+		private const int S34 = 15;
 
 		static void MD4Transform (UINT4 [4], const unsigned char [64]);
 		static void Encode (unsigned char *, UINT4 *, unsigned int);
@@ -116,15 +117,15 @@ namespace SharpQ3.Engine.qcommon
 
 
 		/* MD4 initialization. Begins an MD4 operation, writing a new context. */
-		void MD4Init (MD4_CTX *context)
+		static void MD4Init (MD4_CTX *context)
 		{
 			context->count[0] = context->count[1] = 0;
 
-		/* Load magic initialization constants.*/
-		context->state[0] = 0x67452301;
-		context->state[1] = 0xefcdab89;
-		context->state[2] = 0x98badcfe;
-		context->state[3] = 0x10325476;
+			/* Load magic initialization constants.*/
+			context->state[0] = 0x67452301;
+			context->state[1] = 0xefcdab89;
+			context->state[2] = 0x98badcfe;
+			context->state[3] = 0x10325476;
 		}
 
 		/* MD4 block update operation. Continues an MD4 message-digest operation, processing another message block, and updating the context. */
@@ -275,10 +276,10 @@ namespace SharpQ3.Engine.qcommon
 		/* Decodes input (unsigned char) into output (UINT4). Assumes len is a multiple of 4. */
 		static void Decode (UINT4 *output, const unsigned char *input, unsigned int len)
 		{
-		unsigned int i, j;
+			unsigned int i, j;
 
-		for (i = 0, j = 0; j < len; i++, j += 4)
- 			output[i] = ((UINT4)input[j]) | (((UINT4)input[j+1]) << 8) | (((UINT4)input[j+2]) << 16) | (((UINT4)input[j+3]) << 24);
+			for (i = 0, j = 0; j < len; i++, j += 4)
+ 				output[i] = ((UINT4)input[j]) | (((UINT4)input[j+1]) << 8) | (((UINT4)input[j+2]) << 16) | (((UINT4)input[j+3]) << 24);
 		}
 
 		//===================================================================
