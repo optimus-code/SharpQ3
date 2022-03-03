@@ -11,6 +11,7 @@ SharpQ3 is a C# port of the Kenny Edition of Quake III Arena. This is a huge und
 
 Initial work is starting with code in QCommon as it is obviously the code that would be most useful to port at this point.
 
+### Progress (Approx 4.2%)
 - [ ] CGame
 	- [ ] cg_consolecmds.cs - 1%
 	- [ ] cg_draw.cs - 1%
