@@ -20,11 +20,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.server
 {
 	// sv_game.c -- interface to the game dll
 	public static class sv_game
 	{
+		static sv_game()
+        {
+			cmd.OnSVGameCommand = SV_GameCommand;
+		}
+
 		botlib_export_t	*botlib_export;
 
 		void SV_GameError( const char *string ) {
@@ -965,7 +972,7 @@ namespace SharpQ3.Engine.server
 		See if the current console command is claimed by the game
 		====================
 		*/
-		bool SV_GameCommand( void ) {
+		public static bool SV_GameCommand( ) {
 			if ( sv.state != SS_GAME ) {
 				return false;
 			}

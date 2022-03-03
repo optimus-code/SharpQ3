@@ -97,7 +97,7 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 		- [ ] cm_polylib.cs - 29%
 		- [ ] cm_test.cs - 1%
 		- [ ] cm_trace.cs - 31%
-		- [ ] cmd.cs - 96%
+		- [x] cmd.cs - 100%
 		- [ ] common.cs - 63%
 		- [x] cvar.cs - 100%
 		- [ ] files.cs - 35%

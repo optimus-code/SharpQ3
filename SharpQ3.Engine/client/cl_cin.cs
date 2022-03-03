@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.client
 {
 	/*****************************************************************************
@@ -158,7 +160,7 @@ namespace SharpQ3.Engine.client
 					return i;
 				}
 			}
-			Com_Error( ERR_DROP, "CIN_HandleForVideo: none free" );
+			common.Com_Error( ERR_DROP, "CIN_HandleForVideo: none free" );
 			return -1;
 		}
 
@@ -1107,8 +1109,8 @@ namespace SharpQ3.Engine.client
 			if (currentHandle < 0) return;
 
 			Sys_EndStreamedFile(cinTable[currentHandle].iFile);
-			FS_FCloseFile( cinTable[currentHandle].iFile );
-			FS_FOpenFileRead (cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, true);
+			files.FS_FCloseFile( cinTable[currentHandle].iFile );
+			files.FS_FOpenFileRead (cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, true);
 			// let the background thread start reading ahead
 			Sys_BeginStreamedFile( cinTable[currentHandle].iFile, 0x10000 );
 			Sys_StreamedRead (cin.file, 16, 1, cinTable[currentHandle].iFile);
@@ -1166,7 +1168,7 @@ namespace SharpQ3.Engine.client
 						cinTable[currentHandle].buf = 	cin.linbuf;
 					}
 					if (cinTable[currentHandle].numQuads == 0) {		// first frame
-						Com_Memcpy(cin.linbuf+cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine*cinTable[currentHandle].ysize);
+						common.Com_Memcpy(cin.linbuf+cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine*cinTable[currentHandle].ysize);
 					}
 					cinTable[currentHandle].numQuads++;
 					cinTable[currentHandle].dirty = true;
@@ -1236,7 +1238,7 @@ namespace SharpQ3.Engine.client
 			cinTable[currentHandle].roqF1		 = (char)framedata[6];
 
 			if (cinTable[currentHandle].RoQFrameSize>65536||cinTable[currentHandle].roq_id==0x1084) {
-				Com_DPrintf("roq_size>65536||roq_id==0x1084\n");
+				common.Com_DPrintf("roq_size>65536||roq_id==0x1084\n");
 				cinTable[currentHandle].status = FMV_EOF;
 				if (cinTable[currentHandle].looping) {
 					RoQReset();
@@ -1302,12 +1304,12 @@ namespace SharpQ3.Engine.client
 			if ( cinTable[currentHandle].status == FMV_IDLE ) {
 				return;
 			}
-			Com_DPrintf("finished cinematic\n");
+			common.Com_DPrintf("finished cinematic\n");
 			cinTable[currentHandle].status = FMV_IDLE;
 
 			if (cinTable[currentHandle].iFile) {
 				Sys_EndStreamedFile( cinTable[currentHandle].iFile );
-				FS_FCloseFile( cinTable[currentHandle].iFile );
+				files.FS_FCloseFile( cinTable[currentHandle].iFile );
 				cinTable[currentHandle].iFile = 0;
 			}
 
@@ -1317,10 +1319,10 @@ namespace SharpQ3.Engine.client
 				// if we are aborting the intro cinematic with
 				// a devmap command, nextmap would be valid by
 				// the time it was referenced
-				s = Cvar_VariableString( "nextmap" );
+				s = Cvar.Cvar_VariableString( "nextmap" );
 				if ( s[0] ) {
-					Cbuf_ExecuteText( EXEC_APPEND, va("%s\n", s) );
-					Cvar_Set( "nextmap", "" );
+					cmd.Cbuf_ExecuteText( EXEC_APPEND, va("%s\n", s) );
+					Cvar.Cvar_Set( "nextmap", "" );
 				}
 				CL_handle = -1;
 			}
@@ -1338,7 +1340,7 @@ namespace SharpQ3.Engine.client
 			if (handle < 0 || handle>= MAX_VIDEO_HANDLES || cinTable[handle].status == FMV_EOF) return FMV_EOF;
 			currentHandle = handle;
 
-			Com_DPrintf("trFMV::stop(), closing %s\n", cinTable[currentHandle].fileName);
+			common.Com_DPrintf("trFMV::stop(), closing %s\n", cinTable[currentHandle].fileName);
 
 			if (!cinTable[currentHandle].buf) {
 				return FMV_EOF;
@@ -1446,9 +1448,9 @@ namespace SharpQ3.Engine.client
 			int		i;
 
 			if (strstr(arg, "/") == NULL && strstr(arg, "\\") == NULL) {
-				Com_sprintf (name, sizeof(name), "video/%s", arg);
+				common.Com_sprintf (name, sizeof(name), "video/%s", arg);
 			} else {
-				Com_sprintf (name, sizeof(name), "%s", arg);
+				common.Com_sprintf (name, sizeof(name), "%s", arg);
 			}
 
 			if (!(systemBits & CIN_system)) {
@@ -1459,9 +1461,9 @@ namespace SharpQ3.Engine.client
 				}
 			}
 
-			Com_DPrintf("SCR_PlayCinematic( %s )\n", arg);
+			common.Com_DPrintf("SCR_PlayCinematic( %s )\n", arg);
 
-			Com_Memset(&cin, 0, sizeof(cinematics_t) );
+			common.Com_Memset(&cin, 0, sizeof(cinematics_t) );
 			currentHandle = CIN_HandleForVideo();
 
 			cin.currentHandle = currentHandle;
@@ -1469,10 +1471,10 @@ namespace SharpQ3.Engine.client
 			strcpy(cinTable[currentHandle].fileName, name);
 
 			cinTable[currentHandle].ROQSize = 0;
-			cinTable[currentHandle].ROQSize = FS_FOpenFileRead (cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, true);
+			cinTable[currentHandle].ROQSize = files.FS_FOpenFileRead (cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, true);
 
 			if (cinTable[currentHandle].ROQSize<=0) {
-				Com_DPrintf("play(%s), ROQSize<=0\n", arg);
+				common.Com_DPrintf("play(%s), ROQSize<=0\n", arg);
 				cinTable[currentHandle].fileName[0] = 0;
 				return -1;
 			}
@@ -1499,18 +1501,18 @@ namespace SharpQ3.Engine.client
 
 			initRoQ();
 							
-			FS_Read (cin.file, 16, cinTable[currentHandle].iFile);
+			files.FS_Read (cin.file, 16, cinTable[currentHandle].iFile);
 
 			RoQID = (unsigned short)(cin.file[0]) + (unsigned short)(cin.file[1])*256;
 			if (RoQID == 0x1084)
 			{
 				RoQ_init();
-		//		FS_Read (cin.file, cinTable[currentHandle].RoQFrameSize+8, cinTable[currentHandle].iFile);
+		//		files.FS_Read (cin.file, cinTable[currentHandle].RoQFrameSize+8, cinTable[currentHandle].iFile);
 				// let the background thread start reading ahead
 				Sys_BeginStreamedFile( cinTable[currentHandle].iFile, 0x10000 );
 
 				cinTable[currentHandle].status = FMV_PLAY;
-				Com_DPrintf("trFMV::play(), playing %s\n", arg);
+				common.Com_DPrintf("trFMV::play(), playing %s\n", arg);
 
 				if (cinTable[currentHandle].alterGameState) {
 					cls.state = CA_CINEMATIC;
@@ -1522,7 +1524,7 @@ namespace SharpQ3.Engine.client
 
 				return currentHandle;
 			}
-			Com_DPrintf("trFMV::play(), invalid RoQ ID\n");
+			common.Com_DPrintf("trFMV::play(), invalid RoQ ID\n");
 
 			RoQShutdown();
 			return -1;
@@ -1629,7 +1631,7 @@ namespace SharpQ3.Engine.client
 			bool	holdatend;
 			int bits = CIN_system;
 
-			Com_DPrintf("CL_PlayCinematic_f\n");
+			common.Com_DPrintf("CL_PlayCinematic_f\n");
 			if (cls.state == CA_CINEMATIC) {
 				SCR_StopCinematic();
 			}

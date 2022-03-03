@@ -1458,8 +1458,7 @@ namespace SharpQ3.Engine.qcommon
 		a null buffer will just return the file length without loading
 		============
 		*/
-		public static int FS_ReadFile( string qpath, out byte[] buffer ) {
-			FileStream	h;
+		public static int FS_ReadFile( string qpath, out byte[] buffer, out fileHandle_t h ) {
 			byte[]			buf;
 			bool		isConfig;
 			int				len;
@@ -1520,8 +1519,8 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// look for it in the filesystem or pack files
-			len = FS_FOpenFileRead( qpath, &h, false );
-			if ( h == 0 ) {
+			len = FS_FOpenFileRead( qpath, out h, false );
+			if ( h.ID == 0 ) {
 				if ( buffer ) {
 					*buffer = null;
 				}
@@ -1572,21 +1571,23 @@ namespace SharpQ3.Engine.qcommon
 		FS_FreeFile
 		=============
 		*/
-		void FS_FreeFile( void *buffer ) {
+		public static void FS_FreeFile( fileHandle_t f )
+		{
 			if ( fs_searchpaths == null ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "Filesystem call made without initialization\n" );
 			}
-			if ( !buffer ) {
+			if ( f.ID == 0 ) {
 				common.Com_Error( errorParm_t.ERR_FATAL, "FS_FreeFile( NULL )" );
 			}
 			fs_loadStack--;
 
-			Hunk_FreeTempMemory( buffer );
+			if ( fsh[f.ID]?.zipFile == true )
+			{
+				fsh[f.ID].handleFiles?.file?.zf?.Dispose( );
 
-			// if all of our temp files are free, clear all of our space
-			if ( fs_loadStack == 0 ) {
-				Hunk_ClearTempMemory();
 			}
+			else
+				fsh[f.ID].handleFiles?.file?.o?.Dispose( );
 		}
 
 		/*

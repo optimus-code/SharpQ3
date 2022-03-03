@@ -93,6 +93,10 @@ namespace SharpQ3.Engine.client
 		serverStatus_t cl_serverStatusList[MAX_SERVERSTATUSREQUESTS];
 		int serverStatusCount;
 
+		static cl_main()
+        {
+			SharpQ3.Engine.qcommon.cmd.OnCLForwardCommandToServer = CL_ForwardCommandToServer;
+		}
 		/*
 		=======================================================================
 
@@ -763,7 +767,7 @@ namespace SharpQ3.Engine.client
 		so when they are typed in at the console, they will need to be forwarded.
 		===================
 		*/
-		void CL_ForwardCommandToServer( const char *string ) {
+		public static void CL_ForwardCommandToServer( string @string ) {
 			char	*cmd;
 
 			cmd = Cmd_Argv(0);

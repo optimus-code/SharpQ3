@@ -20,11 +20,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.client
 {
 	// cl_cgame.c  -- client system interaction with client game
 	public static class cl_cgame
 	{
+		static cl_cgame()
+        {
+			cmd.OnCLGameCommand = CL_GameCommand;
+        }
+
 		extern	botlib_export_t	*botlib_export;
 
 		/*
@@ -774,7 +781,8 @@ namespace SharpQ3.Engine.client
 		See if the current console command is claimed by the cgame
 		====================
 		*/
-		bool CL_GameCommand( void ) {
+		public static bool CL_GameCommand( ) 
+		{
 			if ( !cgvm ) {
 				return false;
 			}

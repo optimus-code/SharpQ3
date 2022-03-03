@@ -20,10 +20,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.client
 {
 	public static class cl_ui
 	{
+		static cl_ui( )
+		{
+			cmd.OnUIGameCommand = UI_GameCommand;
+		}
+
 		extern	botlib_export_t	*botlib_export;
 
 		vm_t *uivm;
@@ -1133,7 +1140,7 @@ namespace SharpQ3.Engine.client
 		See if the current console command is claimed by the ui
 		====================
 		*/
-		bool UI_GameCommand( void ) {
+		public static bool UI_GameCommand( ) {
 			if ( !uivm ) {
 				return false;
 			}
