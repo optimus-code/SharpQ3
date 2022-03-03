@@ -705,7 +705,7 @@ namespace SharpQ3.Engine.qcommon
 		with the archive flag set to true.
 		============
 		*/
-        static void Cvar_WriteVariables( fileHandle_t f )
+        public static void Cvar_WriteVariables( fileHandle_t f )
         {
             cvar_t var;
             string buffer;
@@ -1036,7 +1036,7 @@ namespace SharpQ3.Engine.qcommon
 		Reads in all archived cvars
 		============
 		*/
-        static void Cvar_Init( )
+        public static void Cvar_Init( )
         {
             cvar_cheats = Cvar_Get( "sv_cheats", "1", CVAR.ROM | CVAR.SYSTEMINFO );
 

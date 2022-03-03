@@ -340,7 +340,7 @@ namespace SharpQ3.Engine.qcommon
 		==============
 		*/
 
-		static bool FS_Initialized() {
+		public static bool FS_Initialized() {
 			return (bool) (fs_searchpaths != null);
 		}
 

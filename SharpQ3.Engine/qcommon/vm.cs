@@ -37,18 +37,15 @@ namespace SharpQ3.Engine.qcommon
 
 		*/
 
-		vm_t	*currentVM = NULL; // bk001212
-		vm_t	*lastVM    = NULL; // bk001212
-		int		vm_debugLevel;
+		static vm_t	currentVM = null; // bk001212
+		static vm_t lastVM    = null; // bk001212
+		static int vm_debugLevel;
 
-		#define	MAX_VM		3
-		vm_t	vmTable[MAX_VM];
+		const int MAX_VM = 3;
+		static vm_t[] vmTable = new vm_t[MAX_VM];
 
-
-		void VM_VmInfo_f( void );
-		void VM_VmProfile_f( void );
-
-		void VM_Debug( int level ) {
+		static void VM_Debug( int level ) 
+		{
 			vm_debugLevel = level;
 		}
 
@@ -57,15 +54,15 @@ namespace SharpQ3.Engine.qcommon
 		VM_Init
 		==============
 		*/
-		void VM_Init( void ) {
-			Cvar_Get( "vm_cgame", "1", CVAR_ARCHIVE );
-			Cvar_Get( "vm_game", "1", CVAR_ARCHIVE );
-			Cvar_Get( "vm_ui", "1", CVAR_ARCHIVE );
+		static void VM_Init( ) {
+			Cvar.Cvar_Get( "vm_cgame", "1", CVAR.ARCHIVE );
+			Cvar.Cvar_Get( "vm_game", "1", CVAR.ARCHIVE );
+			Cvar.Cvar_Get( "vm_ui", "1", CVAR.ARCHIVE );
 
-			Cmd_AddCommand ("vmprofile", VM_VmProfile_f );
-			Cmd_AddCommand ("vminfo", VM_VmInfo_f );
+			cmd.Cmd_AddCommand ("vmprofile", VM_VmProfile_f );
+			cmd.Cmd_AddCommand ("vminfo", VM_VmInfo_f );
 
-			Com_Memset( vmTable, 0, sizeof( vmTable ) );
+			common.Com_Memset( vmTable, 0, sizeof( vmTable ) );
 		}
 
 

@@ -162,26 +162,26 @@ namespace SharpQ3.Engine.qcommon
 		{
 		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
 		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
-			if ( logfile == 0 && FS_Initialized() && !opening_qconsole) 
+			if ( logfile == 0 && files.FS_Initialized() && !opening_qconsole) 
 			{
 				opening_qconsole = true;
 
 				var newtime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-				logfile = FS_FOpenFileWrite( "qconsole.log" );
+				logfile = files.FS_FOpenFileWrite( "qconsole.log" );
 				Com_Printf( "logfile opened on %s\n", DateTime.Now.ToString( "ddd MMM dd hh:mm:ss yyyy" ) );
 				if ( com_logfile.integer > 1 ) 
 				{
 					// force it to not buffer so we get valid
 					// data even if we are crashing
-					FS_ForceFlush(logfile);
+					files.FS_ForceFlush(logfile);
 				}
 
 				opening_qconsole = false;
 			}
-			if ( logfile > 0 && FS_Initialized()) 
+			if ( logfile > 0 && files.FS_Initialized()) 
 			{
-				FS_Write(msg, msg.Length, logfile);
+				files.FS_Write(msg, msg.Length, logfile);
 			}
 		}
 	}
@@ -226,7 +226,7 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		// make sure we can get at our local stuff
-		FS_PureServerSetLoadedPaks( "", "" );
+		files.FS_PureServerSetLoadedPaks( "", "" );
 
 		// if we are getting a solid stream of ERR_DROP, do an ERR_FATAL
 		currentTime = Sys_Milliseconds();
@@ -267,7 +267,7 @@ namespace SharpQ3.Engine.qcommon
 			SV_Shutdown (va("Server fatal crashed: %s\n", com_errorMessage));
 		}
 
-		com.Com_Shutdown ();
+		common.Com_Shutdown ();
 
 		Sys_Error ("%s", com_errorMessage);
 	}
@@ -288,8 +288,8 @@ namespace SharpQ3.Engine.qcommon
 		{
 			SV_Shutdown ("Server quit\n");
 			CL_Shutdown ();
-			com.Com_Shutdown ();
-			FS_Shutdown(true);
+			Com_Shutdown ();
+			files.FS_Shutdown(true);
 		}
 		Sys_Quit ();
 	}
@@ -472,7 +472,7 @@ namespace SharpQ3.Engine.qcommon
 			l = o.Length - key.Length;
 			if (l < 20)
 			{
-				com.Com_Memset (o, ' ', 20-l);
+				Com_Memset (o, ' ', 20-l);
 				key[20] = 0;
 			}
 			else
@@ -717,7 +717,7 @@ namespace SharpQ3.Engine.qcommon
 		zone.size = size;
 		zone.used = 0;
 	
-		block.prev = block->next = &zone.blocklist;
+		block.prev = block.next = &zone.blocklist;
 		block.tag = 0;			// free block
 		block.id = ZONEID;
 		block.size = size - sizeof(memzone_t);
@@ -751,62 +751,62 @@ namespace SharpQ3.Engine.qcommon
 		memzone_t *zone;
 	
 		if (!ptr) {
-			Com_Error( ERR_DROP, "Z_Free: NULL pointer" );
+			Com_Error( errorParm_t.ERR_DROP, "Z_Free: NULL pointer" );
 		}
 
 		block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
-		if (block->id != ZONEID) {
-			Com_Error( ERR_FATAL, "Z_Free: freed a pointer without ZONEID" );
+		if (block.id != ZONEID) {
+			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a pointer without ZONEID" );
 		}
-		if (block->tag == 0) {
-			Com_Error( ERR_FATAL, "Z_Free: freed a freed pointer" );
+		if (block.tag == 0) {
+			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a freed pointer" );
 		}
 		// if static memory
-		if (block->tag == TAG_STATIC) {
+		if (block.tag == TAG_STATIC) {
 			return;
 		}
 
 		// check the memory trash tester
-		if ( *(int *)((byte *)block + block->size - 4 ) != ZONEID ) {
-			Com_Error( ERR_FATAL, "Z_Free: memory block wrote past end" );
+		if ( *(int *)((byte *)block + block.size - 4 ) != ZONEID ) {
+			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: memory block wrote past end" );
 		}
 
-		if (block->tag == TAG_SMALL) {
+		if (block.tag == TAG_SMALL) {
 			zone = smallzone;
 		}
 		else {
 			zone = mainzone;
 		}
 
-		zone->used -= block->size;
+		zone.used -= block.size;
 		// set the block to something that should cause problems
 		// if it is referenced...
-		Com_Memset( ptr, 0xaa, block->size - sizeof( *block ) );
+		Com_Memset( ptr, 0xaa, block.size - sizeof( *block ) );
 
-		block->tag = 0;		// mark as free
+		block.tag = 0;		// mark as free
 	
-		other = block->prev;
-		if (!other->tag) {
+		other = block.prev;
+		if (!other.tag) {
 			// merge with previous free block
-			other->size += block->size;
-			other->next = block->next;
-			other->next->prev = other;
-			if (block == zone->rover) {
-				zone->rover = other;
+			other.size += block.size;
+			other.next = block.next;
+			other.next.prev = other;
+			if (block == zone.rover) {
+				zone.rover = other;
 			}
 			block = other;
 		}
 
-		zone->rover = block;
+		zone.rover = block;
 
-		other = block->next;
-		if ( !other->tag ) {
+		other = block.next;
+		if ( !other.tag ) {
 			// merge the next free block onto the end
-			block->size += other->size;
-			block->next = other->next;
-			block->next->prev = block;
-			if (other == zone->rover) {
-				zone->rover = block;
+			block.size += other.size;
+			block.next = other.next;
+			block.next.prev = block;
+			if (other == zone.rover) {
+				zone.rover = block;
 			}
 		}
 	}
@@ -830,15 +830,15 @@ namespace SharpQ3.Engine.qcommon
 		count = 0;
 		// use the rover as our pointer, because
 		// Z_Free automatically adjusts it
-		zone->rover = zone->blocklist.next;
+		zone.rover = zone.blocklist.next;
 		do {
-			if ( zone->rover->tag == tag ) {
+			if ( zone.rover.tag == tag ) {
 				count++;
-				Z_Free( (void *)(zone->rover + 1) );
+				Z_Free( (void *)(zone.rover + 1) );
 				continue;
 			}
-			zone->rover = zone->rover->next;
-		} while ( zone->rover != &zone->blocklist );
+			zone.rover = zone.rover.next;
+		} while ( zone.rover != &zone.blocklist );
 	}
 
 
@@ -853,7 +853,7 @@ namespace SharpQ3.Engine.qcommon
 		memzone_t *zone;
 
 		if (!tag) {
-			Com_Error( ERR_FATAL, "Z_TagMalloc: tried to use a 0 tag" );
+			Com_Error( errorParm_t.ERR_FATAL, "Z_TagMalloc: tried to use a 0 tag" );
 		}
 
 		if ( tag == TAG_SMALL ) {
@@ -872,49 +872,49 @@ namespace SharpQ3.Engine.qcommon
 		size += 4;					// space for memory trash tester
 		size = (size + 3) & ~3;		// align to 32 bit boundary
 	
-		base = rover = zone->rover;
-		start = base->prev;
+		base = rover = zone.rover;
+		start = base.prev;
 	
 		do {
 			if (rover == start)	{
 				// scaned all the way around the list
-				Com_Error( ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
+				Com_Error( errorParm_t.ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
 									size, zone == smallzone ? "small" : "main");
 				return NULL;
 			}
-			if (rover->tag) {
-				base = rover = rover->next;
+			if (rover.tag) {
+				base = rover = rover.next;
 			} else {
-				rover = rover->next;
+				rover = rover.next;
 			}
-		} while (base->tag || base->size < size);
+		} while (base.tag || base.size < size);
 	
 		//
 		// found a block big enough
 		//
-		extra = base->size - size;
+		extra = base.size - size;
 		if (extra > MINFRAGMENT) {
 			// there will be a free fragment after the allocated block
 			newBlock = (memblock_t *)((byte *)base + size);
-			newBlock->size = extra;
-			newBlock->tag = 0;			// free block
-			newBlock->prev = base;
-			newBlock->id = ZONEID;
-			newBlock->next = base->next;
-			newBlock->next->prev = newBlock;
-			base->next = newBlock;
-			base->size = size;
+			newBlock.size = extra;
+			newBlock.tag = 0;			// free block
+			newBlock.prev = base;
+			newBlock.id = ZONEID;
+			newBlock.next = base.next;
+			newBlock.next.prev = newBlock;
+			base.next = newBlock;
+			base.size = size;
 		}
 	
-		base->tag = tag;			// no longer a free block
+		base.tag = tag;			// no longer a free block
 	
-		zone->rover = base->next;	// next allocation will start looking here
-		zone->used += base->size;	//
+		zone.rover = base.next;	// next allocation will start looking here
+		zone.used += base.size;	//
 	
-		base->id = ZONEID;
+		base.id = ZONEID;
 
 		// marker for memory trash testing
-		*(int *)((byte *)base + base->size - 4) = ZONEID;
+		*(int *)((byte *)base + base.size - 4) = ZONEID;
 
 		return (void *) ((byte *)base + sizeof(memblock_t));
 	}
@@ -947,17 +947,17 @@ namespace SharpQ3.Engine.qcommon
 	private static void Z_CheckHeap( void ) {
 		memblock_t	*block;
 	
-		for (block = mainzone->blocklist.next ; ; block = block->next) {
-			if (block->next == &mainzone->blocklist) {
+		for (block = mainzone.blocklist.next ; ; block = block.next) {
+			if (block.next == &mainzone.blocklist) {
 				break;			// all blocks have been hit
 			}
-			if ( (byte *)block + block->size != (byte *)block->next)
-				Com_Error( ERR_FATAL, "Z_CheckHeap: block size does not touch the next block\n" );
-			if ( block->next->prev != block) {
-				Com_Error( ERR_FATAL, "Z_CheckHeap: next block doesn't have proper back link\n" );
+			if ( (byte *)block + block.size != (byte *)block.next)
+				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: block size does not touch the next block\n" );
+			if ( block.next.prev != block) {
+				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: next block doesn't have proper back link\n" );
 			}
-			if ( !block->tag && !block->next->tag ) {
-				Com_Error( ERR_FATAL, "Z_CheckHeap: two consecutive free blocks\n" );
+			if ( !block.tag && !block.next.tag ) {
+				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: two consecutive free blocks\n" );
 			}
 		}
 	}
@@ -972,22 +972,22 @@ namespace SharpQ3.Engine.qcommon
 		char		buf[4096];
 		int size, allocSize, numBlocks;
 
-		if (!logfile || !FS_Initialized())
+		if (!logfile || !files.FS_Initialized())
 			return;
 		size = allocSize = numBlocks = 0;
 		Com_sprintf(buf, sizeof(buf), "\r\n================\r\n%s log\r\n================\r\n", name);
-		FS_Write(buf, (int)strlen(buf), logfile);
-		for (block = zone->blocklist.next ; block->next != &zone->blocklist; block = block->next) {
-			if (block->tag) {
-				size += block->size;
+		files.FS_Write(buf, (int)strlen(buf), logfile);
+		for (block = zone.blocklist.next ; block.next != &zone.blocklist; block = block.next) {
+			if (block.tag) {
+				size += block.size;
 				numBlocks++;
 			}
 		}
 		allocSize = numBlocks * sizeof(memblock_t); // + 32 bit alignment
 		Com_sprintf(buf, sizeof(buf), "%d %s memory in %d blocks\r\n", size, name, numBlocks);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 		Com_sprintf(buf, sizeof(buf), "%d %s memory overhead\r\n", size - allocSize, name);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 	}
 
 	/*
@@ -1125,44 +1125,44 @@ namespace SharpQ3.Engine.qcommon
 		botlibBytes = 0;
 		rendererBytes = 0;
 		zoneBlocks = 0;
-		for (block = mainzone->blocklist.next ; ; block = block->next) {
+		for (block = mainzone.blocklist.next ; ; block = block.next) {
 			if ( cmd.Cmd_Argc() != 1 ) {
 				Com_Printf ("block:%p    size:%7i    tag:%3i\n",
-					block, block->size, block->tag);
+					block, block.size, block.tag);
 			}
-			if ( block->tag ) {
-				zoneBytes += block->size;
+			if ( block.tag ) {
+				zoneBytes += block.size;
 				zoneBlocks++;
-				if ( block->tag == TAG_BOTLIB ) {
-					botlibBytes += block->size;
-				} else if ( block->tag == TAG_RENDERER ) {
-					rendererBytes += block->size;
+				if ( block.tag == TAG_BOTLIB ) {
+					botlibBytes += block.size;
+				} else if ( block.tag == TAG_RENDERER ) {
+					rendererBytes += block.size;
 				}
 			}
 
-			if (block->next == &mainzone->blocklist) {
+			if (block.next == &mainzone.blocklist) {
 				break;			// all blocks have been hit	
 			}
-			if ( (byte *)block + block->size != (byte *)block->next) {
+			if ( (byte *)block + block.size != (byte *)block.next) {
 				Com_Printf ("ERROR: block size does not touch the next block\n");
 			}
-			if ( block->next->prev != block) {
+			if ( block.next.prev != block) {
 				Com_Printf ("ERROR: next block doesn't have proper back link\n");
 			}
-			if ( !block->tag && !block->next->tag ) {
+			if ( !block.tag && !block.next.tag ) {
 				Com_Printf ("ERROR: two consecutive free blocks\n");
 			}
 		}
 
 		smallZoneBytes = 0;
 		smallZoneBlocks = 0;
-		for (block = smallzone->blocklist.next ; ; block = block->next) {
-			if ( block->tag ) {
-				smallZoneBytes += block->size;
+		for (block = smallzone.blocklist.next ; ; block = block.next) {
+			if ( block.tag ) {
+				smallZoneBytes += block.size;
 				smallZoneBlocks++;
 			}
 
-			if (block->next == &smallzone->blocklist) {
+			if (block.next == &smallzone.blocklist) {
 				break;			// all blocks have been hit	
 			}
 		}
@@ -1232,14 +1232,14 @@ namespace SharpQ3.Engine.qcommon
 			sum += ((int *)s_hunkData)[i];
 		}
 
-		for (block = mainzone->blocklist.next ; ; block = block->next) {
-			if ( block->tag ) {
-				j = block->size >> 2;
+		for (block = mainzone.blocklist.next ; ; block = block.next) {
+			if ( block.tag ) {
+				j = block.size >> 2;
 				for ( i = 0 ; i < j ; i+=64 ) {				// only need to touch each page
 					sum += ((int *)block)[i];
 				}
 			}
-			if ( block->next == &mainzone->blocklist ) {
+			if ( block.next == &mainzone.blocklist ) {
 				break;			// all blocks have been hit	
 			}
 		}
@@ -1262,7 +1262,7 @@ namespace SharpQ3.Engine.qcommon
 		// bk001205 - was malloc
 		smallzone = (memzone_t*) calloc( s_smallZoneTotal, 1 );
 		if ( !smallzone ) {
-			Com_Error( ERR_FATAL, "Small zone data failed to allocate %1.1f megs", (float)s_smallZoneTotal / (1024*1024) );
+			Com_Error( errorParm_t.ERR_FATAL, "Small zone data failed to allocate %1.1f megs", (float)s_smallZoneTotal / (1024*1024) );
 		}
 		Z_ClearZone( smallzone, s_smallZoneTotal );
 	
@@ -1273,18 +1273,18 @@ namespace SharpQ3.Engine.qcommon
 	{
 		cvar_t	*cv;
 		// allocate the random block zone
-		cv = Cvar_Get( "com_zoneMegs", DEF_COMZONEMEGS, CVAR_LATCH | CVAR_ARCHIVE );
+		cv = Cvar.Cvar_Get( "com_zoneMegs", DEF_COMZONEMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 
-		if ( cv->integer < 20 ) {
+		if ( cv.integer < 20 ) {
 			s_zoneTotal = 1024 * 1024 * 16;
 		} else {
-			s_zoneTotal = cv->integer * 1024 * 1024;
+			s_zoneTotal = cv.integer * 1024 * 1024;
 		}
 
 		// bk001205 - was malloc
 		mainzone = (memzone_t*) calloc( s_zoneTotal, 1 );
 		if ( !mainzone ) {
-			Com_Error( ERR_FATAL, "Zone data failed to allocate %i megs", s_zoneTotal / (1024*1024) );
+			Com_Error( errorParm_t.ERR_FATAL, "Zone data failed to allocate %i megs", s_zoneTotal / (1024*1024) );
 		}
 		Z_ClearZone( mainzone, s_zoneTotal );
 
@@ -1301,20 +1301,20 @@ namespace SharpQ3.Engine.qcommon
 		char		buf[4096];
 		int size, numBlocks;
 
-		if (!logfile || !FS_Initialized())
+		if (!logfile || !files.FS_Initialized())
 			return;
 		size = 0;
 		numBlocks = 0;
 		Com_sprintf(buf, sizeof(buf), "\r\n================\r\nHunk log\r\n================\r\n");
-		FS_Write(buf, (int)strlen(buf), logfile);
-		for (block = hunkblocks ; block; block = block->next) {
-			size += block->size;
+		files.FS_Write(buf, (int)strlen(buf), logfile);
+		for (block = hunkblocks ; block; block = block.next) {
+			size += block.size;
 			numBlocks++;
 		}
 		Com_sprintf(buf, sizeof(buf), "%d Hunk memory\r\n", size);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 		Com_sprintf(buf, sizeof(buf), "%d hunk blocks\r\n", numBlocks);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 	}
 
 	/*
@@ -1328,38 +1328,38 @@ namespace SharpQ3.Engine.qcommon
 		char		buf[4096];
 		int size, locsize, numBlocks;
 
-		if (!logfile || !FS_Initialized())
+		if (!logfile || !files.FS_Initialized())
 			return;
-		for (block = hunkblocks ; block; block = block->next) {
-			block->printed = false;
+		for (block = hunkblocks ; block; block = block.next) {
+			block.printed = false;
 		}
 		size = 0;
 		numBlocks = 0;
 		Com_sprintf(buf, sizeof(buf), "\r\n================\r\nHunk Small log\r\n================\r\n");
-		FS_Write(buf, (int)strlen(buf), logfile);
-		for (block = hunkblocks; block; block = block->next) {
-			if (block->printed) {
+		files.FS_Write(buf, (int)strlen(buf), logfile);
+		for (block = hunkblocks; block; block = block.next) {
+			if (block.printed) {
 				continue;
 			}
-			locsize = block->size;
-			for (block2 = block->next; block2; block2 = block2->next) {
-				if (block->line != block2->line) {
+			locsize = block.size;
+			for (block2 = block.next; block2; block2 = block2.next) {
+				if (block.line != block2.line) {
 					continue;
 				}
-				if (Q_stricmp(block->file, block2->file)) {
+				if (Q_stricmp(block.file, block2.file)) {
 					continue;
 				}
-				size += block2->size;
-				locsize += block2->size;
-				block2->printed = true;
+				size += block2.size;
+				locsize += block2.size;
+				block2.printed = true;
 			}
-			size += block->size;
+			size += block.size;
 			numBlocks++;
 		}
 		Com_sprintf(buf, sizeof(buf), "%d Hunk memory\r\n", size);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 		Com_sprintf(buf, sizeof(buf), "%d hunk blocks\r\n", numBlocks);
-		FS_Write(buf, (int)strlen(buf), logfile);
+		files.FS_Write(buf, (int)strlen(buf), logfile);
 	}
 
 	/*
@@ -1377,15 +1377,15 @@ namespace SharpQ3.Engine.qcommon
 		// this allows the config and product id files ( journal files too ) to be loaded
 		// by the file system without redunant routines in the file system utilizing different 
 		// memory systems
-		if (FS_LoadStack() != 0) {
-			Com_Error( ERR_FATAL, "Hunk initialization failed. File system load stack not zero");
+		if (files.FS_LoadStack() != 0) {
+			Com_Error( errorParm_t.ERR_FATAL, "Hunk initialization failed. File system load stack not zero");
 		}
 
 		// allocate the stack based hunk allocator
-		cv = Cvar_Get( "com_hunkMegs", DEF_COMHUNKMEGS, CVAR_LATCH | CVAR_ARCHIVE );
+		cv = Cvar.Cvar_Get( "com_hunkMegs", DEF_COMHUNKMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 
 		// if we are not dedicated min allocation is 56, otherwise min is 1
-		if (com_dedicated && com_dedicated->integer) {
+		if (com_dedicated && com_dedicated.integer) {
 			nMinAlloc = MIN_DEDICATED_COMHUNKMEGS;
 			pMsg = "Minimum com_hunkMegs for a dedicated server is %i, allocating %i megs.\n";
 		}
@@ -1394,18 +1394,18 @@ namespace SharpQ3.Engine.qcommon
 			pMsg = "Minimum com_hunkMegs is %i, allocating %i megs.\n";
 		}
 
-		if ( cv->integer < nMinAlloc ) {
+		if ( cv.integer < nMinAlloc ) {
 			s_hunkTotal = 1024 * 1024 * nMinAlloc;
 			Com_Printf(pMsg, nMinAlloc, s_hunkTotal / (1024 * 1024));
 		} else {
-			s_hunkTotal = cv->integer * 1024 * 1024;
+			s_hunkTotal = cv.integer * 1024 * 1024;
 		}
 
 
 		// bk001205 - was malloc
 		s_hunkData = (byte*) calloc( s_hunkTotal + 31, 1 );
 		if ( !s_hunkData ) {
-			Com_Error( ERR_FATAL, "Hunk data failed to allocate %i megs", s_hunkTotal / (1024*1024) );
+			Com_Error( errorParm_t.ERR_FATAL, "Hunk data failed to allocate %i megs", s_hunkTotal / (1024*1024) );
 		}
 		// cacheline align
 		s_hunkData = (byte *) ( ( (intptr_t)s_hunkData + 31 ) & ~31 );
@@ -1508,14 +1508,14 @@ namespace SharpQ3.Engine.qcommon
 		hunkUsed_t	*swap;
 
 		// can't swap banks if there is any temp already allocated
-		if ( hunk_temp->temp != hunk_temp->permanent ) {
+		if ( hunk_temp.temp != hunk_temp.permanent ) {
 			return;
 		}
 
 		// if we have a larger highwater mark on this side, start making
 		// our permanent allocations here and use the other side for temp
-		if ( hunk_temp->tempHighwater - hunk_temp->permanent >
-			hunk_permanent->tempHighwater - hunk_permanent->permanent ) {
+		if ( hunk_temp.tempHighwater - hunk_temp.permanent >
+			hunk_permanent.tempHighwater - hunk_permanent.permanent ) {
 			swap = hunk_temp;
 			hunk_temp = hunk_permanent;
 			hunk_permanent = swap;
@@ -1535,11 +1535,11 @@ namespace SharpQ3.Engine.qcommon
 
 		if ( s_hunkData == NULL)
 		{
-			Com_Error( ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
+			Com_Error( errorParm_t.ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
 		}
 
 		// can't do preference if there is any temp allocated
-		if (preference == h_dontcare || hunk_temp->temp != hunk_temp->permanent) {
+		if (preference == h_dontcare || hunk_temp.temp != hunk_temp.permanent) {
 			Hunk_SwapBanks();
 		} else {
 			if (preference == h_low && hunk_permanent != &hunk_low) {
@@ -1553,18 +1553,18 @@ namespace SharpQ3.Engine.qcommon
 		size = (size+31)&~31;
 
 		if ( hunk_low.temp + hunk_high.temp + size > s_hunkTotal ) {
-			Com_Error( ERR_DROP, "Hunk_Alloc failed on %i", size );
+			Com_Error( errorParm_t.ERR_DROP, "Hunk_Alloc failed on %i", size );
 		}
 
 		if ( hunk_permanent == &hunk_low ) {
-			buf = (void *)(s_hunkData + hunk_permanent->permanent);
-			hunk_permanent->permanent += size;
+			buf = (void *)(s_hunkData + hunk_permanent.permanent);
+			hunk_permanent.permanent += size;
 		} else {
-			hunk_permanent->permanent += size;
-			buf = (void *)(s_hunkData + s_hunkTotal - hunk_permanent->permanent );
+			hunk_permanent.permanent += size;
+			buf = (void *)(s_hunkData + s_hunkTotal - hunk_permanent.permanent );
 		}
 
-		hunk_permanent->temp = hunk_permanent->permanent;
+		hunk_permanent.temp = hunk_permanent.permanent;
 
 		Com_Memset( buf, 0, size );
 
@@ -1598,27 +1598,27 @@ namespace SharpQ3.Engine.qcommon
 
 		size = ( (size+3)&~3 ) + sizeof( hunkHeader_t );
 
-		if ( hunk_temp->temp + hunk_permanent->permanent + size > s_hunkTotal ) {
-			Com_Error( ERR_DROP, "Hunk_AllocateTempMemory: failed on %i", size );
+		if ( hunk_temp.temp + hunk_permanent.permanent + size > s_hunkTotal ) {
+			Com_Error( errorParm_t.ERR_DROP, "Hunk_AllocateTempMemory: failed on %i", size );
 		}
 
 		if ( hunk_temp == &hunk_low ) {
-			buf = (void *)(s_hunkData + hunk_temp->temp);
-			hunk_temp->temp += size;
+			buf = (void *)(s_hunkData + hunk_temp.temp);
+			hunk_temp.temp += size;
 		} else {
-			hunk_temp->temp += size;
-			buf = (void *)(s_hunkData + s_hunkTotal - hunk_temp->temp );
+			hunk_temp.temp += size;
+			buf = (void *)(s_hunkData + s_hunkTotal - hunk_temp.temp );
 		}
 
-		if ( hunk_temp->temp > hunk_temp->tempHighwater ) {
-			hunk_temp->tempHighwater = hunk_temp->temp;
+		if ( hunk_temp.temp > hunk_temp.tempHighwater ) {
+			hunk_temp.tempHighwater = hunk_temp.temp;
 		}
 
 		hdr = (hunkHeader_t *)buf;
 		buf = (void *)(hdr+1);
 
-		hdr->magic = HUNK_MAGIC;
-		hdr->size = size;
+		hdr.magic = HUNK_MAGIC;
+		hdr.size = size;
 
 		// don't bother clearing, because we are going to load a file over it
 		return buf;
@@ -1646,23 +1646,23 @@ namespace SharpQ3.Engine.qcommon
 
 
 		hdr = ( (hunkHeader_t *)buf ) - 1;
-		if ( hdr->magic != HUNK_MAGIC ) {
-			Com_Error( ERR_FATAL, "Hunk_FreeTempMemory: bad magic" );
+		if ( hdr.magic != HUNK_MAGIC ) {
+			Com_Error( errorParm_t.ERR_FATAL, "Hunk_FreeTempMemory: bad magic" );
 		}
 
-		hdr->magic = HUNK_FREE_MAGIC;
+		hdr.magic = HUNK_FREE_MAGIC;
 
 		// this only works if the files are freed in stack order,
 		// otherwise the memory will stay around until Hunk_ClearTempMemory
 		if ( hunk_temp == &hunk_low ) {
-			if ( hdr == (void *)(s_hunkData + hunk_temp->temp - hdr->size ) ) {
-				hunk_temp->temp -= hdr->size;
+			if ( hdr == (void *)(s_hunkData + hunk_temp.temp - hdr.size ) ) {
+				hunk_temp.temp -= hdr.size;
 			} else {
 				Com_Printf( "Hunk_FreeTempMemory: not the final block\n" );
 			}
 		} else {
-			if ( hdr == (void *)(s_hunkData + s_hunkTotal - hunk_temp->temp ) ) {
-				hunk_temp->temp -= hdr->size;
+			if ( hdr == (void *)(s_hunkData + s_hunkTotal - hunk_temp.temp ) ) {
+				hunk_temp.temp -= hdr.size;
 			} else {
 				Com_Printf( "Hunk_FreeTempMemory: not the final block\n" );
 			}
@@ -1683,7 +1683,7 @@ namespace SharpQ3.Engine.qcommon
 	{
 		if ( s_hunkData != null ) 
 		{
-			hunk_temp->temp = hunk_temp->permanent;
+			hunk_temp.temp = hunk_temp.permanent;
 		}
 	}
 
@@ -1702,15 +1702,15 @@ namespace SharpQ3.Engine.qcommon
 		if ( s_hunkData == NULL )
 			return;
 
-		Cvar_Set("com_jp", "1");
+		Cvar.Cvar_Set("com_jp", "1");
 		Hunk_SwapBanks();
 
 		if ( hunk_permanent == &hunk_low ) {
-			buf = (char*) (void *)(s_hunkData + hunk_permanent->permanent);
+			buf = (char*) (void *)(s_hunkData + hunk_permanent.permanent);
 		} else {
-			buf = (char*) (void *)(s_hunkData + s_hunkTotal - hunk_permanent->permanent );
+			buf = (char*) (void *)(s_hunkData + s_hunkTotal - hunk_permanent.permanent );
 		}
-		length = hunk_permanent->permanent;
+		length = hunk_permanent.permanent;
 
 		if (length > 0x7FFFF) {
 			//randomly trash data within buf
@@ -1751,23 +1751,23 @@ namespace SharpQ3.Engine.qcommon
 	private static void Com_InitJournaling( ) 
 	{
 		Com_StartupVariable( "journal" );
-		com_journal = Cvar_Get ("journal", "0", CVAR_INIT);
-		if ( !com_journal->integer ) {
+		com_journal = Cvar.Cvar_Get ("journal", "0", CVAR_INIT);
+		if ( !com_journal.integer ) {
 			return;
 		}
 
-		if ( com_journal->integer == 1 ) {
+		if ( com_journal.integer == 1 ) {
 			Com_Printf( "Journaling events\n");
-			com_journalFile = FS_FOpenFileWrite( "journal.dat" );
-			com_journalDataFile = FS_FOpenFileWrite( "journaldata.dat" );
-		} else if ( com_journal->integer == 2 ) {
+			com_journalFile = files.FS_FOpenFileWrite( "journal.dat" );
+			com_journalDataFile = files.FS_FOpenFileWrite( "journaldata.dat" );
+		} else if ( com_journal.integer == 2 ) {
 			Com_Printf( "Replaying journaled events\n");
-			FS_FOpenFileRead( "journal.dat", &com_journalFile, true );
-			FS_FOpenFileRead( "journaldata.dat", &com_journalDataFile, true );
+			files.FS_FOpenFileRead( "journal.dat", &com_journalFile, true );
+			files.FS_FOpenFileRead( "journaldata.dat", &com_journalDataFile, true );
 		}
 
 		if ( !com_journalFile || !com_journalDataFile ) {
-			Cvar_Set( "com_journal", "0" );
+			Cvar.Cvar_Set( "com_journal", "0" );
 			com_journalFile = 0;
 			com_journalDataFile = 0;
 			Com_Printf( "Couldn't open journal files\n" );
@@ -1785,31 +1785,31 @@ namespace SharpQ3.Engine.qcommon
 		sysEvent_t	ev;
 
 		// either get an event from the system or the journal file
-		if ( com_journal->integer == 2 ) {
-			r = FS_Read( &ev, sizeof(ev), com_journalFile );
+		if ( com_journal.integer == 2 ) {
+			r = files.FS_Read( &ev, sizeof(ev), com_journalFile );
 			if ( r != sizeof(ev) ) {
-				Com_Error( ERR_FATAL, "Error reading from journal file" );
+				Com_Error( errorParm_t.ERR_FATAL, "Error reading from journal file" );
 			}
 			if ( ev.evPtrLength ) {
 				ev.evPtr = Z_Malloc( ev.evPtrLength );
-				r = FS_Read( ev.evPtr, ev.evPtrLength, com_journalFile );
+				r = files.FS_Read( ev.evPtr, ev.evPtrLength, com_journalFile );
 				if ( r != ev.evPtrLength ) {
-					Com_Error( ERR_FATAL, "Error reading from journal file" );
+					Com_Error( errorParm_t.ERR_FATAL, "Error reading from journal file" );
 				}
 			}
 		} else {
 			ev = Sys_GetEvent();
 
 			// write the journal value out if needed
-			if ( com_journal->integer == 1 ) {
-				r = FS_Write( &ev, sizeof(ev), com_journalFile );
+			if ( com_journal.integer == 1 ) {
+				r = files.FS_Write( &ev, sizeof(ev), com_journalFile );
 				if ( r != sizeof(ev) ) {
-					Com_Error( ERR_FATAL, "Error writing to journal file" );
+					Com_Error( errorParm_t.ERR_FATAL, "Error writing to journal file" );
 				}
 				if ( ev.evPtrLength ) {
-					r = FS_Write( ev.evPtr, ev.evPtrLength, com_journalFile );
+					r = files.FS_Write( ev.evPtr, ev.evPtrLength, com_journalFile );
 					if ( r != ev.evPtrLength ) {
-						Com_Error( ERR_FATAL, "Error writing to journal file" );
+						Com_Error( errorParm_t.ERR_FATAL, "Error writing to journal file" );
 					}
 				}
 			}
@@ -1856,8 +1856,8 @@ namespace SharpQ3.Engine.qcommon
 				Com_Printf( "WARNING: Com_PushEvent overflow\n" );
 			}
 
-			if ( ev->evPtr ) {
-				Z_Free( ev->evPtr );
+			if ( ev.evPtr ) {
+				Z_Free( ev.evPtr );
 			}
 			com_pushedEventsTail++;
 		} else {
@@ -1891,16 +1891,16 @@ namespace SharpQ3.Engine.qcommon
 
 		t1 = 0;
 
-		if ( com_speeds->integer ) {
+		if ( com_speeds.integer ) {
 			t1 = Sys_Milliseconds ();
 		}
 
 		SV_PacketEvent( *evFrom, buf );
 
-		if ( com_speeds->integer ) {
+		if ( com_speeds.integer ) {
 			t2 = Sys_Milliseconds ();
 			msec = t2 - t1;
-			if ( com_speeds->integer == 3 ) {
+			if ( com_speeds.integer == 3 ) {
 				Com_Printf( "SV_PacketEvent time: %i\n", msec );
 			}
 		}
@@ -1933,7 +1933,7 @@ namespace SharpQ3.Engine.qcommon
 
 				while ( NET_GetLoopPacket( NS_SERVER, &evFrom, &buf ) ) {
 					// if the server just shut down, flush the events
-					if ( com_sv_running->integer ) {
+					if ( com_sv_running.integer ) {
 						Com_RunAndTimeServerPacket( &evFrom, &buf );
 					}
 				}
@@ -1945,7 +1945,7 @@ namespace SharpQ3.Engine.qcommon
 			switch ( ev.evType ) {
 			default:
 			  // bk001129 - was ev.evTime
-				Com_Error( ERR_FATAL, "Com_EventLoop: bad event type %i", ev.evType );
+				Com_Error( errorParm_t.ERR_FATAL, "Com_EventLoop: bad event type %i", ev.evType );
 				break;
 			case SE_NONE:
 				break;
@@ -1969,10 +1969,10 @@ namespace SharpQ3.Engine.qcommon
 				// this cvar allows simulation of connections that
 				// drop a lot of packets.  Note that loopback connections
 				// don't go through here at all.
-				if ( com_dropsim->value > 0 ) {
+				if ( com_dropsim.value > 0 ) {
 					static int seed;
 
-					if ( Q_random( &seed ) < com_dropsim->value ) {
+					if ( Q_random( &seed ) < com_dropsim.value ) {
 						break;		// drop this packet
 					}
 				}
@@ -1989,7 +1989,7 @@ namespace SharpQ3.Engine.qcommon
 					continue;
 				}
 				Com_Memcpy( buf.data, (byte *)((netadr_t *)ev.evPtr + 1), buf.cursize );
-				if ( com_sv_running->integer ) {
+				if ( com_sv_running.integer ) {
 					Com_RunAndTimeServerPacket( &evFrom, &buf );
 				} else {
 					CL_PacketEvent( evFrom, &buf );
@@ -2107,20 +2107,20 @@ namespace SharpQ3.Engine.qcommon
 		Com_InitPushEvent();
 
 		Com_InitSmallZoneMemory();
-		Cvar_Init ();
+		Cvar.Cvar_Init ();
 
 		// prepare enough of the subsystems to handle
 		// cvar and command buffer management
-		Com_ParseCommandLine( commandLine );
+		Com_ParseCommandLine( ref commandLine );
 
 	//	Swap_Init ();
-		Cbuf_Init ();
+		cmd.Cbuf_Init ();
 
 		Com_InitZoneMemory();
 		cmd.Cmd_Init ();
 
 		// override anything from the config files with command line args
-		Com_StartupVariable( NULL );
+		Com_StartupVariable( null );
 
 		// get the developer cvar set as early as possible
 		Com_StartupVariable( "developer" );
@@ -2128,70 +2128,70 @@ namespace SharpQ3.Engine.qcommon
 		// done early so bind command exists
 		CL_InitKeyCommands();
 
-		FS_InitFilesystem ();
+		files.FS_InitFilesystem ();
 
 		Com_InitJournaling();
 
-		Cbuf_AddText ("exec default.cfg\n");
+		cmd.Cbuf_AddText ("exec default.cfg\n");
 
 		// skip the q3config.cfg if "safe" is on the command line
 		if ( !Com_SafeMode() ) {
-			Cbuf_AddText ("exec q3config.cfg\n");
+			cmd.Cbuf_AddText ("exec q3config.cfg\n");
 		}
 
-		Cbuf_AddText ("exec autoexec.cfg\n");
+		cmd.Cbuf_AddText ("exec autoexec.cfg\n");
 
-		Cbuf_Execute ();
+		cmd.Cbuf_Execute ();
 
 		// override anything from the config files with command line args
-		Com_StartupVariable( NULL );
+		Com_StartupVariable( null );
 
 	  // get dedicated here for proper hunk megs initialization
 	#ifdef DEDICATED
-		com_dedicated = Cvar_Get ("dedicated", "1", CVAR_ROM);
+		com_dedicated = Cvar.Cvar_Get ("dedicated", "1", CVAR.ROM);
 	#else
-		com_dedicated = Cvar_Get ("dedicated", "0", CVAR_LATCH);
+		com_dedicated = Cvar.Cvar_Get ("dedicated", "0", CVAR.LATCH);
 	#endif
 		// allocate the stack based hunk allocator
 		Com_InitHunkMemory();
 
 		// if any archived cvars are modified after this, we will trigger a writing
 		// of the config file
-		cvar_modifiedFlags &= ~CVAR_ARCHIVE;
+		cvar_modifiedFlags &= ~CVAR.ARCHIVE;
 
 		//
 		// init commands and vars
 		//
-		com_maxfps = Cvar_Get ("com_maxfps", "85", CVAR_ARCHIVE);
-		com_blood = Cvar_Get ("com_blood", "1", CVAR_ARCHIVE);
+		com_maxfps = Cvar.Cvar_Get ("com_maxfps", "85", CVAR.ARCHIVE);
+		com_blood = Cvar.Cvar_Get ("com_blood", "1", CVAR.ARCHIVE);
 
-		com_developer = Cvar_Get ("developer", "0", CVAR_TEMP );
-		com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
+		com_developer = Cvar.Cvar_Get ("developer", "0", CVAR.TEMP );
+		com_logfile = Cvar.Cvar_Get ("logfile", "0", CVAR.TEMP );
 
-		com_timescale = Cvar_Get ("timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
-		com_fixedtime = Cvar_Get ("fixedtime", "0", CVAR_CHEAT);
-		com_showtrace = Cvar_Get ("com_showtrace", "0", CVAR_CHEAT);
-		com_dropsim = Cvar_Get ("com_dropsim", "0", CVAR_CHEAT);
-		com_viewlog = Cvar_Get( "viewlog", "0", CVAR_CHEAT );
-		com_speeds = Cvar_Get ("com_speeds", "0", 0);
-		com_timedemo = Cvar_Get ("timedemo", "0", CVAR_CHEAT);
-		com_cameraMode = Cvar_Get ("com_cameraMode", "0", CVAR_CHEAT);
+		com_timescale = Cvar.Cvar_Get ("timescale", "1", CVAR.CHEAT | CVAR.SYSTEMINFO );
+		com_fixedtime = Cvar.Cvar_Get ("fixedtime", "0", CVAR.CHEAT);
+		com_showtrace = Cvar.Cvar_Get ("com_showtrace", "0", CVAR.CHEAT);
+		com_dropsim = Cvar.Cvar_Get ("com_dropsim", "0", CVAR.CHEAT);
+		com_viewlog = Cvar.Cvar_Get( "viewlog", "0", CVAR.CHEAT );
+		com_speeds = Cvar.Cvar_Get ("com_speeds", "0", 0);
+		com_timedemo = Cvar.Cvar_Get ("timedemo", "0", CVAR.CHEAT);
+		com_cameraMode = Cvar.Cvar_Get ("com_cameraMode", "0", CVAR.CHEAT);
 
-		cl_paused = Cvar_Get ("cl_paused", "0", CVAR_ROM);
-		sv_paused = Cvar_Get ("sv_paused", "0", CVAR_ROM);
-		com_sv_running = Cvar_Get ("sv_running", "0", CVAR_ROM);
-		com_cl_running = Cvar_Get ("cl_running", "0", CVAR_ROM);
-		com_buildScript = Cvar_Get( "com_buildScript", "0", 0 );
+		cl_paused = Cvar.Cvar_Get ("cl_paused", "0", CVAR.ROM);
+		sv_paused = Cvar.Cvar_Get ("sv_paused", "0", CVAR.ROM);
+		com_sv_running = Cvar.Cvar_Get ("sv_running", "0", CVAR.ROM);
+		com_cl_running = Cvar.Cvar_Get ("cl_running", "0", CVAR.ROM);
+		com_buildScript = Cvar.Cvar_Get( "com_buildScript", "0", 0 );
 
-		com_introPlayed = Cvar_Get( "com_introplayed", "0", CVAR_ARCHIVE);
+		com_introPlayed = Cvar.Cvar_Get( "com_introplayed", "0", CVAR.ARCHIVE);
 
-		if ( com_dedicated->integer ) {
-			if ( !com_viewlog->integer ) {
-				Cvar_Set( "viewlog", "1" );
+		if ( com_dedicated.integer == 1 ) {
+			if ( com_viewlog.integer == 0 ) {
+				Cvar.Cvar_Set( "viewlog", "1" );
 			}
 		}
 
-		if ( com_developer && com_developer->integer ) {
+		if ( com_developer?.integer == 1 ) {
 			cmd.Cmd_AddCommand ("error", Com_Error_f);
 			cmd.Cmd_AddCommand ("crash", Com_Crash_f );
 			cmd.Cmd_AddCommand ("freeze", Com_Freeze_f);
@@ -2201,17 +2201,17 @@ namespace SharpQ3.Engine.qcommon
 		cmd.Cmd_AddCommand ("writeconfig", Com_WriteConfig_f );
 
 		s = va("%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
-		com_version = Cvar_Get ("version", s, CVAR_ROM | CVAR_SERVERINFO );
+		com_version = Cvar.Cvar_Get ("version", s, CVAR.ROM | CVAR.SERVERINFO );
 
 		Sys_Init();
 		Netchan_Init( Com_Milliseconds() & 0xffff );	// pick a port value that should be nice and random
 		VM_Init();
 		SV_Init();
 
-		com_dedicated->modified = false;
-		if ( !com_dedicated->integer ) {
+		com_dedicated.modified = false;
+		if ( com_dedicated.integer == 0 ) {
 			CL_Init();
-			Sys_ShowConsole( com_viewlog->integer, false );
+			Sys_ShowConsole( com_viewlog.integer, false );
 		}
 
 		// set com_frameTime so that if a map is started on the
@@ -2222,22 +2222,22 @@ namespace SharpQ3.Engine.qcommon
 		// add + commands from command line
 		if ( !Com_AddStartupCommands() ) {
 			// if the user didn't give any commands, run default action
-			if ( !com_dedicated->integer ) {
-				Cbuf_AddText ("cinematic idlogo.RoQ\n");
-				if( !com_introPlayed->integer ) {
-					Cvar_Set( com_introPlayed->name, "1" );
-					Cvar_Set( "nextmap", "cinematic intro.RoQ" );
+			if ( com_dedicated.integer == 0 ) {
+				cmd.Cbuf_AddText ("cinematic idlogo.RoQ\n");
+				if( com_introPlayed.integer == 0 ) {
+					Cvar.Cvar_Set( com_introPlayed.name, "1" );
+					Cvar.Cvar_Set( "nextmap", "cinematic intro.RoQ" );
 				}
 			}
 		}
 
 		// start in full screen ui mode
-		Cvar_Set("r_uiFullScreen", "1");
+		Cvar.Cvar_Set("r_uiFullScreen", "1");
 
 		CL_StartHunkUsers();
 
 		// make sure single player is off by default
-		Cvar_Set("ui_singlePlayerActive", "0");
+		Cvar.Cvar_Set("ui_singlePlayerActive", "0");
 
 		com_fullyInitialized = true;
 		Com_Printf ("--- Common Initialization Complete ---\n");	
@@ -2249,16 +2249,16 @@ namespace SharpQ3.Engine.qcommon
 	{
 		fileHandle_t	f;
 
-		f = FS_FOpenFileWrite( filename );
-		if ( !f ) {
+		f = files.FS_FOpenFileWrite( filename );
+		if ( f.ID == 0 ) {
 			Com_Printf ("Couldn't write %s.\n", filename );
 			return;
 		}
 
-		FS_Printf (f, "// generated by quake, do not modify\n");
+		files.FS_Printf (f, "// generated by quake, do not modify\n");
 		Key_WriteBindings (f);
-		Cvar_WriteVariables (f);
-		FS_FCloseFile( f );
+		Cvar.Cvar_WriteVariables (f);
+		files.FS_FCloseFile( f );
 	}
 
 
@@ -2277,10 +2277,10 @@ namespace SharpQ3.Engine.qcommon
 			return;
 		}
 
-		if ( !(cvar_modifiedFlags & CVAR_ARCHIVE ) ) {
+		if ( !(cvar_modifiedFlags & CVAR.ARCHIVE ) ) {
 			return;
 		}
-		cvar_modifiedFlags &= ~CVAR_ARCHIVE;
+		cvar_modifiedFlags &= ~CVAR.ARCHIVE;
 
 		Com_WriteConfigToFile( "q3config.cfg" );
 	}
@@ -2295,15 +2295,13 @@ namespace SharpQ3.Engine.qcommon
 	*/
 	private static void Com_WriteConfig_f( ) 
 	{
-		char	filename[MAX_QPATH];
-
 		if ( cmd.Cmd_Argc() != 2 ) {
 			Com_Printf( "Usage: writeconfig <filename>\n" );
 			return;
 		}
 
-		Q_strncpyz( filename, cmd.Cmd_Argv(1), sizeof( filename ) );
-		COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
+		Q_strncpyz( out var filename, cmd.Cmd_Argv(1), q_shared.MAX_QPATH );
+		COM_DefaultExtension( filename, q_shared.MAX_QPATH, ".cfg" );
 		Com_Printf( "Writing %s.\n", filename );
 		Com_WriteConfigToFile( filename );
 	}
@@ -2313,27 +2311,27 @@ namespace SharpQ3.Engine.qcommon
 	Com_ModifyMsec
 	================
 	*/
-	private static int Com_ModifyMsec( int msec ) 
+	private static int Com_ModifyMsec( ref int msec ) 
 	{
 		int		clampTime;
 
 		//
 		// modify time for debugging values
 		//
-		if ( com_fixedtime->integer ) {
-			msec = com_fixedtime->integer;
-		} else if ( com_timescale->value ) {
-			msec *= com_timescale->value;
-		} else if (com_cameraMode->integer) {
-			msec *= com_timescale->value;
+		if ( com_fixedtime.integer == 1 ) {
+			msec = com_fixedtime.integer;
+		} else if ( com_timescale.value == 1 ) {
+			msec *= com_timescale.value;
+		} else if (com_cameraMode.integer == 1 ) {
+			msec *= com_timescale.value;
 		}
 	
 		// don't let it scale below 1 msec
-		if ( msec < 1 && com_timescale->value) {
+		if ( msec < 1 && com_timescale.value == 1 ) {
 			msec = 1;
 		}
 
-		if ( com_dedicated->integer ) {
+		if ( com_dedicated.integer == 1 ) {
 			// dedicated servers don't want to clamp for a much longer
 			// period, because it would mess up all the client's views
 			// of time.
@@ -2342,7 +2340,7 @@ namespace SharpQ3.Engine.qcommon
 			}
 			clampTime = 5000;
 		} else 
-		if ( !com_sv_running->integer ) {
+		if ( com_sv_running.integer == 0 ) {
 			// clients of remote servers do not want to clamp time, because
 			// it would skew their view of the server's time temporarily
 			clampTime = 5000;
@@ -2396,29 +2394,29 @@ namespace SharpQ3.Engine.qcommon
 
 
 		// old net chan encryption key
-		key = 0x87243987;
+		key = (int)(0x87243987);
 
 		// write config file if anything changed
 		Com_WriteConfiguration(); 
 
 		// if "viewlog" has been modified, show or hide the log console
-		if ( com_viewlog->modified ) {
-			if ( !com_dedicated->value ) {
-				Sys_ShowConsole( com_viewlog->integer, false );
+		if ( com_viewlog.modified ) {
+			if ( com_dedicated.value == 0 ) {
+				Sys_ShowConsole( com_viewlog.integer, false );
 			}
-			com_viewlog->modified = false;
+			com_viewlog.modified = false;
 		}
 
 		//
 		// main event loop
 		//
-		if ( com_speeds->integer ) {
+		if ( com_speeds.integer == 1 ) {
 			timeBeforeFirstEvents = Sys_Milliseconds ();
 		}
 
 		// we may want to spin here if things are going too fast
-		if ( !com_dedicated->integer && com_maxfps->integer > 0 && !com_timedemo->integer ) {
-			minMsec = 1000 / com_maxfps->integer;
+		if ( com_dedicated.integer == 0 && com_maxfps.integer > 0 && com_timedemo.integer == 0 ) {
+			minMsec = 1000 / com_maxfps.integer;
 		} else {
 			minMsec = 1;
 		}
@@ -2440,7 +2438,7 @@ namespace SharpQ3.Engine.qcommon
 		//
 		// server side
 		//
-		if ( com_speeds->integer ) {
+		if ( com_speeds.integer == 1 ) {
 			timeBeforeServer = Sys_Milliseconds ();
 		}
 
@@ -2450,13 +2448,13 @@ namespace SharpQ3.Engine.qcommon
 		// or shut down the client system.
 		// Do this after the server may have started,
 		// but before the client tries to auto-connect
-		if ( com_dedicated->modified ) {
+		if ( com_dedicated.modified ) {
 			// get the latched value
-			Cvar_Get( "dedicated", "0", 0 );
-			com_dedicated->modified = false;
-			if ( !com_dedicated->integer ) {
+			Cvar.Cvar_Get( "dedicated", "0", 0 );
+			com_dedicated.modified = false;
+			if ( com_dedicated.integer == 0 ) {
 				CL_Init();
-				Sys_ShowConsole( com_viewlog->integer, false );
+				Sys_ShowConsole( com_viewlog.integer, false );
 			} else {
 				CL_Shutdown();
 				Sys_ShowConsole( 1, true );
@@ -2466,12 +2464,12 @@ namespace SharpQ3.Engine.qcommon
 		//
 		// client system
 		//
-		if ( !com_dedicated->integer ) {
+		if ( com_dedicated.integer == 0 ) {
 			//
 			// run event loop a second time to get server to client packets
 			// without a frame of latency
 			//
-			if ( com_speeds->integer ) {
+			if ( com_speeds.integer == 1 ) {
 				timeBeforeEvents = Sys_Milliseconds ();
 			}
 			Com_EventLoop();
@@ -2481,13 +2479,13 @@ namespace SharpQ3.Engine.qcommon
 			//
 			// client side
 			//
-			if ( com_speeds->integer ) {
+			if ( com_speeds.integer == 1 ) {
 				timeBeforeClient = Sys_Milliseconds ();
 			}
 
 			CL_Frame( msec );
 
-			if ( com_speeds->integer ) {
+			if ( com_speeds.integer == 1 ) {
 				timeAfter = Sys_Milliseconds ();
 			}
 		}
@@ -2495,7 +2493,7 @@ namespace SharpQ3.Engine.qcommon
 		//
 		// report timing information
 		//
-		if ( com_speeds->integer ) {
+		if ( com_speeds.integer == 1 ) {
 			int			all, sv, ev, cl;
 
 			all = timeAfter - timeBeforeServer;
@@ -2512,7 +2510,7 @@ namespace SharpQ3.Engine.qcommon
 		//
 		// trace optimization tracking
 		//
-		if ( com_showtrace->integer ) {
+		if ( com_showtrace.integer == 1 ) {
 	
 			extern	int c_traces, c_brush_traces, c_patch_traces;
 			extern	int	c_pointcontents;
@@ -2526,7 +2524,7 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		// old net chan encryption key
-		key = lastTime * 0x87243987;
+		key = ( int ) ( lastTime * 0x87243987 );
 
 		com_frameNumber++;
 	}
@@ -2538,13 +2536,13 @@ namespace SharpQ3.Engine.qcommon
 	*/
 	public static void Com_Shutdown () 
 	{
-		if (logfile) {
-			FS_FCloseFile (logfile);
+		if (logfile > 0) {
+			files.FS_FCloseFile ( new fileHandle_t { ID = logfile } );
 			logfile = 0;
 		}
 
-		if ( com_journalFile ) {
-			FS_FCloseFile( com_journalFile );
+		if ( com_journalFile > 0 ) {
+			files.FS_FCloseFile( new fileHandle_t { ID = com_journalFile } );
 			com_journalFile = 0;
 		}
 
@@ -2579,10 +2577,10 @@ namespace SharpQ3.Engine.qcommon
 		to game and ui
 	=====================
 	*/
-	private static float Q_acos(float c) {
+	public static float Q_acos(float c) {
 		float angle;
 
-		angle = acos(c);
+		angle = MathF.Acos(c);
 
 		if (angle > M_PI) {
 			return (float)M_PI;
@@ -2605,9 +2603,9 @@ namespace SharpQ3.Engine.qcommon
 	==================
 	*/
 	private static void Field_Clear( field_t *edit ) {
-	  memset(edit->buffer, 0, MAX_EDIT_LINE);
-		edit->cursor = 0;
-		edit->scroll = 0;
+	  memset(edit.buffer, 0, MAX_EDIT_LINE);
+		edit.cursor = 0;
+		edit.scroll = 0;
 	}
 
 	private static const char *completionString;
@@ -2659,18 +2657,18 @@ namespace SharpQ3.Engine.qcommon
 		char	*arg;
 
 		for ( i = 1 ; i < cmd.Cmd_Argc() ; i++ ) {
-			Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
+			q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ), " " );
 			arg = cmd.Cmd_Argv( i );
 			while (*arg) {
 				if (*arg == ' ') {
-					Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"");
+					q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ),  "\"");
 					break;
 				}
 				arg++;
 			}
-			Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  cmd.Cmd_Argv( i ) );
+			q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ),  cmd.Cmd_Argv( i ) );
 			if (*arg == ' ') {
-				Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"");
+				q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ),  "\"");
 			}
 		}
 	}
@@ -2685,7 +2683,7 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		str += (int)strlen(start);
-		Q_strcat( completionField->buffer, sizeof( completionField->buffer ), str);
+		q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ), str);
 	}
 
 	/*
@@ -2703,7 +2701,7 @@ namespace SharpQ3.Engine.qcommon
 		completionField = field;
 
 		// only look at the first token for completion purposes
-		cmd.Cmd_TokenizeString( completionField->buffer );
+		cmd.Cmd_TokenizeString( completionField.buffer );
 
 		completionString = cmd.Cmd_Argv(0);
 		if ( completionString[0] == '\\' || completionString[0] == '/' ) {
@@ -2717,7 +2715,7 @@ namespace SharpQ3.Engine.qcommon
 		}
 
 		cmd.Cmd_CommandCompletion( FindMatches );
-		Cvar_CommandCompletion( FindMatches );
+		Cvar.Cvar_CommandCompletion( FindMatches );
 
 		if ( matchCount == 0 ) {
 			return;	// no matches
@@ -2726,25 +2724,25 @@ namespace SharpQ3.Engine.qcommon
 		Com_Memcpy(&temp, completionField, sizeof(field_t));
 
 		if ( matchCount == 1 ) {
-			Com_sprintf( completionField->buffer, sizeof( completionField->buffer ), "\\%s", shortestMatch );
+			Com_sprintf( completionField.buffer, sizeof( completionField.buffer ), "\\%s", shortestMatch );
 			if ( cmd.Cmd_Argc() == 1 ) {
-				Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
+				q_shared.Q_strcat( completionField.buffer, sizeof( completionField.buffer ), " " );
 			} else {
 				ConcatRemaining( temp.buffer, completionString );
 			}
-			completionField->cursor = (int)strlen( completionField->buffer );
+			completionField.cursor = (int)strlen( completionField.buffer );
 			return;
 		}
 
 		// multiple matches, complete to shortest
-		Com_sprintf( completionField->buffer, sizeof( completionField->buffer ), "\\%s", shortestMatch );
-		completionField->cursor = (int)strlen( completionField->buffer );
+		Com_sprintf( completionField.buffer, sizeof( completionField.buffer ), "\\%s", shortestMatch );
+		completionField.cursor = (int)strlen( completionField.buffer );
 		ConcatRemaining( temp.buffer, completionString );
 
-		Com_Printf( "]%s\n", completionField->buffer );
+		Com_Printf( "]%s\n", completionField.buffer );
 
 		// run through again, printing matches
 		cmd.Cmd_CommandCompletion( PrintMatches );
-		Cvar_CommandCompletion( PrintMatches );
+		Cvar.Cvar_CommandCompletion( PrintMatches );
 	}
 }

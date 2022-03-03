@@ -68,6 +68,300 @@ namespace SharpQ3.Engine
 		ERR_NEED_CD                 // pop up the need-cd dialog
 	}
 
+	public struct vec2_t
+	{
+		public float x, y;
+
+		public vec2_t( float x, float y )
+        {
+			this.x = x;
+			this.y = y;
+		}
+
+		public static vec2_t zero = new vec2_t( );
+
+		public static bool operator ==( vec2_t a, vec2_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( vec2_t a, vec2_t b )
+		{
+			return !a.Equals( b );
+		}
+
+		public override Boolean Equals( Object obj )
+		{
+			if ( obj is vec2_t v )
+			{
+				return x == v.x && y == v.y;
+			}
+			else
+				return false;
+		}
+	}
+
+	public struct vec3_t
+	{
+		public float x, y, z;		
+
+		public vec3_t( float x, float y, float z )
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		}
+
+		public float this[int i]
+        {
+			get
+            {
+				switch ( i )
+                {
+					case 0:
+						return x;
+					case 1:
+						return y;
+					case 2:
+						return z;
+				}
+
+				return 0f;
+            }
+			set
+            {
+				switch ( i )
+				{
+					case 0:
+						x = value;
+						break;
+					case 1:
+						y = value;
+						break;
+					case 2:
+						z = value;
+						break;
+				}
+			}
+        }
+
+		public static vec3_t zero = new vec3_t( );
+
+		public static bool operator ==( vec3_t a, vec3_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( vec3_t a, vec3_t b )
+		{
+			return !a.Equals( b );
+		}
+
+        public override Boolean Equals( Object obj )
+        {
+			if ( obj is vec3_t v )
+			{
+				return x == v.x && y == v.y && z == v.z;
+			}
+			else
+				return false;
+        }
+    }
+
+	public struct vec4_t
+	{
+		public float x, y, z, w;
+
+		public static vec4_t zero = new vec4_t( );
+
+		public vec3_t xyz
+        {
+			get
+            {
+				return new vec3_t( x, y, z );
+            }
+			set
+            {
+				x = value.x;
+				y = value.y;
+				z = value.z;
+            }
+        }
+
+		public vec4_t( float x, float y, float z, float w )
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.w = w;
+		}
+
+		public static bool operator ==( vec4_t a, vec4_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( vec4_t a, vec4_t b )
+		{
+			return !a.Equals( b );
+		}
+
+		public override Boolean Equals( Object obj )
+		{
+			if ( obj is vec4_t v )
+			{
+				return x == v.x && y == v.y && z == v.z && w == v.w;
+			}
+			else
+				return false;
+		}
+	}
+
+	public struct vec5_t
+	{
+		public float x, y, z, w, n;
+
+		public static vec5_t zero = new vec5_t( );
+
+		public vec5_t( float x, float y, float z, float w, float n )
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.w = w;
+			this.n = n;
+		}
+
+		public static bool operator ==( vec5_t a, vec5_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( vec5_t a, vec5_t b )
+		{
+			return !a.Equals( b );
+		}
+
+		public override Boolean Equals( Object obj )
+		{
+			if ( obj is vec5_t v )
+			{
+				return x == v.x && y == v.y && z == v.z && w == v.w && n == v.n;
+			}
+			else
+				return false;
+		}
+	}
+
+	public struct matrix3_t
+	{
+		public vec3_t x, y, z;
+
+		public matrix3_t( vec3_t x, vec3_t y, vec3_t z )
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		}
+
+		public vec3_t this[int i]
+		{
+			get
+			{
+				switch ( i )
+				{
+					case 0:
+						return x;
+					case 1:
+						return y;
+					case 2:
+						return z;
+				}
+
+				return vec3_t.zero;
+			}
+			set
+			{
+				switch ( i )
+				{
+					case 0:
+						x = value;
+						break;
+					case 1:
+						y = value;
+						break;
+					case 2:
+						z = value;
+						break;
+				}
+			}
+		}
+
+		public static matrix3_t zero = new matrix3_t( );
+
+		public static bool operator ==( matrix3_t a, matrix3_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( matrix3_t a, matrix3_t b )
+		{
+			return !a.Equals( b );
+		}
+
+		public override Boolean Equals( Object obj )
+		{
+			if ( obj is matrix3_t v )
+			{
+				return x == v.x && y == v.y && z == v.z;
+			}
+			else
+				return false;
+		}
+	}
+
+	// plane_t structure
+	// !!! if this is changed, it must be changed in asm code too !!!
+	public struct cplane_t
+	{
+		public vec3_t normal;
+		public float dist;
+		public byte type;          // for fast side tests: 0,1,2 = axial, 3 = nonaxial
+		public byte signbits;      // signx + (signy<<1) + (signz<<2), used as lookup during collision
+		public byte pad1;
+		public byte pad2;
+	}
+
+	// a trace is returned when a box is swept through the world
+	public struct trace_t
+	{
+		public bool allsolid;  // if true, plane is not valid
+		public bool startsolid;    // if true, the initial point was in a solid area
+		public float fraction; // time completed, 1.0 = didn't hit anything
+		public vec3_t endpos;      // final position
+		public cplane_t plane;     // surface normal at impact, transformed to world space
+		public int surfaceFlags;   // surface hit
+		public int contents;   // contents on other side of surface hit
+		public int entityNum;   // entity the contacted sirface is a part of
+	}
+
+	// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
+	// or ENTITYNUM_NONE, ENTITYNUM_WORLD
+
+
+	// markfragments are returned by CM_MarkFragments()
+	public struct markFragment_t
+	{
+		public int firstPoint;
+		public int numPoints;
+	};
+
+	public struct orientation_t
+	{
+		public vec3_t origin;
+		public vec3_t axis;
+	}
+
 	// q_shared.h -- included first by ALL program modules.
 	public static class q_shared
 	{
@@ -205,24 +499,6 @@ namespace SharpQ3.Engine
 		==============================================================
 		*/
 
-		public struct vec2_t
-		{
-			public float x, y;
-		}
-
-		public struct vec3_t
-		{
-			public float x, y, z;
-		}
-
-		public struct vec4_t
-		{
-			public float x, y, z, w;
-		}
-		public struct vec5_t
-		{
-			public float x, y, z, w, n;
-		}
 
 		public const float M_PI = 3.14159265358979323846f;    // matches value in gcc v2 math.h
 
@@ -315,21 +591,80 @@ namespace SharpQ3.Engine
 
 		//#define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
 
-		//#define DotProduct(x,y)			((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
-		//#define VectorSubtract(a,b,c)	((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
-		//#define VectorAdd(a,b,c)		((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
-		//#define VectorCopy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
-		//#define VectorScale(v, s, o)	((o)[0]=(v)[0]*(s),(o)[1]=(v)[1]*(s),(o)[2]=(v)[2]*(s))
-		//#define VectorMA(v, s, b, o)	((o)[0]=(v)[0]+(b)[0]*(s),(o)[1]=(v)[1]+(b)[1]*(s),(o)[2]=(v)[2]+(b)[2]*(s))
+		public static float DotProduct( vec3_t a, vec3_t b )
+		{
+			return a.x * b.x + a.y * b.y + a.z * b.z;
+		}
 
-		//#define VectorClear(a)			((a)[0]=(a)[1]=(a)[2]=0)
-		//#define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
-		//#define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
+		public static void VectorSubtract( vec3_t a, vec3_t b, out vec3_t c )
+		{
+			c = new vec3_t
+			{
+				x = a.x - b.x,
+				y = a.y - b.y,
+				z = a.z - b.z,
+			};
+		}
+
+		public static void VectorAdd( vec3_t a, vec3_t b, out vec3_t c )
+		{
+			c = new vec3_t
+			{
+				x = a.x + b.x,
+				y = a.y + b.y,
+				z = a.z + b.z,
+			};
+		}
+
+		public static void VectorCopy( vec3_t a, out vec3_t b )
+		{
+			b = new vec3_t( );
+			b.x = a.x;
+			b.y = a.y;
+			b.z = a.z;
+		}
+
+		public static void VectorScale( vec3_t v, float s, out vec3_t o )
+		{
+			o = new vec3_t( );
+			o.x = v.x * s;
+			o.y = v.y * s;
+			o.z = v.z * s;
+		}
+
+		public static void VectorMA( vec3_t v, float s, vec3_t b, out vec3_t o )
+		{
+			o = new vec3_t( );
+			o.x = v.x + b.x * s;
+			o.y = v.y + b.y * s;
+			o.z = v.z + b.z * s;
+		}
+
+		public static void VectorClear( ref vec3_t a )
+		{
+			a.x = a.y = a.z = 0;
+		}
+
+		public static void VectorNegate( vec3_t a, out vec3_t b )
+		{
+			b.x = -a.x;
+			b.y = -a.y;
+			b.z = -a.z;
+		}
+
+		public static void VectorSet( out vec3_t v, float x, float y, float z )
+		{
+			v = new vec3_t( );
+			v.x = x;
+			v.y = y;
+			v.z = z;
+		}
+
 		//#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
 		//#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
 
-		static int VectorCompare( vec3_t v1, vec3_t v2 )
+		public static int VectorCompare( vec3_t v1, vec3_t v2 )
 		{
 			if ( v1.x != v2.x|| v1.y != v2.y || v1.z != v2.z )
 			{
@@ -338,54 +673,51 @@ namespace SharpQ3.Engine
 			return 1;
 		}
 
-		static float VectorLength( vec3_t v )
+		public static float VectorLength( vec3_t v )
 		{
 			return ( float ) Math.Sqrt( v.x* v.x + v.y * v.y + v.z * v.z );
 		}
 
-		static float VectorLengthSquared( vec3_t v )
+		public static float VectorLengthSquared( vec3_t v )
 		{
 			return ( v.x * v.x + v.y * v.y + v.z * v.z );
 		}
 
-		static float Distance( vec3_t p1, vec3_t p2 )
+		public static float Distance( vec3_t p1, vec3_t p2 )
 		{
-			vec3_t v;
-
-			VectorSubtract( p2, p1, v );
+			VectorSubtract( p2, p1, out var v );
 			return VectorLength( v );
 		}
 
-		static float DistanceSquared( vec3_t p1, vec3_t p2 )
+		public static float DistanceSquared( vec3_t p1, vec3_t p2 )
 		{
-			vec3_t v;
-
-			VectorSubtract( p2, p1, v );
+			VectorSubtract( p2, p1, out var v );
 			return v.x * v.x + v.y * v.y + v.z * v.z;
 		}
 
 		// fast vector normalize routine that does not check to make sure
 		// that length != 0, nor does it return length, uses rsqrt approximation
-		static void VectorNormalizeFast( vec3_t v )
+		public static void VectorNormalizeFast( vec3_t v )
 		{
 			float ilength;
 
-			ilength = q_shared.Q_rsqrt( DotProduct( v, v ) );
+			ilength = q_math.Q_rsqrt( DotProduct( v, v ) );
 
 			v.x *= ilength;
 			v.y *= ilength;
 			v.z *= ilength;
 		}
 
-		static void VectorInverse( vec3_t v )
+		public static void VectorInverse( vec3_t v )
 		{
 			v.x = -v.x;
 			v.y = -v.y;
 			v.z = -v.z;
 		}
 
-		static void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
+		public static void CrossProduct( vec3_t v1, vec3_t v2, out vec3_t cross )
 		{
+			cross = new vec3_t( );
 			cross.x = v1.x * v2.z - v1.z * v2.y;
 			cross.y = v1.z * v2.x - v1.x * v2.z;
 			cross.z = v1.x * v2.y - v1.y * v2.x;
@@ -497,48 +829,6 @@ namespace SharpQ3.Engine
 		public static int PlaneTypeForNormal( vec3_t vec ) 
 		{
 			return vec.x == 1.0 ? PLANE_X : ( vec.y == 1.0 ? PLANE_Y : ( vec.z == 1.0 ? PLANE_Z : PLANE_NON_AXIAL ) );
-		}
-
-		// plane_t structure
-		// !!! if this is changed, it must be changed in asm code too !!!
-		public struct cplane_t
-		{
-			vec3_t normal;
-			float dist;
-			byte type;          // for fast side tests: 0,1,2 = axial, 3 = nonaxial
-			byte signbits;      // signx + (signy<<1) + (signz<<2), used as lookup during collision
-			byte pad1;
-			byte pad2;
-		}
-
-		// a trace is returned when a box is swept through the world
-		public struct trace_t
-		{
-			bool allsolid;  // if true, plane is not valid
-			bool startsolid;    // if true, the initial point was in a solid area
-			float fraction; // time completed, 1.0 = didn't hit anything
-			vec3_t endpos;      // final position
-			cplane_t plane;     // surface normal at impact, transformed to world space
-			int surfaceFlags;   // surface hit
-			int contents;   // contents on other side of surface hit
-			int entityNum;	// entity the contacted sirface is a part of
-		}
-
-		// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
-		// or ENTITYNUM_NONE, ENTITYNUM_WORLD
-
-
-		// markfragments are returned by CM_MarkFragments()
-		public struct markFragment_t
-		{
-			int firstPoint;
-			int numPoints;
-		} ;
-
-		public struct orientation_t
-		{
-			vec3_t origin;
-			vec3_t axis;
 		}
 
 		//=====================================================================
@@ -1178,13 +1468,13 @@ namespace SharpQ3.Engine
 		*/
 
 		private static char[] com_token = new char[MAX_TOKEN_CHARS];
-		private static char[] com_parsename = new char[MAX_TOKEN_CHARS];
+		private static string com_parsename;//= new char[MAX_TOKEN_CHARS];
 		private static	int		com_lines;
 
 		public static void COM_BeginParseSession( string name )
 		{
 			com_lines = 0;
-			Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
+			Com_sprintf( out com_parsename, MAX_TOKEN_CHARS, "%s", name);
 		}
 
 		public static int COM_GetCurrentParseLine( )
@@ -1896,7 +2186,7 @@ namespace SharpQ3.Engine
 				common.Com_Error( errorParm_t.ERR_DROP, "Info_RemoveKey: oversize infostring" );
 			}
 
-			if (strchr (key, '\\')) {
+			if (key.Contains('\\')) {
 				return;
 			}
 
@@ -1954,7 +2244,7 @@ namespace SharpQ3.Engine
 				common.Com_Error( errorParm_t.ERR_DROP, "Info_RemoveKey_Big: oversize infostring" );
 			}
 
-			if (strchr (key, '\\')) {
+			if ( key.Contains('\\')) {
 				return;
 			}
 
@@ -2021,7 +2311,7 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey( out string s, string key, string value ) {
+		public static void Info_SetValueForKey( ref string s, string key, string value ) {
 			string newi;//[MAX_INFO_STRING];
 
 			if ( s.Length >= MAX_INFO_STRING ) {
@@ -2069,7 +2359,7 @@ namespace SharpQ3.Engine
 		Changes or adds a key/value pair
 		==================
 		*/
-		public static void Info_SetValueForKey_Big( out string s, string key, string value ) 
+		public static void Info_SetValueForKey_Big( ref string s, string key, string value ) 
 		{
 			if ( s.Length >= BIG_INFO_STRING ) 
 			{

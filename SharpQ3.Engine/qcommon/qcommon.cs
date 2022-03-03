@@ -475,35 +475,4 @@ namespace SharpQ3.Engine.qcommon
 		public const int CL_ENCODE_START = 12;
 		public const int CL_DECODE_START = 4;
 	}
-
-	// optimus-code - Stub - write a better implementation later
-	public struct vec3_t
-    {
-		public float x;
-		public float y;
-		public float z;
-
-		public float[] all
-        {
-			get
-            {
-				return new float[] { x, y, z };
-            }
-        }
-	}
-
-	// optimus-code - Stub - write a better implementation later
-	public struct vec2_t
-	{
-		public float x;
-		public float y;
-
-		public float[] all
-		{
-			get
-			{
-				return new float[] { x, y };
-			}
-		}
-	}
 }

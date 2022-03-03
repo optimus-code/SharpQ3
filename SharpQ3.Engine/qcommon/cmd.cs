@@ -76,7 +76,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_Init
 		============
 		*/
-		private static void Cbuf_Init ()
+		public static void Cbuf_Init ()
 		{
 			cmd_text.data = cmd_text_buf;
 			cmd_text.maxsize = MAX_CMD_BUFFER;
@@ -101,7 +101,7 @@ namespace SharpQ3.Engine.qcommon
 				common.Com_Printf ("Cbuf_AddText: overflow\n");
 				return;
 			}
-			Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
+			common.Com_Memcpy(&cmd_text.data[cmd_text.cursize], text, l);
 			cmd_text.cursize += l;
 		}
 
@@ -173,7 +173,7 @@ namespace SharpQ3.Engine.qcommon
 		Cbuf_Execute
 		============
 		*/
-		private static void Cbuf_Execute ()
+		public static void Cbuf_Execute ()
 		{
 			int		i;
 			string text;
@@ -256,7 +256,7 @@ namespace SharpQ3.Engine.qcommon
 
 			Q_strncpyz( out var filename, Cmd_Argv(1), MAX_QPATH );
 			COM_DefaultExtension( filename, MAX_QPATH, ".cfg" ); 
-			len = FS_ReadFile( filename, (void **)&f);
+			len = files.FS_ReadFile( filename, (void **)&f);
 			if (f == null) {
 				common.Com_Printf ("couldn't exec %s\n",Cmd_Argv(1));
 				return;
@@ -265,7 +265,7 @@ namespace SharpQ3.Engine.qcommon
 			
 			Cbuf_InsertText (f);
 
-			FS_FreeFile (f);
+			files.FS_FreeFile (f);
 		}
 
 
@@ -542,13 +542,13 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		public static void Cmd_AddCommand( string cmd_name, Action function ) {
-			cmd_function_t	*cmd;
+			cmd_function_t	cmd;
 			
 			// fail if the command already exists
-			for ( cmd = cmd_functions ; cmd ; cmd=cmd->next ) {
-				if ( !strcmp( cmd_name, cmd->name ) ) {
+			for ( cmd = cmd_functions ; cmd ; cmd=cmd.next ) {
+				if ( cmd_name == cmd.name ) {
 					// allow completion-only commands to be silently doubled
-					if ( function != NULL ) {
+					if ( function != null ) {
 						common.Com_Printf ("Cmd_AddCommand: %s already defined\n", cmd_name);
 					}
 					return;
@@ -556,10 +556,10 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// use a small malloc to avoid zone fragmentation
-			cmd = (cmd_function_t*) S_Malloc(sizeof(cmd_function_t));
-			cmd->name = CopyString( cmd_name );
-			cmd->function = function;
-			cmd->next = cmd_functions;
+			cmd = new cmd_function_t( );
+			cmd.name = new string( cmd_name );
+			cmd.function = function;
+			cmd.next = cmd_functions;
 			cmd_functions = cmd;
 		}
 
@@ -569,7 +569,7 @@ namespace SharpQ3.Engine.qcommon
 		============
 		*/
 		private static void Cmd_RemoveCommand( string cmd_name ) {
-			cmd_function_t	*cmd, **back;
+			cmd_function_t	cmd, **back;
 
 			back = &cmd_functions;
 			while( 1 ) {
@@ -578,15 +578,15 @@ namespace SharpQ3.Engine.qcommon
 					// command wasn't active
 					return;
 				}
-				if ( !strcmp( cmd_name, cmd->name ) ) {
-					*back = cmd->next;
-					if (cmd->name) {
-						Z_Free(cmd->name);
+				if ( !strcmp( cmd_name, cmd.name ) ) {
+					*back = cmd.next;
+					if (cmd.name) {
+						Z_Free(cmd.name);
 					}
 					Z_Free (cmd);
 					return;
 				}
-				back = &cmd->next;
+				back = &cmd.next;
 			}
 		}
 
@@ -649,15 +649,15 @@ namespace SharpQ3.Engine.qcommon
 				return;
 
 			// check client game commands
-			if ( common.com_cl_running && common.com_cl_running.integer == 1 && CL_GameCommand() )
+			if ( common.com_cl_running != null && common.com_cl_running.integer == 1 && CL_GameCommand() )
 				return;
 
 			// check server game commands
-			if ( common.com_sv_running && common.com_sv_running.integer == 1 && SV_GameCommand() )
+			if ( common.com_sv_running != null && common.com_sv_running.integer == 1 && SV_GameCommand() )
 				return;
 
 			// check ui commands
-			if ( common.com_cl_running && common.com_cl_running.integer == 1 && UI_GameCommand() )
+			if ( common.com_cl_running != null && common.com_cl_running.integer == 1 && UI_GameCommand() )
 				return;
 
 			// send it as a server command if we are connected
@@ -697,7 +697,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_Init
 		============
 		*/
-		private static void Cmd_Init () {
+		public static void Cmd_Init () {
 			Cmd_AddCommand ("cmdlist",Cmd_List_f);
 			Cmd_AddCommand ("exec",Cmd_Exec_f);
 			Cmd_AddCommand ("vstr",Cmd_Vstr_f);

@@ -37,13 +37,11 @@ namespace SharpQ3.Engine.qcommon
 		RotatePoint
 		================
 		*/
-		void RotatePoint(vec3_t point, /*const*/ vec3_t matrix[3]) { // bk: FIXME 
-			vec3_t tvec;
-
-			VectorCopy(point, tvec);
-			point[0] = DotProduct(matrix[0], tvec);
-			point[1] = DotProduct(matrix[1], tvec);
-			point[2] = DotProduct(matrix[2], tvec);
+		public static void RotatePoint(vec3_t point, /*const*/ vec3_t[] matrix) { // bk: FIXME 
+			q_shared.VectorCopy(point, out var tvec);
+			point.x = q_shared.DotProduct(matrix[0], tvec);
+			point.y = q_shared.DotProduct(matrix[1], tvec);
+			point.z = q_shared.DotProduct(matrix[2], tvec);
 		}
 
 		/*
@@ -51,7 +49,7 @@ namespace SharpQ3.Engine.qcommon
 		TransposeMatrix
 		================
 		*/
-		void TransposeMatrix(/*const*/ vec3_t matrix[3], vec3_t transpose[3]) { // bk: FIXME
+		public static void TransposeMatrix(/*const*/ vec3_t matrix[3], vec3_t transpose[3]) { // bk: FIXME
 			int i, j;
 			for (i = 0; i < 3; i++) {
 				for (j = 0; j < 3; j++) {
@@ -65,9 +63,9 @@ namespace SharpQ3.Engine.qcommon
 		CreateRotationMatrix
 		================
 		*/
-		void CreateRotationMatrix(const vec3_t angles, vec3_t matrix[3]) {
+		public static void CreateRotationMatrix(const vec3_t angles, vec3_t matrix[3]) {
 			AngleVectors(angles, matrix[0], matrix[1], matrix[2]);
-			VectorInverse(matrix[1]);
+			q_shared.VectorInverse(matrix[1]);
 		}
 
 		/*
@@ -75,13 +73,13 @@ namespace SharpQ3.Engine.qcommon
 		CM_ProjectPointOntoVector
 		================
 		*/
-		void CM_ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vDir, vec3_t vProj )
+		public static void CM_ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vDir, vec3_t vProj )
 		{
 			vec3_t pVec;
 
-			VectorSubtract( point, vStart, pVec );
+			q_shared.VectorSubtract( point, vStart, pVec );
 			// project onto the directional vector for this segment
-			VectorMA( vStart, DotProduct( pVec, vDir ), vDir, vProj );
+			q_shared.VectorMA( vStart, q_shared.DotProduct( pVec, vDir ), vDir, vProj );
 		}
 
 		/*
@@ -89,7 +87,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_DistanceFromLineSquared
 		================
 		*/
-		float CM_DistanceFromLineSquared(vec3_t p, vec3_t lp1, vec3_t lp2, vec3_t dir) {
+		public static float CM_DistanceFromLineSquared(vec3_t p, vec3_t lp1, vec3_t lp2, vec3_t dir) {
 			vec3_t proj, t;
 			int j;
 
@@ -100,13 +98,13 @@ namespace SharpQ3.Engine.qcommon
 					break;
 			if (j < 3) {
 				if (fabs(proj[j] - lp1[j]) < fabs(proj[j] - lp2[j]))
-					VectorSubtract(p, lp1, t);
+					q_shared.VectorSubtract(p, lp1, t);
 				else
-					VectorSubtract(p, lp2, t);
-				return VectorLengthSquared(t);
+					q_shared.VectorSubtract(p, lp2, t);
+				return q_shared.VectorLengthSquared(t);
 			}
-			VectorSubtract(p, proj, t);
-			return VectorLengthSquared(t);
+			q_shared.VectorSubtract(p, proj, t);
+			return q_shared.VectorLengthSquared(t);
 		}
 
 		/*
@@ -114,11 +112,11 @@ namespace SharpQ3.Engine.qcommon
 		CM_VectorDistanceSquared
 		================
 		*/
-		float CM_VectorDistanceSquared(vec3_t p1, vec3_t p2) {
+		public static float CM_VectorDistanceSquared(vec3_t p1, vec3_t p2) {
 			vec3_t dir;
 
-			VectorSubtract(p2, p1, dir);
-			return VectorLengthSquared(dir);
+			q_shared.VectorSubtract(p2, p1, dir);
+			return q_shared.VectorLengthSquared(dir);
 		}
 
 		/*
@@ -126,7 +124,7 @@ namespace SharpQ3.Engine.qcommon
 		SquareRootFloat
 		================
 		*/
-		float SquareRootFloat(float number) {
+		public static float SquareRootFloat(float number) {
 			long i;
 			float x, y;
 			const float f = 1.5F;
@@ -155,7 +153,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_TestBoxInBrush
 		================
 		*/
-		void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush ) {
+		public static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush ) {
 			int			i;
 			cplane_t	*plane;
 			float		dist;
@@ -164,41 +162,41 @@ namespace SharpQ3.Engine.qcommon
 			float		t;
 			vec3_t		startp;
 
-			if (!brush->numsides) {
+			if (!brush.numsides) {
 				return;
 			}
 
 			// special test for axial
-			if ( tw->bounds[0][0] > brush->bounds[1][0]
-				|| tw->bounds[0][1] > brush->bounds[1][1]
-				|| tw->bounds[0][2] > brush->bounds[1][2]
-				|| tw->bounds[1][0] < brush->bounds[0][0]
-				|| tw->bounds[1][1] < brush->bounds[0][1]
-				|| tw->bounds[1][2] < brush->bounds[0][2]
+			if ( tw.bounds[0][0] > brush.bounds[1][0]
+				|| tw.bounds[0][1] > brush.bounds[1][1]
+				|| tw.bounds[0][2] > brush.bounds[1][2]
+				|| tw.bounds[1][0] < brush.bounds[0][0]
+				|| tw.bounds[1][1] < brush.bounds[0][1]
+				|| tw.bounds[1][2] < brush.bounds[0][2]
 				) {
 				return;
 			}
 
-		   if ( tw->sphere.use ) {
+		   if ( tw.sphere.use ) {
 				// the first six planes are the axial planes, so we only
 				// need to test the remainder
-				for ( i = 6 ; i < brush->numsides ; i++ ) {
-					side = brush->sides + i;
-					plane = side->plane;
+				for ( i = 6 ; i < brush.numsides ; i++ ) {
+					side = brush.sides + i;
+					plane = side.plane;
 
 					// adjust the plane distance apropriately for radius
-					dist = plane->dist + tw->sphere.radius;
+					dist = plane.dist + tw.sphere.radius;
 					// find the closest point on the capsule to the plane
-					t = DotProduct( plane->normal, tw->sphere.offset );
+					t = q_shared.DotProduct( plane.normal, tw.sphere.offset );
 					if ( t > 0 )
 					{
-						VectorSubtract( tw->start, tw->sphere.offset, startp );
+						q_shared.VectorSubtract( tw.start, tw.sphere.offset, startp );
 					}
 					else
 					{
-						VectorAdd( tw->start, tw->sphere.offset, startp );
+						q_shared.VectorAdd( tw.start, tw.sphere.offset, startp );
 					}
-					d1 = DotProduct( startp, plane->normal ) - dist;
+					d1 = q_shared.DotProduct( startp, plane.normal ) - dist;
 					// if completely in front of face, no intersection
 					if ( d1 > 0 ) {
 						return;
@@ -207,14 +205,14 @@ namespace SharpQ3.Engine.qcommon
 			} else {
 				// the first six planes are the axial planes, so we only
 				// need to test the remainder
-				for ( i = 6 ; i < brush->numsides ; i++ ) {
-					side = brush->sides + i;
-					plane = side->plane;
+				for ( i = 6 ; i < brush.numsides ; i++ ) {
+					side = brush.sides + i;
+					plane = side.plane;
 
 					// adjust the plane distance apropriately for mins/maxs
-					dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
+					dist = plane.dist - DotProduct( tw.offsets[ plane.signbits ], plane.normal );
 
-					d1 = DotProduct( tw->start, plane->normal ) - dist;
+					d1 = DotProduct( tw.start, plane.normal ) - dist;
 
 					// if completely in front of face, no intersection
 					if ( d1 > 0 ) {
@@ -224,9 +222,9 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// inside this brush
-			tw->trace.startsolid = tw->trace.allsolid = true;
-			tw->trace.fraction = 0;
-			tw->trace.contents = brush->contents;
+			tw.trace.startsolid = tw.trace.allsolid = true;
+			tw.trace.fraction = 0;
+			tw.trace.contents = brush.contents;
 		}
 
 
@@ -236,51 +234,51 @@ namespace SharpQ3.Engine.qcommon
 		CM_TestInLeaf
 		================
 		*/
-		void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
+		public static void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
 			int			k;
 			int			brushnum;
 			cbrush_t	*b;
 			cPatch_t	*patch;
 
 			// test box position against all brushes in the leaf
-			for (k=0 ; k<leaf->numLeafBrushes ; k++) {
-				brushnum = cm.leafbrushes[leaf->firstLeafBrush+k];
+			for (k=0 ; k<leaf.numLeafBrushes ; k++) {
+				brushnum = cm.leafbrushes[leaf.firstLeafBrush+k];
 				b = &cm.brushes[brushnum];
-				if (b->checkcount == cm.checkcount) {
+				if (b.checkcount == cm.checkcount) {
 					continue;	// already checked this brush in another leaf
 				}
-				b->checkcount = cm.checkcount;
+				b.checkcount = cm.checkcount;
 
-				if ( !(b->contents & tw->contents)) {
+				if ( !(b.contents & tw.contents)) {
 					continue;
 				}
 				
 				CM_TestBoxInBrush( tw, b );
-				if ( tw->trace.allsolid ) {
+				if ( tw.trace.allsolid ) {
 					return;
 				}
 			}
 
 			// test against all patches
-			if ( !cm_noCurves->integer ) {
-				for ( k = 0 ; k < leaf->numLeafSurfaces ; k++ ) {
-					patch = cm.surfaces[ cm.leafsurfaces[ leaf->firstLeafSurface + k ] ];
+			if ( !cm_noCurves.integer ) {
+				for ( k = 0 ; k < leaf.numLeafSurfaces ; k++ ) {
+					patch = cm.surfaces[ cm.leafsurfaces[ leaf.firstLeafSurface + k ] ];
 					if ( !patch ) {
 						continue;
 					}
-					if ( patch->checkcount == cm.checkcount ) {
+					if ( patch.checkcount == cm.checkcount ) {
 						continue;	// already checked this brush in another leaf
 					}
-					patch->checkcount = cm.checkcount;
+					patch.checkcount = cm.checkcount;
 
-					if ( !(patch->contents & tw->contents)) {
+					if ( !(patch.contents & tw.contents)) {
 						continue;
 					}
 					
-					if ( CM_PositionTestInPatchCollide( tw, patch->pc ) ) {
-						tw->trace.startsolid = tw->trace.allsolid = true;
-						tw->trace.fraction = 0;
-						tw->trace.contents = patch->contents;
+					if ( CM_PositionTestInPatchCollide( tw, patch.pc ) ) {
+						tw.trace.startsolid = tw.trace.allsolid = true;
+						tw.trace.fraction = 0;
+						tw.trace.contents = patch.contents;
 						return;
 					}
 				}
@@ -294,7 +292,7 @@ namespace SharpQ3.Engine.qcommon
 		capsule inside capsule check
 		==================
 		*/
-		void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model ) {
 			int i;
 			vec3_t mins, maxs;
 			vec3_t top, bottom;
@@ -304,8 +302,8 @@ namespace SharpQ3.Engine.qcommon
 
 			CM_ModelBounds(model, mins, maxs);
 
-			VectorAdd(tw->start, tw->sphere.offset, top);
-			VectorSubtract(tw->start, tw->sphere.offset, bottom);
+			q_shared.VectorAdd(tw.start, tw.sphere.offset, top);
+			q_shared.VectorSubtract(tw.start, tw.sphere.offset, bottom);
 			for ( i = 0 ; i < 3 ; i++ ) {
 				offset[i] = ( mins[i] + maxs[i] ) * 0.5;
 				symetricSize[0][i] = mins[i] - offset[i];
@@ -316,31 +314,31 @@ namespace SharpQ3.Engine.qcommon
 			radius = ( halfwidth > halfheight ) ? halfheight : halfwidth;
 			offs = halfheight - radius;
 
-			r = Square(tw->sphere.radius + radius);
+			r = q_shared.Square(tw.sphere.radius + radius);
 			// check if any of the spheres overlap
-			VectorCopy(offset, p1);
+			q_shared.VectorCopy(offset, p1);
 			p1[2] += offs;
-			VectorSubtract(p1, top, tmp);
-			if ( VectorLengthSquared(tmp) < r ) {
-				tw->trace.startsolid = tw->trace.allsolid = true;
-				tw->trace.fraction = 0;
+			q_shared.VectorSubtract(p1, top, tmp);
+			if ( q_shared.VectorLengthSquared(tmp) < r ) {
+				tw.trace.startsolid = tw.trace.allsolid = true;
+				tw.trace.fraction = 0;
 			}
-			VectorSubtract(p1, bottom, tmp);
-			if ( VectorLengthSquared(tmp) < r ) {
-				tw->trace.startsolid = tw->trace.allsolid = true;
-				tw->trace.fraction = 0;
+			q_shared.VectorSubtract(p1, bottom, tmp);
+			if ( q_shared.VectorLengthSquared(tmp) < r ) {
+				tw.trace.startsolid = tw.trace.allsolid = true;
+				tw.trace.fraction = 0;
 			}
-			VectorCopy(offset, p2);
+			q_shared.VectorCopy(offset, p2);
 			p2[2] -= offs;
-			VectorSubtract(p2, top, tmp);
-			if ( VectorLengthSquared(tmp) < r ) {
-				tw->trace.startsolid = tw->trace.allsolid = true;
-				tw->trace.fraction = 0;
+			q_shared.VectorSubtract(p2, top, tmp);
+			if ( q_shared.VectorLengthSquared(tmp) < r ) {
+				tw.trace.startsolid = tw.trace.allsolid = true;
+				tw.trace.fraction = 0;
 			}
-			VectorSubtract(p2, bottom, tmp);
+			q_shared.VectorSubtract(p2, bottom, tmp);
 			if ( VectorLengthSquared(tmp) < r ) {
-				tw->trace.startsolid = tw->trace.allsolid = true;
-				tw->trace.fraction = 0;
+				tw.trace.startsolid = tw.trace.allsolid = true;
+				tw.trace.fraction = 0;
 			}
 			// if between cylinder up and lower bounds
 			if ( (top[2] >= p1[2] && top[2] <= p2[2]) ||
@@ -348,10 +346,10 @@ namespace SharpQ3.Engine.qcommon
 				// 2d coordinates
 				top[2] = p1[2] = 0;
 				// if the cylinders overlap
-				VectorSubtract(top, p1, tmp);
-				if ( VectorLengthSquared(tmp) < r ) {
-					tw->trace.startsolid = tw->trace.allsolid = true;
-					tw->trace.fraction = 0;
+				q_shared.VectorSubtract(top, p1, tmp);
+				if ( q_shared.VectorLengthSquared(tmp) < r ) {
+					tw.trace.startsolid = tw.trace.allsolid = true;
+					tw.trace.fraction = 0;
 				}
 			}
 		}
@@ -363,7 +361,7 @@ namespace SharpQ3.Engine.qcommon
 		bounding box inside capsule check
 		==================
 		*/
-		void CM_TestBoundingBoxInCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TestBoundingBoxInCapsule( traceWork_t *tw, clipHandle_t model ) {
 			vec3_t mins, maxs, offset, size[2];
 			clipHandle_t h;
 			cmodel_t *cmod;
@@ -377,21 +375,21 @@ namespace SharpQ3.Engine.qcommon
 				offset[i] = ( mins[i] + maxs[i] ) * 0.5;
 				size[0][i] = mins[i] - offset[i];
 				size[1][i] = maxs[i] - offset[i];
-				tw->start[i] -= offset[i];
-				tw->end[i] -= offset[i];
+				tw.start[i] -= offset[i];
+				tw.end[i] -= offset[i];
 			}
 
 			// replace the bounding box with the capsule
-			tw->sphere.use = true;
-			tw->sphere.radius = ( size[1][0] > size[1][2] ) ? size[1][2]: size[1][0];
-			tw->sphere.halfheight = size[1][2];
-			VectorSet( tw->sphere.offset, 0, 0, size[1][2] - tw->sphere.radius );
+			tw.sphere.use = true;
+			tw.sphere.radius = ( size[1][0] > size[1][2] ) ? size[1][2]: size[1][0];
+			tw.sphere.halfheight = size[1][2];
+			q_shared.VectorSet( tw.sphere.offset, 0, 0, size[1][2] - tw.sphere.radius );
 
 			// replace the capsule with the bounding box
-			h = CM_TempBoxModel(tw->size[0], tw->size[1], false);
+			h = CM_TempBoxModel(tw.size[0], tw.size[1], false);
 			// calculate collision
 			cmod = CM_ClipHandleToModel( h );
-			CM_TestInLeaf( tw, &cmod->leaf );
+			CM_TestInLeaf( tw, &cmod.leaf );
 		}
 
 		/*
@@ -399,15 +397,16 @@ namespace SharpQ3.Engine.qcommon
 		CM_PositionTest
 		==================
 		*/
-		#define	MAX_POSITION_LEAFS	1024
-		void CM_PositionTest( traceWork_t *tw ) {
+		public const int MAX_POSITION_LEAFS = 1024;
+
+		public static void CM_PositionTest( traceWork_t *tw ) {
 			int		leafs[MAX_POSITION_LEAFS];
 			int		i;
 			leafList_t	ll;
 
 			// identify the leafs we are touching
-			VectorAdd( tw->start, tw->size[0], ll.bounds[0] );
-			VectorAdd( tw->start, tw->size[1], ll.bounds[1] );
+			q_shared.VectorAdd( tw.start, tw.size[0], ll.bounds[0] );
+			q_shared.VectorAdd( tw.start, tw.size[1], ll.bounds[1] );
 
 			for (i=0 ; i<3 ; i++) {
 				ll.bounds[0][i] -= 1;
@@ -431,7 +430,7 @@ namespace SharpQ3.Engine.qcommon
 			// test the contents of the leafs
 			for (i=0 ; i < ll.count ; i++) {
 				CM_TestInLeaf( tw, &cm.leafs[leafs[i]] );
-				if ( tw->trace.allsolid ) {
+				if ( tw.trace.allsolid ) {
 					break;
 				}
 			}
@@ -452,18 +451,18 @@ namespace SharpQ3.Engine.qcommon
 		================
 		*/
 
-		void CM_TraceThroughPatch( traceWork_t *tw, cPatch_t *patch ) {
+		public static void CM_TraceThroughPatch( traceWork_t *tw, cPatch_t *patch ) {
 			float		oldFrac;
 
 			c_patch_traces++;
 
-			oldFrac = tw->trace.fraction;
+			oldFrac = tw.trace.fraction;
 
-			CM_TraceThroughPatchCollide( tw, patch->pc );
+			CM_TraceThroughPatchCollide( tw, patch.pc );
 
-			if ( tw->trace.fraction < oldFrac ) {
-				tw->trace.surfaceFlags = patch->surfaceFlags;
-				tw->trace.contents = patch->contents;
+			if ( tw.trace.fraction < oldFrac ) {
+				tw.trace.surfaceFlags = patch.surfaceFlags;
+				tw.trace.contents = patch.contents;
 			}
 		}
 
@@ -472,7 +471,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_TraceThroughBrush
 		================
 		*/
-		void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
+		public static void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 			int			i;
 			cplane_t	*plane, *clipplane;
 			float		dist;
@@ -489,7 +488,7 @@ namespace SharpQ3.Engine.qcommon
 			leaveFrac = 1.0;
 			clipplane = NULL;
 
-			if ( !brush->numsides ) {
+			if ( !brush.numsides ) {
 				return;
 			}
 
@@ -500,34 +499,34 @@ namespace SharpQ3.Engine.qcommon
 
 			leadside = NULL;
 
-			if ( tw->sphere.use ) {
+			if ( tw.sphere.use ) {
 				//
 				// compare the trace against all planes of the brush
 				// find the latest time the trace crosses a plane towards the interior
 				// and the earliest time the trace crosses a plane towards the exterior
 				//
-				for (i = 0; i < brush->numsides; i++) {
-					side = brush->sides + i;
-					plane = side->plane;
+				for (i = 0; i < brush.numsides; i++) {
+					side = brush.sides + i;
+					plane = side.plane;
 
 					// adjust the plane distance apropriately for radius
-					dist = plane->dist + tw->sphere.radius;
+					dist = plane.dist + tw.sphere.radius;
 
 					// find the closest point on the capsule to the plane
-					t = DotProduct( plane->normal, tw->sphere.offset );
+					t = q_shared.DotProduct( plane.normal, tw.sphere.offset );
 					if ( t > 0 )
 					{
-						VectorSubtract( tw->start, tw->sphere.offset, startp );
-						VectorSubtract( tw->end, tw->sphere.offset, endp );
+						q_shared.VectorSubtract( tw.start, tw.sphere.offset, startp );
+						q_shared.VectorSubtract( tw.end, tw.sphere.offset, endp );
 					}
 					else
 					{
-						VectorAdd( tw->start, tw->sphere.offset, startp );
-						VectorAdd( tw->end, tw->sphere.offset, endp );
+						q_shared.VectorAdd( tw.start, tw.sphere.offset, startp );
+						q_shared.VectorAdd( tw.end, tw.sphere.offset, endp );
 					}
 
-					d1 = DotProduct( startp, plane->normal ) - dist;
-					d2 = DotProduct( endp, plane->normal ) - dist;
+					d1 = q_shared.DotProduct( startp, plane.normal ) - dist;
+					d2 = q_shared.DotProduct( endp, plane.normal ) - dist;
 
 					if (d2 > 0) {
 						getout = true;	// endpoint is not in solid
@@ -573,15 +572,15 @@ namespace SharpQ3.Engine.qcommon
 				// find the latest time the trace crosses a plane towards the interior
 				// and the earliest time the trace crosses a plane towards the exterior
 				//
-				for (i = 0; i < brush->numsides; i++) {
-					side = brush->sides + i;
-					plane = side->plane;
+				for (i = 0; i < brush.numsides; i++) {
+					side = brush.sides + i;
+					plane = side.plane;
 
 					// adjust the plane distance apropriately for mins/maxs
-					dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
+					dist = plane.dist - q_shared.DotProduct( tw.offsets[ plane.signbits ], plane.normal );
 
-					d1 = DotProduct( tw->start, plane->normal ) - dist;
-					d2 = DotProduct( tw->end, plane->normal ) - dist;
+					d1 = q_shared.DotProduct( tw.start, plane.normal ) - dist;
+					d2 = q_shared.DotProduct( tw.end, plane.normal ) - dist;
 
 					if (d2 > 0) {
 						getout = true;	// endpoint is not in solid
@@ -628,24 +627,24 @@ namespace SharpQ3.Engine.qcommon
 			// completely outside the brush
 			//
 			if (!startout) {	// original point was inside brush
-				tw->trace.startsolid = true;
+				tw.trace.startsolid = true;
 				if (!getout) {
-					tw->trace.allsolid = true;
-					tw->trace.fraction = 0;
-					tw->trace.contents = brush->contents;
+					tw.trace.allsolid = true;
+					tw.trace.fraction = 0;
+					tw.trace.contents = brush.contents;
 				}
 				return;
 			}
 			
 			if (enterFrac < leaveFrac) {
-				if (enterFrac > -1 && enterFrac < tw->trace.fraction) {
+				if (enterFrac > -1 && enterFrac < tw.trace.fraction) {
 					if (enterFrac < 0) {
 						enterFrac = 0;
 					}
-					tw->trace.fraction = enterFrac;
-					tw->trace.plane = *clipplane;
-					tw->trace.surfaceFlags = leadside->surfaceFlags;
-					tw->trace.contents = brush->contents;
+					tw.trace.fraction = enterFrac;
+					tw.trace.plane = *clipplane;
+					tw.trace.surfaceFlags = leadside.surfaceFlags;
+					tw.trace.contents = brush.contents;
 				}
 			}
 		}
@@ -655,57 +654,57 @@ namespace SharpQ3.Engine.qcommon
 		CM_TraceThroughLeaf
 		================
 		*/
-		void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
+		public static void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
 			int			k;
 			int			brushnum;
 			cbrush_t	*b;
 			cPatch_t	*patch;
 
 			// trace line against all brushes in the leaf
-			for ( k = 0 ; k < leaf->numLeafBrushes ; k++ ) {
-				brushnum = cm.leafbrushes[leaf->firstLeafBrush+k];
+			for ( k = 0 ; k < leaf.numLeafBrushes ; k++ ) {
+				brushnum = cm.leafbrushes[leaf.firstLeafBrush+k];
 
 				b = &cm.brushes[brushnum];
-				if ( b->checkcount == cm.checkcount ) {
+				if ( b.checkcount == cm.checkcount ) {
 					continue;	// already checked this brush in another leaf
 				}
-				b->checkcount = cm.checkcount;
+				b.checkcount = cm.checkcount;
 
-				if ( !(b->contents & tw->contents) ) {
+				if ( !(b.contents & tw.contents) ) {
 					continue;
 				}
 
 				CM_TraceThroughBrush( tw, b );
-				if ( !tw->trace.fraction ) {
+				if ( !tw.trace.fraction ) {
 					return;
 				}
 			}
 
 			// trace line against all patches in the leaf
-			if ( !cm_noCurves->integer ) {
-				for ( k = 0 ; k < leaf->numLeafSurfaces ; k++ ) {
-					patch = cm.surfaces[ cm.leafsurfaces[ leaf->firstLeafSurface + k ] ];
+			if ( !cm_noCurves.integer ) {
+				for ( k = 0 ; k < leaf.numLeafSurfaces ; k++ ) {
+					patch = cm.surfaces[ cm.leafsurfaces[ leaf.firstLeafSurface + k ] ];
 					if ( !patch ) {
 						continue;
 					}
-					if ( patch->checkcount == cm.checkcount ) {
+					if ( patch.checkcount == cm.checkcount ) {
 						continue;	// already checked this patch in another leaf
 					}
-					patch->checkcount = cm.checkcount;
+					patch.checkcount = cm.checkcount;
 
-					if ( !(patch->contents & tw->contents) ) {
+					if ( !(patch.contents & tw.contents) ) {
 						continue;
 					}
 					
 					CM_TraceThroughPatch( tw, patch );
-					if ( !tw->trace.fraction ) {
+					if ( !tw.trace.fraction ) {
 						return;
 					}
 				}
 			}
 		}
 
-		#define RADIUS_EPSILON		1.0f
+		public const float RADIUS_EPSILON = 1.0f;
 
 		/*
 		================
@@ -714,22 +713,22 @@ namespace SharpQ3.Engine.qcommon
 		get the first intersection of the ray with the sphere
 		================
 		*/
-		void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t start, vec3_t end ) {
+		public static void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t start, vec3_t end ) {
 			float l1, l2, length, scale, fraction;
 			float a, b, c, d, sqrtd;
 			vec3_t v1, dir, intersection;
 
 			// if inside the sphere
-			VectorSubtract(start, origin, dir);
-			l1 = VectorLengthSquared(dir);
+			q_shared.VectorSubtract(start, origin, dir);
+			l1 = q_shared.VectorLengthSquared(dir);
 			if (l1 < Square(radius)) {
-				tw->trace.fraction = 0;
-				tw->trace.startsolid = true;
+				tw.trace.fraction = 0;
+				tw.trace.startsolid = true;
 				// test for allsolid
-				VectorSubtract(end, origin, dir);
-				l1 = VectorLengthSquared(dir);
-				if (l1 < Square(radius)) {
-					tw->trace.allsolid = true;
+				q_shared.VectorSubtract(end, origin, dir);
+				l1 = q_shared.VectorLengthSquared(dir);
+				if (l1 < q_shared.Square(radius)) {
+					tw.trace.allsolid = true;
 				}
 				return;
 			}
@@ -768,17 +767,17 @@ namespace SharpQ3.Engine.qcommon
 				else {
 					fraction /= length;
 				}
-				if ( fraction < tw->trace.fraction ) {
-					tw->trace.fraction = fraction;
-					VectorSubtract(end, start, dir);
-					VectorMA(start, fraction, dir, intersection);
-					VectorSubtract(intersection, origin, dir);
+				if ( fraction < tw.trace.fraction ) {
+					tw.trace.fraction = fraction;
+					q_shared.VectorSubtract(end, start, dir);
+					q_shared.VectorMA(start, fraction, dir, intersection);
+					q_shared.VectorSubtract(intersection, origin, dir);
 					scale = 1 / (radius+RADIUS_EPSILON);
-					VectorScale(dir, scale, dir);
-					VectorCopy(dir, tw->trace.plane.normal);
-					VectorAdd( tw->modelOrigin, intersection, intersection);
-					tw->trace.plane.dist = DotProduct(tw->trace.plane.normal, intersection);
-					tw->trace.contents = CONTENTS_BODY;
+					q_shared.VectorScale(dir, scale, dir);
+					q_shared.VectorCopy(dir, tw.trace.plane.normal);
+					q_shared.VectorAdd( tw.modelOrigin, intersection, intersection);
+					tw.trace.plane.dist = DotProduct(tw.trace.plane.normal, intersection);
+					tw.trace.contents = CONTENTS_BODY;
 				}
 			}
 			else if (d == 0) {
@@ -796,41 +795,41 @@ namespace SharpQ3.Engine.qcommon
 		the cylinder extends halfheight above and below the origin
 		================
 		*/
-		void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, float radius, float halfheight, vec3_t start, vec3_t end) {
+		public static void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, float radius, float halfheight, vec3_t start, vec3_t end) {
 			float length, scale, fraction, l1, l2;
 			float a, b, c, d, sqrtd;
 			vec3_t v1, dir, start2d, end2d, org2d, intersection;
 
 			// 2d coordinates
-			VectorSet(start2d, start[0], start[1], 0);
-			VectorSet(end2d, end[0], end[1], 0);
-			VectorSet(org2d, origin[0], origin[1], 0);
+			q_shared.VectorSet(start2d, start[0], start[1], 0);
+			q_shared.VectorSet(end2d, end[0], end[1], 0);
+			q_shared.VectorSet(org2d, origin[0], origin[1], 0);
 			// if between lower and upper cylinder bounds
 			if (start[2] <= origin[2] + halfheight &&
 						start[2] >= origin[2] - halfheight) {
 				// if inside the cylinder
-				VectorSubtract(start2d, org2d, dir);
-				l1 = VectorLengthSquared(dir);
-				if (l1 < Square(radius)) {
-					tw->trace.fraction = 0;
-					tw->trace.startsolid = true;
-					VectorSubtract(end2d, org2d, dir);
-					l1 = VectorLengthSquared(dir);
-					if (l1 < Square(radius)) {
-						tw->trace.allsolid = true;
+				q_shared.VectorSubtract(start2d, org2d, dir);
+				l1 = q_shared.VectorLengthSquared(dir);
+				if (l1 < q_shared.Square(radius)) {
+					tw.trace.fraction = 0;
+					tw.trace.startsolid = true;
+					q_shared.VectorSubtract(end2d, org2d, dir);
+					l1 = q_shared.VectorLengthSquared(dir);
+					if (l1 < q_shared.Square(radius)) {
+						tw.trace.allsolid = true;
 					}
 					return;
 				}
 			}
 			//
-			VectorSubtract(end2d, start2d, dir);
-			length = VectorNormalize(dir);
+			q_shared.VectorSubtract(end2d, start2d, dir);
+			length = q_shared.VectorNormalize(dir);
 			//
 			l1 = CM_DistanceFromLineSquared(org2d, start2d, end2d, dir);
-			VectorSubtract(end2d, org2d, v1);
-			l2 = VectorLengthSquared(v1);
+			q_shared.VectorSubtract(end2d, org2d, v1);
+			l2 = q_shared.VectorLengthSquared(v1);
 			// if no intersection with the cylinder and the end point is at least an epsilon away
-			if (l1 >= Square(radius) && l2 > Square(radius+SURFACE_CLIP_EPSILON)) {
+			if (l1 >= q_shared.Square(radius) && l2 > q_shared.Square(radius+SURFACE_CLIP_EPSILON)) {
 				return;
 			}
 			//
@@ -842,7 +841,7 @@ namespace SharpQ3.Engine.qcommon
 			// t ^ 2 * (dir[0] ^ 2 + dir[1] ^ 2) + t * (2 * v1[0] * dir[0] + 2 * v1[1] * dir[1]) +
 			//						v1[0] ^ 2 + v1[1] ^ 2 - radius ^ 2 = 0
 			//
-			VectorSubtract(start, origin, v1);
+			q_shared.VectorSubtract(start, origin, v1);
 			// dir is normalized so we can use a = 1
 			a = 1.0f;// * (dir[0] * dir[0] + dir[1] * dir[1]);
 			b = 2.0f * (v1[0] * dir[0] + v1[1] * dir[1]);
@@ -850,7 +849,7 @@ namespace SharpQ3.Engine.qcommon
 
 			d = b * b - 4.0f * c;// * a;
 			if (d > 0) {
-				sqrtd = SquareRootFloat(d);
+				sqrtd = q_shared.SquareRootFloat(d);
 				// = (- b + sqrtd) * 0.5f;// / (2.0f * a);
 				fraction = (- b - sqrtd) * 0.5f;// / (2.0f * a);
 				//
@@ -860,22 +859,22 @@ namespace SharpQ3.Engine.qcommon
 				else {
 					fraction /= length;
 				}
-				if ( fraction < tw->trace.fraction ) {
-					VectorSubtract(end, start, dir);
-					VectorMA(start, fraction, dir, intersection);
+				if ( fraction < tw.trace.fraction ) {
+					q_shared.VectorSubtract(end, start, dir);
+					q_shared.VectorMA(start, fraction, dir, intersection);
 					// if the intersection is between the cylinder lower and upper bound
 					if (intersection[2] <= origin[2] + halfheight &&
 								intersection[2] >= origin[2] - halfheight) {
 						//
-						tw->trace.fraction = fraction;
-						VectorSubtract(intersection, origin, dir);
+						tw.trace.fraction = fraction;
+						q_shared.VectorSubtract(intersection, origin, dir);
 						dir[2] = 0;
 						scale = 1 / (radius+RADIUS_EPSILON);
-						VectorScale(dir, scale, dir);
-						VectorCopy(dir, tw->trace.plane.normal);
-						VectorAdd( tw->modelOrigin, intersection, intersection);
-						tw->trace.plane.dist = DotProduct(tw->trace.plane.normal, intersection);
-						tw->trace.contents = CONTENTS_BODY;
+						q_shared.VectorScale(dir, scale, dir);
+						q_shared.VectorCopy(dir, tw.trace.plane.normal);
+						q_shared.VectorAdd( tw.modelOrigin, intersection, intersection);
+						tw.trace.plane.dist = q_shared.DotProduct(tw.trace.plane.normal, intersection);
+						tw.trace.contents = CONTENTS_BODY;
 					}
 				}
 			}
@@ -893,7 +892,7 @@ namespace SharpQ3.Engine.qcommon
 		capsule vs. capsule collision (not rotated)
 		================
 		*/
-		void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model ) {
 			int i;
 			vec3_t mins, maxs;
 			vec3_t top, bottom, starttop, startbottom, endtop, endbottom;
@@ -902,20 +901,20 @@ namespace SharpQ3.Engine.qcommon
 
 			CM_ModelBounds(model, mins, maxs);
 			// test trace bounds vs. capsule bounds
-			if ( tw->bounds[0][0] > maxs[0] + RADIUS_EPSILON
-				|| tw->bounds[0][1] > maxs[1] + RADIUS_EPSILON
-				|| tw->bounds[0][2] > maxs[2] + RADIUS_EPSILON
-				|| tw->bounds[1][0] < mins[0] - RADIUS_EPSILON
-				|| tw->bounds[1][1] < mins[1] - RADIUS_EPSILON
-				|| tw->bounds[1][2] < mins[2] - RADIUS_EPSILON
+			if ( tw.bounds[0][0] > maxs[0] + RADIUS_EPSILON
+				|| tw.bounds[0][1] > maxs[1] + RADIUS_EPSILON
+				|| tw.bounds[0][2] > maxs[2] + RADIUS_EPSILON
+				|| tw.bounds[1][0] < mins[0] - RADIUS_EPSILON
+				|| tw.bounds[1][1] < mins[1] - RADIUS_EPSILON
+				|| tw.bounds[1][2] < mins[2] - RADIUS_EPSILON
 				) {
 				return;
 			}
 			// top origin and bottom origin of each sphere at start and end of trace
-			VectorAdd(tw->start, tw->sphere.offset, starttop);
-			VectorSubtract(tw->start, tw->sphere.offset, startbottom);
-			VectorAdd(tw->end, tw->sphere.offset, endtop);
-			VectorSubtract(tw->end, tw->sphere.offset, endbottom);
+			q_shared.VectorAdd(tw.start, tw.sphere.offset, starttop);
+			q_shared.VectorSubtract(tw.start, tw.sphere.offset, startbottom);
+			q_shared.VectorAdd(tw.end, tw.sphere.offset, endtop);
+			q_shared.VectorSubtract(tw.end, tw.sphere.offset, endbottom);
 
 			// calculate top and bottom of the capsule spheres to collide with
 			for ( i = 0 ; i < 3 ; i++ ) {
@@ -927,20 +926,20 @@ namespace SharpQ3.Engine.qcommon
 			halfheight = symetricSize[ 1 ][ 2 ];
 			radius = ( halfwidth > halfheight ) ? halfheight : halfwidth;
 			offs = halfheight - radius;
-			VectorCopy(offset, top);
+			q_shared.VectorCopy(offset, top);
 			top[2] += offs;
-			VectorCopy(offset, bottom);
+			q_shared.VectorCopy(offset, bottom);
 			bottom[2] -= offs;
 			// expand radius of spheres
-			radius += tw->sphere.radius;
+			radius += tw.sphere.radius;
 			// if there is horizontal movement
-			if ( tw->start[0] != tw->end[0] || tw->start[1] != tw->end[1] ) {
+			if ( tw.start[0] != tw.end[0] || tw.start[1] != tw.end[1] ) {
 				// height of the expanded cylinder is the height of both cylinders minus the radius of both spheres
-				h = halfheight + tw->sphere.halfheight - radius;
+				h = halfheight + tw.sphere.halfheight - radius;
 				// if the cylinder has a height
 				if ( h > 0 ) {
 					// test for collisions between the cylinders
-					CM_TraceThroughVerticalCylinder(tw, offset, radius, h, tw->start, tw->end);
+					CM_TraceThroughVerticalCylinder(tw, offset, radius, h, tw.start, tw.end);
 				}
 			}
 			// test for collision between the spheres
@@ -955,7 +954,7 @@ namespace SharpQ3.Engine.qcommon
 		bounding box vs. capsule collision
 		================
 		*/
-		void CM_TraceBoundingBoxThroughCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TraceBoundingBoxThroughCapsule( traceWork_t *tw, clipHandle_t model ) {
 			vec3_t mins, maxs, offset, size[2];
 			clipHandle_t h;
 			cmodel_t *cmod;
@@ -969,21 +968,21 @@ namespace SharpQ3.Engine.qcommon
 				offset[i] = ( mins[i] + maxs[i] ) * 0.5;
 				size[0][i] = mins[i] - offset[i];
 				size[1][i] = maxs[i] - offset[i];
-				tw->start[i] -= offset[i];
-				tw->end[i] -= offset[i];
+				tw.start[i] -= offset[i];
+				tw.end[i] -= offset[i];
 			}
 
 			// replace the bounding box with the capsule
-			tw->sphere.use = true;
-			tw->sphere.radius = ( size[1][0] > size[1][2] ) ? size[1][2]: size[1][0];
-			tw->sphere.halfheight = size[1][2];
-			VectorSet( tw->sphere.offset, 0, 0, size[1][2] - tw->sphere.radius );
+			tw.sphere.use = true;
+			tw.sphere.radius = ( size[1][0] > size[1][2] ) ? size[1][2]: size[1][0];
+			tw.sphere.halfheight = size[1][2];
+			q_shared.VectorSet( tw.sphere.offset, 0, 0, size[1][2] - tw.sphere.radius );
 
 			// replace the capsule with the bounding box
-			h = CM_TempBoxModel(tw->size[0], tw->size[1], false);
+			h = CM_TempBoxModel(tw.size[0], tw.size[1], false);
 			// calculate collision
 			cmod = CM_ClipHandleToModel( h );
-			CM_TraceThroughLeaf( tw, &cmod->leaf );
+			CM_TraceThroughLeaf( tw, &cmod.leaf );
 		}
 
 		//=========================================================================================
@@ -998,7 +997,7 @@ namespace SharpQ3.Engine.qcommon
 		a smaller intercept fraction.
 		==================
 		*/
-		void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, vec3_t p1, vec3_t p2) {
+		public static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, vec3_t p1, vec3_t p2) {
 			cNode_t		*node;
 			cplane_t	*plane;
 			float		t1, t2, offset;
@@ -1008,7 +1007,7 @@ namespace SharpQ3.Engine.qcommon
 			int			side;
 			float		midf;
 
-			if (tw->trace.fraction <= p1f) {
+			if (tw.trace.fraction <= p1f) {
 				return;		// already hit something nearer
 			}
 
@@ -1023,17 +1022,17 @@ namespace SharpQ3.Engine.qcommon
 			// and the offset for the size of the box
 			//
 			node = cm.nodes + num;
-			plane = node->plane;
+			plane = node.plane;
 
 			// adjust the plane distance apropriately for mins/maxs
-			if ( plane->type < 3 ) {
-				t1 = p1[plane->type] - plane->dist;
-				t2 = p2[plane->type] - plane->dist;
-				offset = tw->extents[plane->type];
+			if ( plane.type < 3 ) {
+				t1 = p1[plane.type] - plane.dist;
+				t2 = p2[plane.type] - plane.dist;
+				offset = tw.extents[plane.type];
 			} else {
-				t1 = DotProduct (plane->normal, p1) - plane->dist;
-				t2 = DotProduct (plane->normal, p2) - plane->dist;
-				if ( tw->isPoint ) {
+				t1 = q_shared.DotProduct (plane.normal, p1) - plane.dist;
+				t2 = q_shared.DotProduct (plane.normal, p2) - plane.dist;
+				if ( tw.isPoint ) {
 					offset = 0;
 				} else {
 					// this is silly
@@ -1043,11 +1042,11 @@ namespace SharpQ3.Engine.qcommon
 
 			// see which sides we need to consider
 			if ( t1 >= offset + 1 && t2 >= offset + 1 ) {
-				CM_TraceThroughTree( tw, node->children[0], p1f, p2f, p1, p2 );
+				CM_TraceThroughTree( tw, node.children[0], p1f, p2f, p1, p2 );
 				return;
 			}
 			if ( t1 < -offset - 1 && t2 < -offset - 1 ) {
-				CM_TraceThroughTree( tw, node->children[1], p1f, p2f, p1, p2 );
+				CM_TraceThroughTree( tw, node.children[1], p1f, p2f, p1, p2 );
 				return;
 			}
 
@@ -1082,7 +1081,7 @@ namespace SharpQ3.Engine.qcommon
 			mid[1] = p1[1] + frac*(p2[1] - p1[1]);
 			mid[2] = p1[2] + frac*(p2[2] - p1[2]);
 
-			CM_TraceThroughTree( tw, node->children[side], p1f, midf, p1, mid );
+			CM_TraceThroughTree( tw, node.children[side], p1f, midf, p1, mid );
 
 
 			// go past the node
@@ -1099,7 +1098,7 @@ namespace SharpQ3.Engine.qcommon
 			mid[1] = p1[1] + frac2*(p2[1] - p1[1]);
 			mid[2] = p1[2] + frac2*(p2[2] - p1[2]);
 
-			CM_TraceThroughTree( tw, node->children[side^1], midf, p2f, mid, p2 );
+			CM_TraceThroughTree( tw, node.children[side^1], midf, p2f, mid, p2 );
 		}
 
 
@@ -1111,7 +1110,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_Trace
 		==================
 		*/
-		void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs,
+		public static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs,
 								  clipHandle_t model, const vec3_t origin, int brushmask, int capsule, sphere_t *sphere ) {
 			int			i;
 			traceWork_t	tw;
@@ -1127,7 +1126,7 @@ namespace SharpQ3.Engine.qcommon
 			// fill in a default trace
 			Com_Memset( &tw, 0, sizeof(tw) );
 			tw.trace.fraction = 1;	// assume it goes the entire distance until shown otherwise
-			VectorCopy(origin, tw.modelOrigin);
+			q_shared.VectorCopy(origin, tw.modelOrigin);
 
 			if (!cm.numNodes) {
 				*results = tw.trace;
@@ -1243,7 +1242,7 @@ namespace SharpQ3.Engine.qcommon
 						}
 					}
 					else {
-						CM_TestInLeaf( &tw, &cmod->leaf );
+						CM_TestInLeaf( &tw, &cmod.leaf );
 					}
 				} else {
 					CM_PositionTest( &tw );
@@ -1254,7 +1253,7 @@ namespace SharpQ3.Engine.qcommon
 				//
 				if ( tw.size[0][0] == 0 && tw.size[0][1] == 0 && tw.size[0][2] == 0 ) {
 					tw.isPoint = true;
-					VectorClear( tw.extents );
+					q_shared.VectorClear( tw.extents );
 				} else {
 					tw.isPoint = false;
 					tw.extents[0] = tw.size[1][0];
@@ -1275,7 +1274,7 @@ namespace SharpQ3.Engine.qcommon
 						}
 					}
 					else {
-						CM_TraceThroughLeaf( &tw, &cmod->leaf );
+						CM_TraceThroughLeaf( &tw, &cmod.leaf );
 					}
 				} else {
 					CM_TraceThroughTree( &tw, 0, 0, 1, tw.start, tw.end );
@@ -1284,7 +1283,7 @@ namespace SharpQ3.Engine.qcommon
 
 			// generate endpos from the original, unmodified start/end
 			if ( tw.trace.fraction == 1 ) {
-				VectorCopy (end, tw.trace.endpos);
+				q_shared.VectorCopy (end, tw.trace.endpos);
 			} else {
 				for ( i=0 ; i<3 ; i++ ) {
 					tw.trace.endpos[i] = start[i] + tw.trace.fraction * (end[i] - start[i]);
@@ -1296,7 +1295,7 @@ namespace SharpQ3.Engine.qcommon
 		        // Otherwise, the normal on the plane should have unit length
 		        assert(tw.trace.allsolid ||
 		               tw.trace.fraction == 1.0 ||
-		               VectorLengthSquared(tw.trace.plane.normal) > 0.9999);
+		               q_shared.VectorLengthSquared(tw.trace.plane.normal) > 0.9999);
 			*results = tw.trace;
 		}
 
@@ -1305,7 +1304,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_BoxTrace
 		==================
 		*/
-		void CM_BoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
+		public static void CM_BoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
 								  vec3_t mins, vec3_t maxs,
 								  clipHandle_t model, int brushmask, int capsule ) {
 			CM_Trace( results, start, end, mins, maxs, model, vec3_origin, brushmask, capsule, NULL );
@@ -1319,7 +1318,7 @@ namespace SharpQ3.Engine.qcommon
 		rotating entities
 		==================
 		*/
-		void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
+		public static void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
 								  vec3_t mins, vec3_t maxs,
 								  clipHandle_t model, int brushmask,
 								  const vec3_t origin, const vec3_t angles, int capsule ) {
@@ -1354,8 +1353,8 @@ namespace SharpQ3.Engine.qcommon
 			}
 
 			// subtract origin offset
-			VectorSubtract( start_l, origin, start_l );
-			VectorSubtract( end_l, origin, end_l );
+			q_shared.VectorSubtract( start_l, origin, start_l );
+			q_shared.VectorSubtract( end_l, origin, end_l );
 
 			// rotate start and end into the models frame of reference
 			if ( model != BOX_MODEL_HANDLE && 
@@ -1389,7 +1388,7 @@ namespace SharpQ3.Engine.qcommon
 				sphere.offset[2] = matrix[2][ 2 ] * t;
 			}
 			else {
-				VectorSet( sphere.offset, 0, 0, t );
+				q_shared.VectorSet( sphere.offset, 0, 0, t );
 			}
 
 			// sweep the box through the model

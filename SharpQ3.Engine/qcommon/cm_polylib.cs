@@ -20,43 +20,45 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using System;
+
 namespace SharpQ3.Engine.qcommon
 {
+	public struct winding_t
+	{
+		public int numpoints;
+		public vec3_t[] p;//[4];        // variable sized
+	}
+
 	// this is only used for visualization tools in cm_ debug functions
 	public static class cm_polylib
 	{
-		typedef struct
-		{
-			int		numpoints;
-			vec3_t	p[4];		// variable sized
-		} winding_t;
+		const int MAX_POINTS_ON_WINDING = 64;
 
-		#define	MAX_POINTS_ON_WINDING	64
+		const int SIDE_FRONT = 0;
+		const int SIDE_BACK = 1;
+		const int SIDE_ON = 2;
+		const int SIDE_CROSS = 3;
 
-		#define	SIDE_FRONT	0
-		#define	SIDE_BACK	1
-		#define	SIDE_ON		2
-		#define	SIDE_CROSS	3
+		const float CLIP_EPSILON = 0.1f;
 
-		#define	CLIP_EPSILON	0.1f
-
-		#define MAX_MAP_BOUNDS			65535
+		const int MAX_MAP_BOUNDS = 65535;
 
 		// you can define on_epsilon in the makefile as tighter
-		#define	ON_EPSILON	0.1f
+		const float ON_EPSILON = 0.1f;
 
 		// counters are only bumped when running single threaded,
 		// because they are an awefull coherence problem
-		int	c_active_windings;
-		int	c_peak_windings;
-		int	c_winding_allocs;
-		int	c_winding_points;
+		static int	c_active_windings;
+		static int c_peak_windings;
+		static int c_winding_allocs;
+		static int c_winding_points;
 
-		void pw(winding_t *w)
+		static void pw(winding_t w)
 		{
 			int		i;
-			for (i=0 ; i<w->numpoints ; i++)
-				printf ("(%5.1f, %5.1f, %5.1f)\n",w->p[i][0], w->p[i][1],w->p[i][2]);
+			for ( i = 0; i < w.numpoints; i++ )
+				Console.WriteLine( SprintfNET.StringFormatter.PrintF( "(%5.1f, %5.1f, %5.1f)\n", w.p[i][0], w.p[i][1], w.p[i][2] ) );
 		}
 
 
@@ -65,9 +67,9 @@ namespace SharpQ3.Engine.qcommon
 		AllocWinding
 		=============
 		*/
-		winding_t	*AllocWinding (int points)
+		static winding_t AllocWinding (int points)
 		{
-			winding_t	*w;
+			winding_t	w;
 			int			s;
 
 			c_winding_allocs++;
@@ -77,15 +79,14 @@ namespace SharpQ3.Engine.qcommon
 				c_peak_windings = c_active_windings;
 
 			s = sizeof(vec_t)*3*points + sizeof(int);
-			w = (winding_t*) Z_Malloc (s);
-			Com_Memset (w, 0, s); 
+			w = new winding_t( );
 			return w;
 		}
 
-		void FreeWinding (winding_t *w)
+		static void FreeWinding (winding_t *w)
 		{
 			if (*(unsigned *)w == 0xdeaddead)
-				Com_Error (ERR_FATAL, "FreeWinding: freed a freed winding");
+				common.Com_Error (errorParm_t.ERR_FATAL, "FreeWinding: freed a freed winding");
 			*(unsigned *)w = 0xdeaddead;
 
 			c_active_windings--;
@@ -97,9 +98,9 @@ namespace SharpQ3.Engine.qcommon
 		RemoveColinearPoints
 		============
 		*/
-		int	c_removed;
+		static int c_removed;
 
-		void	RemoveColinearPoints (winding_t *w)
+		static void RemoveColinearPoints (winding_t *w)
 		{
 			int		i, j, k;
 			vec3_t	v1, v2;
@@ -107,27 +108,27 @@ namespace SharpQ3.Engine.qcommon
 			vec3_t	p[MAX_POINTS_ON_WINDING];
 
 			nump = 0;
-			for (i=0 ; i<w->numpoints ; i++)
+			for (i=0 ; i<w.numpoints ; i++)
 			{
-				j = (i+1)%w->numpoints;
-				k = (i+w->numpoints-1)%w->numpoints;
-				VectorSubtract (w->p[j], w->p[i], v1);
-				VectorSubtract (w->p[i], w->p[k], v2);
-				VectorNormalize2(v1,v1);
-				VectorNormalize2(v2,v2);
-				if (DotProduct(v1, v2) < 0.999)
+				j = (i+1)%w.numpoints;
+				k = (i+w.numpoints-1)%w.numpoints;
+				q_shared.VectorSubtract (w.p[j], w.p[i], v1);
+				q_shared.VectorSubtract (w.p[i], w.p[k], v2);
+				q_shared.VectorNormalize2(v1,v1);
+				q_shared.VectorNormalize2(v2,v2);
+				if ( q_shared.DotProduct(v1, v2) < 0.999)
 				{
-					VectorCopy (w->p[i], p[nump]);
+					q_shared.VectorCopy (w.p[i], p[nump]);
 					nump++;
 				}
 			}
 
-			if (nump == w->numpoints)
+			if (nump == w.numpoints)
 				return;
 
-			c_removed += w->numpoints - nump;
-			w->numpoints = nump;
-			Com_Memcpy (w->p, p, nump*sizeof(p[0]));
+			c_removed += w.numpoints - nump;
+			w.numpoints = nump;
+			common.Com_Memcpy (w.p, p, nump*sizeof(p[0]));
 		}
 
 		/*
@@ -135,15 +136,15 @@ namespace SharpQ3.Engine.qcommon
 		WindingPlane
 		============
 		*/
-		void WindingPlane (winding_t *w, vec3_t normal, vec_t *dist)
+		static void WindingPlane (winding_t *w, vec3_t normal, vec_t *dist)
 		{
 			vec3_t	v1, v2;
 
-			VectorSubtract (w->p[1], w->p[0], v1);
-			VectorSubtract (w->p[2], w->p[0], v2);
-			CrossProduct (v2, v1, normal);
-			VectorNormalize2(normal, normal);
-			*dist = DotProduct (w->p[0], normal);
+			q_shared.VectorSubtract (w.p[1], w.p[0], v1);
+			q_shared.VectorSubtract (w.p[2], w.p[0], v2);
+			q_shared.CrossProduct (v2, v1, normal);
+			q_shared.VectorNormalize2(normal, normal);
+			*dist = q_shared.DotProduct (w.p[0], normal);
 
 		}
 
@@ -152,19 +153,19 @@ namespace SharpQ3.Engine.qcommon
 		WindingArea
 		=============
 		*/
-		vec_t	WindingArea (winding_t *w)
+		static vec_t WindingArea (winding_t *w)
 		{
 			int		i;
 			vec3_t	d1, d2, cross;
 			vec_t	total;
 
 			total = 0;
-			for (i=2 ; i<w->numpoints ; i++)
+			for (i=2 ; i<w.numpoints ; i++)
 			{
-				VectorSubtract (w->p[i-1], w->p[0], d1);
-				VectorSubtract (w->p[i], w->p[0], d2);
-				CrossProduct (d1, d2, cross);
-				total += 0.5 * VectorLength ( cross );
+				q_shared.VectorSubtract (w.p[i-1], w.p[0], d1);
+				q_shared.VectorSubtract (w.p[i], w.p[0], d2);
+				q_shared.CrossProduct (d1, d2, cross);
+				total += 0.5 * q_shared.VectorLength ( cross );
 			}
 			return total;
 		}
@@ -174,7 +175,7 @@ namespace SharpQ3.Engine.qcommon
 		WindingBounds
 		=============
 		*/
-		void	WindingBounds (winding_t *w, vec3_t mins, vec3_t maxs)
+		static void WindingBounds (winding_t w, vec3_t mins, vec3_t maxs)
 		{
 			vec_t	v;
 			int		i,j;
@@ -182,11 +183,11 @@ namespace SharpQ3.Engine.qcommon
 			mins[0] = mins[1] = mins[2] = MAX_MAP_BOUNDS;
 			maxs[0] = maxs[1] = maxs[2] = -MAX_MAP_BOUNDS;
 
-			for (i=0 ; i<w->numpoints ; i++)
+			for (i=0 ; i<w.numpoints ; i++)
 			{
 				for (j=0 ; j<3 ; j++)
 				{
-					v = w->p[i][j];
+					v = w.p[i][j];
 					if (v < mins[j])
 						mins[j] = v;
 					if (v > maxs[j])
@@ -200,17 +201,17 @@ namespace SharpQ3.Engine.qcommon
 		WindingCenter
 		=============
 		*/
-		void	WindingCenter (winding_t *w, vec3_t center)
+		static void WindingCenter (winding_t *w, vec3_t center)
 		{
 			int		i;
 			float	scale;
 
-			VectorCopy (vec3_origin, center);
-			for (i=0 ; i<w->numpoints ; i++)
-				VectorAdd (w->p[i], center, center);
+			q_shared.VectorCopy (vec3_origin, center);
+			for (i=0 ; i<w.numpoints ; i++)
+				q_shared.VectorAdd (w.p[i], center, center);
 
-			scale = 1.0/w->numpoints;
-			VectorScale (center, scale, center);
+			scale = 1.0/w.numpoints;
+			q_shared.VectorScale (center, scale, center);
 		}
 
 		/*
@@ -218,7 +219,7 @@ namespace SharpQ3.Engine.qcommon
 		BaseWindingForPlane
 		=================
 		*/
-		winding_t *BaseWindingForPlane (vec3_t normal, vec_t dist)
+		static winding_t* BaseWindingForPlane (vec3_t normal, vec_t dist)
 		{
 			int		i, x;
 			vec_t	max, v;
@@ -231,7 +232,7 @@ namespace SharpQ3.Engine.qcommon
 			x = -1;
 			for (i=0 ; i<3; i++)
 			{
-				v = fabs(normal[i]);
+				v = Math.Abs(normal[i]);
 				if (v > max)
 				{
 					x = i;
@@ -239,9 +240,9 @@ namespace SharpQ3.Engine.qcommon
 				}
 			}
 			if (x==-1)
-				Com_Error (ERR_DROP, "BaseWindingForPlane: no axis found");
-				
-			VectorCopy (vec3_origin, vup);	
+				common.Com_Error (errorParm_t.ERR_DROP, "BaseWindingForPlane: no axis found");
+
+			q_shared.VectorCopy (vec3_origin, vup);	
 			switch (x)
 			{
 			case 0:
@@ -253,33 +254,33 @@ namespace SharpQ3.Engine.qcommon
 				break;		
 			}
 
-			v = DotProduct (vup, normal);
-			VectorMA (vup, -v, normal, vup);
-			VectorNormalize2(vup, vup);
-				
-			VectorScale (normal, dist, org);
-			
-			CrossProduct (vup, normal, vright);
-			
-			VectorScale (vup, MAX_MAP_BOUNDS, vup);
-			VectorScale (vright, MAX_MAP_BOUNDS, vright);
+			v = q_shared.DotProduct (vup, normal);
+			q_shared.VectorMA (vup, -v, normal, vup);
+			q_shared.VectorNormalize2(vup, vup);
+
+			q_shared.VectorScale (normal, dist, org);
+
+			q_shared.CrossProduct (vup, normal, vright);
+
+			q_shared.VectorScale (vup, MAX_MAP_BOUNDS, vup);
+			q_shared.VectorScale (vright, MAX_MAP_BOUNDS, vright);
 
 		// project a really big	axis aligned box onto the plane
 			w = AllocWinding (4);
+
+			q_shared.VectorSubtract (org, vright, w.p[0]);
+			q_shared.VectorAdd (w.p[0], vup, w.p[0]);
+
+			q_shared.VectorAdd (org, vright, w.p[1]);
+			q_shared.VectorAdd (w.p[1], vup, w.p[1]);
+
+			q_shared.VectorAdd (org, vright, w.p[2]);
+			q_shared.VectorSubtract (w.p[2], vup, w.p[2]);
 			
-			VectorSubtract (org, vright, w->p[0]);
-			VectorAdd (w->p[0], vup, w->p[0]);
+			q_shared.VectorSubtract (org, vright, w.p[3]);
+			q_shared.VectorSubtract (w.p[3], vup, w.p[3]);
 			
-			VectorAdd (org, vright, w->p[1]);
-			VectorAdd (w->p[1], vup, w->p[1]);
-			
-			VectorAdd (org, vright, w->p[2]);
-			VectorSubtract (w->p[2], vup, w->p[2]);
-			
-			VectorSubtract (org, vright, w->p[3]);
-			VectorSubtract (w->p[3], vup, w->p[3]);
-			
-			w->numpoints = 4;
+			w.numpoints = 4;
 			
 			return w;	
 		}
@@ -289,14 +290,14 @@ namespace SharpQ3.Engine.qcommon
 		CopyWinding
 		==================
 		*/
-		winding_t	*CopyWinding (winding_t *w)
+		static winding_t	*CopyWinding (winding_t *w)
 		{
 			int			size;
 			winding_t	*c;
 
-			c = AllocWinding (w->numpoints);
-			size = (int)(intptr_t)((winding_t *)0)->p[w->numpoints];
-			Com_Memcpy (c, w, size);
+			c = AllocWinding (w.numpoints);
+			size = (int)(intptr_t)((winding_t *)0).p[w.numpoints];
+			common.Com_Memcpy (c, w, size);
 			return c;
 		}
 
@@ -305,17 +306,17 @@ namespace SharpQ3.Engine.qcommon
 		ReverseWinding
 		==================
 		*/
-		winding_t	*ReverseWinding (winding_t *w)
+		static winding_t* ReverseWinding (winding_t *w)
 		{
 			int			i;
 			winding_t	*c;
 
-			c = AllocWinding (w->numpoints);
-			for (i=0 ; i<w->numpoints ; i++)
+			c = AllocWinding (w.numpoints);
+			for (i=0 ; i<w.numpoints ; i++)
 			{
-				VectorCopy (w->p[w->numpoints-1-i], c->p[i]);
+				q_shared.VectorCopy (w.p[w.numpoints-1-i], c.p[i]);
 			}
-			c->numpoints = w->numpoints;
+			c.numpoints = w.numpoints;
 			return c;
 		}
 
@@ -325,7 +326,7 @@ namespace SharpQ3.Engine.qcommon
 		ClipWindingEpsilon
 		=============
 		*/
-		void	ClipWindingEpsilon (winding_t *in, vec3_t normal, vec_t dist, 
+		static void ClipWindingEpsilon (winding_t *in, vec3_t normal, vec_t dist, 
 						vec_t epsilon, winding_t **front, winding_t **back)
 		{
 			vec_t	dists[MAX_POINTS_ON_WINDING+4];
@@ -341,9 +342,9 @@ namespace SharpQ3.Engine.qcommon
 			counts[0] = counts[1] = counts[2] = 0;
 
 		// determine sides for each point
-			for (i=0 ; i<in->numpoints ; i++)
+			for (i=0 ; i<in.numpoints ; i++)
 			{
-				dot = DotProduct (in->p[i], normal);
+				dot = q_shared.DotProduct (in.p[i], normal);
 				dot -= dist;
 				dists[i] = dot;
 				if (dot > epsilon)
@@ -372,41 +373,41 @@ namespace SharpQ3.Engine.qcommon
 				return;
 			}
 
-			maxpts = in->numpoints+4;	// cant use counts[0]+2 because
+			maxpts = in.numpoints+4;	// cant use counts[0]+2 because
 										// of fp grouping errors
 
 			*front = f = AllocWinding (maxpts);
 			*back = b = AllocWinding (maxpts);
 				
-			for (i=0 ; i<in->numpoints ; i++)
+			for (i=0 ; i<in.numpoints ; i++)
 			{
-				p1 = in->p[i];
+				p1 = in.p[i];
 				
 				if (sides[i] == SIDE_ON)
 				{
-					VectorCopy (p1, f->p[f->numpoints]);
-					f->numpoints++;
-					VectorCopy (p1, b->p[b->numpoints]);
-					b->numpoints++;
+					q_shared.VectorCopy (p1, f.p[f.numpoints]);
+					f.numpoints++;
+					q_shared.VectorCopy (p1, b.p[b.numpoints]);
+					b.numpoints++;
 					continue;
 				}
 			
 				if (sides[i] == SIDE_FRONT)
 				{
-					VectorCopy (p1, f->p[f->numpoints]);
-					f->numpoints++;
+					q_shared.VectorCopy (p1, f.p[f.numpoints]);
+					f.numpoints++;
 				}
 				if (sides[i] == SIDE_BACK)
 				{
-					VectorCopy (p1, b->p[b->numpoints]);
-					b->numpoints++;
+					q_shared.VectorCopy (p1, b.p[b.numpoints]);
+					b.numpoints++;
 				}
 
 				if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
 					continue;
 					
 			// generate a split point
-				p2 = in->p[(i+1)%in->numpoints];
+				p2 = in.p[(i+1)%in.numpoints];
 				
 				dot = dists[i] / (dists[i]-dists[i+1]);
 				for (j=0 ; j<3 ; j++)
@@ -419,16 +420,16 @@ namespace SharpQ3.Engine.qcommon
 						mid[j] = p1[j] + dot*(p2[j]-p1[j]);
 				}
 					
-				VectorCopy (mid, f->p[f->numpoints]);
-				f->numpoints++;
-				VectorCopy (mid, b->p[b->numpoints]);
-				b->numpoints++;
+				q_shared.VectorCopy (mid, f.p[f.numpoints]);
+				f.numpoints++;
+				q_shared.VectorCopy (mid, b.p[b.numpoints]);
+				b.numpoints++;
 			}
 			
-			if (f->numpoints > maxpts || b->numpoints > maxpts)
-				Com_Error (ERR_DROP, "ClipWinding: points exceeded estimate");
-			if (f->numpoints > MAX_POINTS_ON_WINDING || b->numpoints > MAX_POINTS_ON_WINDING)
-				Com_Error (ERR_DROP, "ClipWinding: MAX_POINTS_ON_WINDING");
+			if (f.numpoints > maxpts || b.numpoints > maxpts)
+				common.Com_Error( errorParm_t.ERR_DROP, "ClipWinding: points exceeded estimate");
+			if (f.numpoints > MAX_POINTS_ON_WINDING || b.numpoints > MAX_POINTS_ON_WINDING)
+				common.Com_Error( errorParm_t.ERR_DROP, "ClipWinding: MAX_POINTS_ON_WINDING");
 		}
 
 
@@ -437,7 +438,7 @@ namespace SharpQ3.Engine.qcommon
 		ChopWindingInPlace
 		=============
 		*/
-		void ChopWindingInPlace (winding_t **inout, vec3_t normal, vec_t dist, vec_t epsilon)
+		static void ChopWindingInPlace (winding_t **inout, vec3_t normal, vec_t dist, vec_t epsilon)
 		{
 			winding_t	*in;
 			vec_t	dists[MAX_POINTS_ON_WINDING+4];
@@ -454,9 +455,9 @@ namespace SharpQ3.Engine.qcommon
 			counts[0] = counts[1] = counts[2] = 0;
 
 		// determine sides for each point
-			for (i=0 ; i<in->numpoints ; i++)
+			for (i=0 ; i<in.numpoints ; i++)
 			{
-				dot = DotProduct (in->p[i], normal);
+				dot = q_shared.DotProduct (in.p[i], normal);
 				dot -= dist;
 				dists[i] = dot;
 				if (dot > epsilon)
@@ -481,33 +482,33 @@ namespace SharpQ3.Engine.qcommon
 			if (!counts[1])
 				return;		// inout stays the same
 
-			maxpts = in->numpoints+4;	// cant use counts[0]+2 because
+			maxpts = in.numpoints+4;	// cant use counts[0]+2 because
 										// of fp grouping errors
 
 			f = AllocWinding (maxpts);
 				
-			for (i=0 ; i<in->numpoints ; i++)
+			for (i=0 ; i<in.numpoints ; i++)
 			{
-				p1 = in->p[i];
+				p1 = in.p[i];
 				
 				if (sides[i] == SIDE_ON)
 				{
-					VectorCopy (p1, f->p[f->numpoints]);
-					f->numpoints++;
+					q_shared.VectorCopy (p1, f.p[f.numpoints]);
+					f.numpoints++;
 					continue;
 				}
 			
 				if (sides[i] == SIDE_FRONT)
 				{
-					VectorCopy (p1, f->p[f->numpoints]);
-					f->numpoints++;
+					q_shared.VectorCopy (p1, f.p[f.numpoints]);
+					f.numpoints++;
 				}
 
 				if (sides[i+1] == SIDE_ON || sides[i+1] == sides[i])
 					continue;
 					
 			// generate a split point
-				p2 = in->p[(i+1)%in->numpoints];
+				p2 = in.p[(i+1)%in.numpoints];
 				
 				dot = dists[i] / (dists[i]-dists[i+1]);
 				for (j=0 ; j<3 ; j++)
@@ -520,14 +521,14 @@ namespace SharpQ3.Engine.qcommon
 						mid[j] = p1[j] + dot*(p2[j]-p1[j]);
 				}
 					
-				VectorCopy (mid, f->p[f->numpoints]);
-				f->numpoints++;
+				VectorCopy (mid, f.p[f.numpoints]);
+				f.numpoints++;
 			}
 			
-			if (f->numpoints > maxpts)
-				Com_Error (ERR_DROP, "ClipWinding: points exceeded estimate");
-			if (f->numpoints > MAX_POINTS_ON_WINDING)
-				Com_Error (ERR_DROP, "ClipWinding: MAX_POINTS_ON_WINDING");
+			if (f.numpoints > maxpts)
+				common.Com_Error (errorParm_t.ERR_DROP, "ClipWinding: points exceeded estimate");
+			if (f.numpoints > MAX_POINTS_ON_WINDING)
+				common.Com_Error (errorParm_t.ERR_DROP, "ClipWinding: MAX_POINTS_ON_WINDING");
 
 			FreeWinding (in);
 			*inout = f;
@@ -542,7 +543,7 @@ namespace SharpQ3.Engine.qcommon
 		of the cliping plane.  The original is freed.
 		=================
 		*/
-		winding_t	*ChopWinding (winding_t *in, vec3_t normal, vec_t dist)
+		static winding_t* ChopWinding (winding_t *in, vec3_t normal, vec_t dist)
 		{
 			winding_t	*f, *b;
 
@@ -560,7 +561,7 @@ namespace SharpQ3.Engine.qcommon
 
 		=================
 		*/
-		void CheckWinding (winding_t *w)
+		static void CheckWinding (winding_t *w)
 		{
 			int		i, j;
 			vec_t	*p1, *p2;
@@ -569,50 +570,50 @@ namespace SharpQ3.Engine.qcommon
 			vec_t	area;
 			vec_t	facedist;
 
-			if (w->numpoints < 3)
-				Com_Error (ERR_DROP, "CheckWinding: %i points",w->numpoints);
+			if (w.numpoints < 3)
+				common.Com_Error ( errorParm_t.ERR_DROP, "CheckWinding: %i points",w.numpoints);
 			
 			area = WindingArea(w);
 			if (area < 1)
-				Com_Error (ERR_DROP, "CheckWinding: %f area", area);
+				common.Com_Error ( errorParm_t.ERR_DROP, "CheckWinding: %f area", area);
 
 			WindingPlane (w, facenormal, &facedist);
 			
-			for (i=0 ; i<w->numpoints ; i++)
+			for (i=0 ; i<w.numpoints ; i++)
 			{
-				p1 = w->p[i];
+				p1 = w.p[i];
 
 				for (j=0 ; j<3 ; j++)
 					if (p1[j] > MAX_MAP_BOUNDS || p1[j] < -MAX_MAP_BOUNDS)
-						Com_Error (ERR_DROP, "CheckFace: BUGUS_RANGE: %f",p1[j]);
+						common.Com_Error ( errorParm_t.ERR_DROP, "CheckFace: BUGUS_RANGE: %f",p1[j]);
 
-				j = i+1 == w->numpoints ? 0 : i+1;
+				j = i+1 == w.numpoints ? 0 : i+1;
 				
 			// check the point is on the face plane
-				d = DotProduct (p1, facenormal) - facedist;
+				d = q_shared.DotProduct (p1, facenormal) - facedist;
 				if (d < -ON_EPSILON || d > ON_EPSILON)
-					Com_Error (ERR_DROP, "CheckWinding: point off plane");
+					common.Com_Error ( errorParm_t.ERR_DROP, "CheckWinding: point off plane");
 			
 			// check the edge isnt degenerate
-				p2 = w->p[j];
-				VectorSubtract (p2, p1, dir);
+				p2 = w.p[j];
+				q_shared.VectorSubtract (p2, p1, dir);
 				
-				if (VectorLength (dir) < ON_EPSILON)
-					Com_Error (ERR_DROP, "CheckWinding: degenerate edge");
-					
-				CrossProduct (facenormal, dir, edgenormal);
-				VectorNormalize2 (edgenormal, edgenormal);
-				edgedist = DotProduct (p1, edgenormal);
+				if ( q_shared.VectorLength (dir) < ON_EPSILON)
+					common.Com_Error ( errorParm_t.ERR_DROP, "CheckWinding: degenerate edge");
+
+				q_shared.CrossProduct (facenormal, dir, edgenormal);
+				q_math.VectorNormalize2 (edgenormal, edgenormal);
+				edgedist = q_shared.DotProduct (p1, edgenormal);
 				edgedist += ON_EPSILON;
 				
 			// all other points must be on front side
-				for (j=0 ; j<w->numpoints ; j++)
+				for (j=0 ; j<w.numpoints ; j++)
 				{
 					if (j == i)
 						continue;
-					d = DotProduct (w->p[j], edgenormal);
+					d = q_shared.DotProduct (w.p[j], edgenormal);
 					if (d > edgedist)
-						Com_Error (ERR_DROP, "CheckWinding: non-convex");
+						common.Com_Error (errorParm_t.ERR_DROP, "CheckWinding: non-convex");
 				}
 			}
 		}
@@ -623,7 +624,7 @@ namespace SharpQ3.Engine.qcommon
 		WindingOnPlaneSide
 		============
 		*/
-		int		WindingOnPlaneSide (winding_t *w, vec3_t normal, vec_t dist)
+		static int WindingOnPlaneSide (winding_t *w, vec3_t normal, vec_t dist)
 		{
 			bool	front, back;
 			int			i;
@@ -631,9 +632,9 @@ namespace SharpQ3.Engine.qcommon
 
 			front = false;
 			back = false;
-			for (i=0 ; i<w->numpoints ; i++)
+			for (i=0 ; i<w.numpoints ; i++)
 			{
-				d = DotProduct (w->p[i], normal) - dist;
+				d = q_shared.DotProduct (w.p[i], normal) - dist;
 				if (d < -ON_EPSILON)
 				{
 					if (front)
@@ -665,8 +666,8 @@ namespace SharpQ3.Engine.qcommon
 		Both w and *hull are on the same plane
 		=================
 		*/
-		#define	MAX_HULL_POINTS		128
-		void	AddWindingToConvexHull( winding_t *w, winding_t **hull, vec3_t normal ) {
+		const int MAX_HULL_POINTS = 128;
+		static void	AddWindingToConvexHull( winding_t *w, winding_t **hull, vec3_t normal ) {
 			int			i, j, k;
 			float		*p, *copy;
 			vec3_t		dir;
@@ -683,25 +684,25 @@ namespace SharpQ3.Engine.qcommon
 				return;
 			}
 
-			numHullPoints = (*hull)->numpoints;
-			Com_Memcpy( hullPoints, (*hull)->p, numHullPoints * sizeof(vec3_t) );
+			numHullPoints = (*hull).numpoints;
+			common.Com_Memcpy( hullPoints, (*hull).p, numHullPoints * sizeof(vec3_t) );
 
-			for ( i = 0 ; i < w->numpoints ; i++ ) {
-				p = w->p[i];
+			for ( i = 0 ; i < w.numpoints ; i++ ) {
+				p = w.p[i];
 
 				// calculate hull side vectors
 				for ( j = 0 ; j < numHullPoints ; j++ ) {
 					k = ( j + 1 ) % numHullPoints;
 
-					VectorSubtract( hullPoints[k], hullPoints[j], dir );
-					VectorNormalize2( dir, dir );
-					CrossProduct( normal, dir, hullDirs[j] );
+					q_shared.VectorSubtract( hullPoints[k], hullPoints[j], dir );
+					q_shared.VectorNormalize2( dir, dir );
+					q_shared.CrossProduct( normal, dir, hullDirs[j] );
 				}
 
 				outside = false;
 				for ( j = 0 ; j < numHullPoints ; j++ ) {
-					VectorSubtract( p, hullPoints[j], dir );
-					d = DotProduct( dir, hullDirs[j] );
+					q_shared.VectorSubtract( p, hullPoints[j], dir );
+					d = q_shared.DotProduct( dir, hullDirs[j] );
 					if ( d >= ON_EPSILON ) {
 						outside = true;
 					}
@@ -728,7 +729,7 @@ namespace SharpQ3.Engine.qcommon
 				}
 
 				// insert the point here
-				VectorCopy( p, newHullPoints[0] );
+				q_shared.VectorCopy( p, newHullPoints[0] );
 				numNew = 1;
 
 				// copy over all points that aren't double fronts
@@ -738,19 +739,19 @@ namespace SharpQ3.Engine.qcommon
 						continue;
 					}
 					copy = hullPoints[ (j+k+1) % numHullPoints ];
-					VectorCopy( copy, newHullPoints[numNew] );
+					q_shared.VectorCopy( copy, newHullPoints[numNew] );
 					numNew++;
 				}
 
 				numHullPoints = numNew;
-				Com_Memcpy( hullPoints, newHullPoints, numHullPoints * sizeof(vec3_t) );
+				common.Com_Memcpy( hullPoints, newHullPoints, numHullPoints * sizeof(vec3_t) );
 			}
 
 			FreeWinding( *hull );
 			w = AllocWinding( numHullPoints );
-			w->numpoints = numHullPoints;
+			w.numpoints = numHullPoints;
 			*hull = w;
-			Com_Memcpy( w->p, hullPoints, numHullPoints * sizeof(vec3_t) );
+			common.Com_Memcpy( w.p, hullPoints, numHullPoints * sizeof(vec3_t) );
 		}
 	}
 }

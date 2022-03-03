@@ -129,47 +129,49 @@ namespace SharpQ3.Engine.qcommon
 		#define	VM_OFFSET_PROGRAM_STACK		0
 		#define	VM_OFFSET_SYSTEM_CALL		4
 
-		struct vm_t {
-		    // DO NOT MOVE OR CHANGE THESE WITHOUT CHANGING THE VM_OFFSET_* DEFINES
-		    // USED BY THE ASM CODE
-		    int			programStack;		// the vm may be recursively entered
-		    intptr_t    (*systemCall)( intptr_t *parms );
 
-			//------------------------------------
+
+		public static	vm_t	currentVM;
+		public static int		vm_debugLevel;
+	}
+
+	public class vm_t
+	{
+		// DO NOT MOVE OR CHANGE THESE WITHOUT CHANGING THE VM_OFFSET_* DEFINES
+		// USED BY THE ASM CODE
+		public int programStack;       // the vm may be recursively entered
+		intptr_t(*systemCall)(intptr_t* parms );
+
+		//------------------------------------
 		   
-		    char		name[MAX_QPATH];
+		public char name[MAX_QPATH];
 
-			// for dynamic linked modules
-			void		*dllHandle;
-			intptr_t			(QDECL *entryPoint)( int callNum, ... );
+		// for dynamic linked modules
+		public  void* dllHandle;
+		intptr_t( QDECL* entryPoint )(int callNum, ... );
 
-			// for interpreted modules
-			bool	currentlyInterpreting;
+		// for interpreted modules
+		public bool currentlyInterpreting;
 
-			byte		*codeBase;
-			int			codeLength;
+		public byte* codeBase;
+		public int codeLength;
 
-			int			*instructionPointers;
-			int			instructionPointersLength;
+		public int* instructionPointers;
+		public int instructionPointersLength;
 
-			byte		*dataBase;
-			int			dataMask;
+		public byte* dataBase;
+		public int dataMask;
 
-			int			stackBottom;		// if programStack < stackBottom, error
+		public int stackBottom;        // if programStack < stackBottom, error
 
-			int			numSymbols;
-			struct vmSymbol_s	*symbols;
+		public int numSymbols;
+		public struct vmSymbol_s   *symbols;
 
-			int			callLevel;			// for debug indenting
-			int			breakFunction;		// increment breakCount on function entry to this
-			int			breakCount;
+		public int callLevel;          // for debug indenting
+		public int breakFunction;      // increment breakCount on function entry to this
+		public int breakCount;
 
 		// fqpath member added 7/20/02 by T.Ray
-			char		fqpath[MAX_QPATH+1] ;
-		}
-
-
-		extern	vm_t	*currentVM;
-		extern	int		vm_debugLevel;
+		public char fqpath[MAX_QPATH + 1];
 	}
 }

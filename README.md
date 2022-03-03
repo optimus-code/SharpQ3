@@ -84,7 +84,7 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 	- [ ] inv.cs - 1%
 	- [ ] match.cs - 1%
 	- [ ] menudef.cs - 1%
-	- [ ] q_math.cs - 1%
+	- [x] q_math.cs - 100%
 	- [ ] surfaceflags.cs - 1%
 	- [ ] syn.cs - 1%
 	
@@ -93,23 +93,23 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 		- [ ] cm_load.cs - 1%
 		- [ ] cm_local.cs - 1%
 		- [ ] cm_patch.cs - 1%
-		- [ ] cm_polylib.cs - 1%
+		- [ ] cm_polylib.cs - 29%
 		- [ ] cm_test.cs - 1%
-		- [ ] cm_trace.cs - 1%
-		- [ ] cmd.cs - 53%
-		- [ ] common.cs - 6%
+		- [ ] cm_trace.cs - 31%
+		- [ ] cmd.cs - 96%
+		- [ ] common.cs - 63%
 		- [x] cvar.cs - 100%
-		- [ ] files.cs - 5%
+		- [ ] files.cs - 35%
 		- [ ] huffman.cs - 1%
 		- [ ] md4.cs - 1%
 		- [ ] msg.cs - 1%
 		- [ ] net_chan.cs - 1%
-		- [ ] q_shared.cs - 46%
-		- [ ] qcommon.cs - 95%
-		- [ ] qfiles.cs - 95%
+		- [ ] q_shared.cs - 89.7%
+		- [ ] qcommon.cs - 97%
+		- [ ] qfiles.cs - 98%
 		- [ ] vm.cs - 1%
 		- [ ] vm_interpreted.cs - 1%
-		- [ ] vm_local.cs - 1%
+		- [ ] vm_local.cs - 77%
 		
 	- [ ] Platform
 		- [ ] win_gamma.cs - 1%
