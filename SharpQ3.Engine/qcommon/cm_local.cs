@@ -72,7 +72,7 @@ namespace SharpQ3.Engine.qcommon
         public int shaderNum;
     }
 
-    public struct cbrush_t
+    public class cbrush_t
     {
         public int shaderNum;       // the shader that determined the contents
         public int contents;
@@ -83,7 +83,7 @@ namespace SharpQ3.Engine.qcommon
         public int checkcount;      // to avoid repeated testings
     }
 
-    public struct cPatch_t
+    public class cPatch_t
     {
         public int checkcount;              // to avoid repeated testings
         public int surfaceFlags;
@@ -142,7 +142,7 @@ namespace SharpQ3.Engine.qcommon
         public int[] areaPortals;   // [ numAreas*numAreas ] reference counts
 
         public int numSurfaces;
-        public cPatch_t[][] surfaces;           // non-patches will be NULL
+        public cPatch_t[] surfaces;           // non-patches will be NULL
 
         public int floodvalid;
         public int checkcount;                  // incremented on each trace

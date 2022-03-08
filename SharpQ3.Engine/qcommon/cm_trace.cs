@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using System;
+
 namespace SharpQ3.Engine.qcommon
 {
 	public static class cm_trace
@@ -38,7 +40,7 @@ namespace SharpQ3.Engine.qcommon
 		================
 		*/
 		public static void RotatePoint(vec3_t point, /*const*/ vec3_t[] matrix) { // bk: FIXME 
-			q_shared.VectorCopy(point, out var tvec);
+			q_shared.VectorCopy(point, out vec3_t tvec );
 			point.x = q_shared.DotProduct(matrix[0], tvec);
 			point.y = q_shared.DotProduct(matrix[1], tvec);
 			point.z = q_shared.DotProduct(matrix[2], tvec);
@@ -49,7 +51,8 @@ namespace SharpQ3.Engine.qcommon
 		TransposeMatrix
 		================
 		*/
-		public static void TransposeMatrix(/*const*/ vec3_t matrix[3], vec3_t transpose[3]) { // bk: FIXME
+		public static void TransposeMatrix(/*const*/ vec3_t[] matrix/*[3]*/, vec3_t[] transpose/*[3]*/) // bk: FIXME
+		{ 
 			int i, j;
 			for (i = 0; i < 3; i++) {
 				for (j = 0; j < 3; j++) {
@@ -63,9 +66,10 @@ namespace SharpQ3.Engine.qcommon
 		CreateRotationMatrix
 		================
 		*/
-		public static void CreateRotationMatrix(const vec3_t angles, vec3_t matrix[3]) {
-			AngleVectors(angles, matrix[0], matrix[1], matrix[2]);
-			q_shared.VectorInverse(matrix[1]);
+		public static void CreateRotationMatrix(vec3_t angles, vec3_t[] matrix/*[3]*/) 
+		{
+			q_math.AngleVectors(angles, out matrix[0], out matrix[1], out matrix[2]);
+			q_shared.VectorInverse(ref matrix[1]);
 		}
 
 		/*
@@ -73,13 +77,11 @@ namespace SharpQ3.Engine.qcommon
 		CM_ProjectPointOntoVector
 		================
 		*/
-		public static void CM_ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vDir, vec3_t vProj )
+		public static void CM_ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vDir, out vec3_t vProj )
 		{
-			vec3_t pVec;
-
-			q_shared.VectorSubtract( point, vStart, pVec );
+			q_shared.VectorSubtract( point, vStart, out vec3_t pVec );
 			// project onto the directional vector for this segment
-			q_shared.VectorMA( vStart, q_shared.DotProduct( pVec, vDir ), vDir, vProj );
+			q_shared.VectorMA( vStart, q_shared.DotProduct( pVec, vDir ), vDir, out vProj );
 		}
 
 		/*
@@ -91,19 +93,19 @@ namespace SharpQ3.Engine.qcommon
 			vec3_t proj, t;
 			int j;
 
-			CM_ProjectPointOntoVector(p, lp1, dir, proj);
+			CM_ProjectPointOntoVector(p, lp1, dir, out proj );
 			for (j = 0; j < 3; j++) 
 				if ((proj[j] > lp1[j] && proj[j] > lp2[j]) ||
 					(proj[j] < lp1[j] && proj[j] < lp2[j]))
 					break;
 			if (j < 3) {
-				if (fabs(proj[j] - lp1[j]) < fabs(proj[j] - lp2[j]))
-					q_shared.VectorSubtract(p, lp1, t);
+				if (MathF.Abs(proj[j] - lp1[j]) < MathF.Abs(proj[j] - lp2[j]))
+					q_shared.VectorSubtract(p, lp1, out t);
 				else
-					q_shared.VectorSubtract(p, lp2, t);
+					q_shared.VectorSubtract(p, lp2, out t );
 				return q_shared.VectorLengthSquared(t);
 			}
-			q_shared.VectorSubtract(p, proj, t);
+			q_shared.VectorSubtract(p, proj, out t );
 			return q_shared.VectorLengthSquared(t);
 		}
 
@@ -112,10 +114,9 @@ namespace SharpQ3.Engine.qcommon
 		CM_VectorDistanceSquared
 		================
 		*/
-		public static float CM_VectorDistanceSquared(vec3_t p1, vec3_t p2) {
-			vec3_t dir;
-
-			q_shared.VectorSubtract(p2, p1, dir);
+		public static float CM_VectorDistanceSquared(vec3_t p1, vec3_t p2) 
+		{
+			q_shared.VectorSubtract(p2, p1, out vec3_t dir );
 			return q_shared.VectorLengthSquared(dir);
 		}
 
@@ -124,21 +125,21 @@ namespace SharpQ3.Engine.qcommon
 		SquareRootFloat
 		================
 		*/
-		public static float SquareRootFloat(float number) {
+		public static unsafe float SquareRootFloat( float number )
+		{
 			long i;
 			float x, y;
 			const float f = 1.5F;
 
 			x = number * 0.5F;
-			y  = number;
-			i  = * ( long * ) &y;
-			i  = 0x5f3759df - ( i >> 1 );
-			y  = * ( float * ) &i;
-			y  = y * ( f - ( x * y * y ) );
-			y  = y * ( f - ( x * y * y ) );
+			y = number;
+			i = *( long* ) &y;
+			i = 0x5f3759df - ( i >> 1 );
+			y = *( float* ) &i;
+			y = y * ( f - ( x * y * y ) );
+			y = y * ( f - ( x * y * y ) );
 			return number * y;
 		}
-
 
 		/*
 		===============================================================================
@@ -153,18 +154,17 @@ namespace SharpQ3.Engine.qcommon
 		CM_TestBoxInBrush
 		================
 		*/
-		public static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush ) {
+		public static void CM_TestBoxInBrush( ref traceWork_t tw, cbrush_t brush ) {
 			int			i;
-			cplane_t	*plane;
+			cplane_t	plane;
 			float		dist;
 			float		d1;
-			cbrushside_t	*side;
+			cbrushside_t side;
 			float		t;
 			vec3_t		startp;
 
-			if (!brush.numsides) {
+			if (brush.numsides == 0)
 				return;
-			}
 
 			// special test for axial
 			if ( tw.bounds[0][0] > brush.bounds[1][0]
@@ -188,19 +188,16 @@ namespace SharpQ3.Engine.qcommon
 					dist = plane.dist + tw.sphere.radius;
 					// find the closest point on the capsule to the plane
 					t = q_shared.DotProduct( plane.normal, tw.sphere.offset );
+
 					if ( t > 0 )
-					{
-						q_shared.VectorSubtract( tw.start, tw.sphere.offset, startp );
-					}
+						q_shared.VectorSubtract( tw.start, tw.sphere.offset, out startp );
 					else
-					{
-						q_shared.VectorAdd( tw.start, tw.sphere.offset, startp );
-					}
+						q_shared.VectorAdd( tw.start, tw.sphere.offset, out startp );
+
 					d1 = q_shared.DotProduct( startp, plane.normal ) - dist;
 					// if completely in front of face, no intersection
-					if ( d1 > 0 ) {
+					if ( d1 > 0 )
 						return;
-					}
 				}
 			} else {
 				// the first six planes are the axial planes, so we only
@@ -210,14 +207,13 @@ namespace SharpQ3.Engine.qcommon
 					plane = side.plane;
 
 					// adjust the plane distance apropriately for mins/maxs
-					dist = plane.dist - DotProduct( tw.offsets[ plane.signbits ], plane.normal );
+					dist = plane.dist - q_shared.DotProduct( tw.offsets[ plane.signbits ], plane.normal );
 
-					d1 = DotProduct( tw.start, plane.normal ) - dist;
+					d1 = q_shared.DotProduct( tw.start, plane.normal ) - dist;
 
 					// if completely in front of face, no intersection
-					if ( d1 > 0 ) {
+					if ( d1 > 0 )
 						return;
-					}
 				}
 			}
 
@@ -234,48 +230,48 @@ namespace SharpQ3.Engine.qcommon
 		CM_TestInLeaf
 		================
 		*/
-		public static void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
+		public static void CM_TestInLeaf( ref traceWork_t tw, cLeaf_t leaf ) 
+		{
 			int			k;
 			int			brushnum;
-			cbrush_t	*b;
-			cPatch_t	*patch;
+			cbrush_t	b;
+			cPatch_t	patch;
 
 			// test box position against all brushes in the leaf
 			for (k=0 ; k<leaf.numLeafBrushes ; k++) {
-				brushnum = cm.leafbrushes[leaf.firstLeafBrush+k];
-				b = &cm.brushes[brushnum];
-				if (b.checkcount == cm.checkcount) {
+				brushnum = cm_local.cm.leafbrushes[leaf.firstLeafBrush+k];
+				b = cm_local.cm.brushes[brushnum];
+				if (b.checkcount == cm_local.cm.checkcount) {
 					continue;	// already checked this brush in another leaf
 				}
-				b.checkcount = cm.checkcount;
+				b.checkcount = cm_local.cm.checkcount;
 
-				if ( !(b.contents & tw.contents)) {
+				if ( (b.contents & tw.contents) == 0)
 					continue;
-				}
 				
-				CM_TestBoxInBrush( tw, b );
-				if ( tw.trace.allsolid ) {
+				CM_TestBoxInBrush( ref tw, b );
+
+				if ( tw.trace.allsolid )
 					return;
-				}
 			}
 
 			// test against all patches
-			if ( !cm_noCurves.integer ) {
+			if ( cm_local.cm_noCurves.integer == 0 ) {
 				for ( k = 0 ; k < leaf.numLeafSurfaces ; k++ ) {
-					patch = cm.surfaces[ cm.leafsurfaces[ leaf.firstLeafSurface + k ] ];
-					if ( !patch ) {
+					patch = cm_local.cm.surfaces[cm_local.cm.leafsurfaces[ leaf.firstLeafSurface + k ] ];
+					if ( patch == null )
 						continue;
-					}
-					if ( patch.checkcount == cm.checkcount ) {
-						continue;	// already checked this brush in another leaf
-					}
-					patch.checkcount = cm.checkcount;
 
-					if ( !(patch.contents & tw.contents)) {
+					if ( patch.checkcount == cm_local.cm.checkcount )
+						continue;	// already checked this brush in another leaf
+
+					patch.checkcount = cm_local.cm.checkcount;
+
+					if ( (patch.contents & tw.contents) == 0)
 						continue;
-					}
 					
-					if ( CM_PositionTestInPatchCollide( tw, patch.pc ) ) {
+					if ( cm_patch.CM_PositionTestInPatchCollide( tw, patch.pc ) ) 
+					{
 						tw.trace.startsolid = tw.trace.allsolid = true;
 						tw.trace.fraction = 0;
 						tw.trace.contents = patch.contents;
@@ -292,7 +288,7 @@ namespace SharpQ3.Engine.qcommon
 		capsule inside capsule check
 		==================
 		*/
-		public static void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TestCapsuleInCapsule( ref traceWork_t tw, clipHandle_t model ) {
 			int i;
 			vec3_t mins, maxs;
 			vec3_t top, bottom;
@@ -300,7 +296,7 @@ namespace SharpQ3.Engine.qcommon
 			vec3_t offset, symetricSize[2];
 			float radius, halfwidth, halfheight, offs, r;
 
-			CM_ModelBounds(model, mins, maxs);
+			CM_ModelBounds(model, out mins, out maxs );
 
 			q_shared.VectorAdd(tw.start, tw.sphere.offset, top);
 			q_shared.VectorSubtract(tw.start, tw.sphere.offset, bottom);
@@ -316,27 +312,27 @@ namespace SharpQ3.Engine.qcommon
 
 			r = q_shared.Square(tw.sphere.radius + radius);
 			// check if any of the spheres overlap
-			q_shared.VectorCopy(offset, p1);
+			q_shared.VectorCopy(offset, out p1 );
 			p1[2] += offs;
-			q_shared.VectorSubtract(p1, top, tmp);
+			q_shared.VectorSubtract(p1, top, out tmp );
 			if ( q_shared.VectorLengthSquared(tmp) < r ) {
 				tw.trace.startsolid = tw.trace.allsolid = true;
 				tw.trace.fraction = 0;
 			}
-			q_shared.VectorSubtract(p1, bottom, tmp);
+			q_shared.VectorSubtract(p1, bottom, out tmp );
 			if ( q_shared.VectorLengthSquared(tmp) < r ) {
 				tw.trace.startsolid = tw.trace.allsolid = true;
 				tw.trace.fraction = 0;
 			}
-			q_shared.VectorCopy(offset, p2);
+			q_shared.VectorCopy(offset, out p2 );
 			p2[2] -= offs;
-			q_shared.VectorSubtract(p2, top, tmp);
+			q_shared.VectorSubtract(p2, top, out tmp );
 			if ( q_shared.VectorLengthSquared(tmp) < r ) {
 				tw.trace.startsolid = tw.trace.allsolid = true;
 				tw.trace.fraction = 0;
 			}
-			q_shared.VectorSubtract(p2, bottom, tmp);
-			if ( VectorLengthSquared(tmp) < r ) {
+			q_shared.VectorSubtract(p2, bottom, out tmp);
+			if ( q_math.VectorLengthSquared(tmp) < r ) {
 				tw.trace.startsolid = tw.trace.allsolid = true;
 				tw.trace.fraction = 0;
 			}
@@ -346,7 +342,7 @@ namespace SharpQ3.Engine.qcommon
 				// 2d coordinates
 				top[2] = p1[2] = 0;
 				// if the cylinders overlap
-				q_shared.VectorSubtract(top, p1, tmp);
+				q_shared.VectorSubtract(top, p1, out tmp );
 				if ( q_shared.VectorLengthSquared(tmp) < r ) {
 					tw.trace.startsolid = tw.trace.allsolid = true;
 					tw.trace.fraction = 0;
@@ -361,14 +357,14 @@ namespace SharpQ3.Engine.qcommon
 		bounding box inside capsule check
 		==================
 		*/
-		public static void CM_TestBoundingBoxInCapsule( traceWork_t *tw, clipHandle_t model ) {
+		public static void CM_TestBoundingBoxInCapsule( ref traceWork_t tw, clipHandle_t model ) {
 			vec3_t mins, maxs, offset, size[2];
 			clipHandle_t h;
 			cmodel_t *cmod;
 			int i;
 
 			// mins maxs of the capsule
-			CM_ModelBounds(model, mins, maxs);
+			cm_load.CM_ModelBounds(model, out mins, out maxs);
 
 			// offset for capsule center
 			for ( i = 0 ; i < 3 ; i++ ) {
@@ -389,7 +385,7 @@ namespace SharpQ3.Engine.qcommon
 			h = CM_TempBoxModel(tw.size[0], tw.size[1], false);
 			// calculate collision
 			cmod = CM_ClipHandleToModel( h );
-			CM_TestInLeaf( tw, &cmod.leaf );
+			CM_TestInLeaf( ref tw, &cmod.leaf );
 		}
 
 		/*
@@ -1208,11 +1204,11 @@ namespace SharpQ3.Engine.qcommon
 			if ( tw.sphere.use ) {
 				for ( i = 0 ; i < 3 ; i++ ) {
 					if ( tw.start[i] < tw.end[i] ) {
-						tw.bounds[0][i] = tw.start[i] - fabs(tw.sphere.offset[i]) - tw.sphere.radius;
-						tw.bounds[1][i] = tw.end[i] + fabs(tw.sphere.offset[i]) + tw.sphere.radius;
+						tw.bounds[0][i] = tw.start[i] - MathF.Abs(tw.sphere.offset[i]) - tw.sphere.radius;
+						tw.bounds[1][i] = tw.end[i] + MathF.Abs(tw.sphere.offset[i]) + tw.sphere.radius;
 					} else {
-						tw.bounds[0][i] = tw.end[i] - fabs(tw.sphere.offset[i]) - tw.sphere.radius;
-						tw.bounds[1][i] = tw.start[i] + fabs(tw.sphere.offset[i]) + tw.sphere.radius;
+						tw.bounds[0][i] = tw.end[i] - MathF.Abs(tw.sphere.offset[i]) - tw.sphere.radius;
+						tw.bounds[1][i] = tw.start[i] + MathF.Abs(tw.sphere.offset[i]) + tw.sphere.radius;
 					}
 				}
 			}

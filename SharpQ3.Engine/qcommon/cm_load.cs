@@ -156,7 +156,6 @@ namespace SharpQ3.Engine.qcommon
 			}
 		}
 
-
 		/*
 		=================
 		CMod_LoadNodes
@@ -821,7 +820,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_ModelBounds
 		===================
 		*/
-		static void CM_ModelBounds( clipHandle_t model, out vec3_t mins, out vec3_t maxs ) 
+		public static void CM_ModelBounds( clipHandle_t model, out vec3_t mins, out vec3_t maxs ) 
 		{
 			var cmod = CM_ClipHandleToModel( model );
 

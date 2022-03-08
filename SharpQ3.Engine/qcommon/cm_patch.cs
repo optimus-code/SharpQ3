@@ -1709,7 +1709,7 @@ namespace SharpQ3.Engine.qcommon
 		CM_PositionTestInPatchCollide
 		====================
 		*/
-		static bool CM_PositionTestInPatchCollide( traceWork_t tw, patchCollide_t pc ) 
+		public static bool CM_PositionTestInPatchCollide( traceWork_t tw, patchCollide_t pc ) 
 		{
 			int i, j;
 			float offset, t;

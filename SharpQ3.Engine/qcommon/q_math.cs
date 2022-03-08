@@ -181,13 +181,13 @@ namespace SharpQ3.Engine
 
         public static float Distance( vec3_t p1, vec3_t p2 )
         {
-            q_shared.VectorSubtract( p2, p1, out var v );
+            q_shared.VectorSubtract( p2, p1, out vec3_t v );
             return q_shared.VectorLength( v );
         }
 
         public static float DistanceSquared( vec3_t p1, vec3_t p2 )
         {
-            q_shared.VectorSubtract( p2, p1, out var v );
+            q_shared.VectorSubtract( p2, p1, out vec3_t v );
             return v.x * v.x + v.y * v.y + v.z * v.z;
         }
 

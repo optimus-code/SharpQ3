@@ -872,7 +872,7 @@ namespace SharpQ3.Engine
 
 		// fast vector normalize routine that does not check to make sure
 		// that length != 0, nor does it return length, uses rsqrt approximation
-		public static void VectorNormalizeFast( vec3_t v )
+		public static void VectorNormalizeFast( ref vec3_t v )
 		{
 			float ilength;
 
@@ -883,7 +883,7 @@ namespace SharpQ3.Engine
 			v.z *= ilength;
 		}
 
-		public static void VectorInverse( vec3_t v )
+		public static void VectorInverse( ref vec3_t v )
 		{
 			v.x = -v.x;
 			v.y = -v.y;

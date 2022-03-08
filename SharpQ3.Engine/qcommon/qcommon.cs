@@ -26,6 +26,38 @@ namespace SharpQ3.Engine.qcommon
     using System;
     using System.Runtime.InteropServices;
 
+	// Changed to class as it has references
+	public class node_t
+	{
+		node_t left, right, parent; /* tree structure */
+		node_t next, prev; /* doubly-linked list */
+		node_t head; /* highest ranked node in block */
+		int weight;
+		int symbol;
+	};
+
+	// Changed to class as it has references
+	public class huff_t
+	{
+		public int blocNode;
+		public int blocPtrs;
+
+		public node_t tree;
+		public node_t lhead;
+		public node_t ltail;
+		public node_t* loc[HMAX + 1];
+		public node_t** freelist;
+
+		public node_t nodeList[768];
+		public node_t* nodePtrs[768];
+	}
+
+	public struct huffman_t
+	{
+		public huff_t compressor;
+		public huff_t decompressor;
+	}
+
 	// qcommon.h -- definitions common between client and server, but not game.or ref modules
 	public static class qcommon
 	{
@@ -472,39 +504,8 @@ namespace SharpQ3.Engine.qcommon
 		public const int NYT = qcommon.HMAX;                   /* NYT = Not Yet Transmitted */
 		public const int INTERNAL_NODE = qcommon.HMAX + 1;
 
-		// Changed to class as it has references
-		public class node_t
-		{
-			node_t left, right, parent; /* tree structure */ 
-			node_t next, prev; /* doubly-linked list */
-			node_t head; /* highest ranked node in block */
-			int		weight;
-			int		symbol;
-		};
-
+		
 		public const int HMAX = 256; /* Maximum symbol */
-
-		// Changed to class as it has references
-		public class huff_t
-		{
-			int			blocNode;
-			int			blocPtrs;
-
-			node_t		tree;
-			node_t		lhead;
-			node_t		ltail;
-			node_t*		loc[HMAX+1];
-			node_t**	freelist;
-
-			node_t		nodeList[768];
-			node_t*		nodePtrs[768];
-		};
-
-		public struct huffman_t
-		{
-			huff_t		compressor;
-			huff_t		decompressor;
-		}
 
 		public static huffman_t clientHuffTables;
 
