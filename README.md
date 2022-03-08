@@ -7,6 +7,8 @@
 
 SharpQ3 is a C# port of the Kenny Edition of Quake III Arena. This is a huge undertaking and far from complete. If you have C++ and C# experience and would like to get involved let me know! PRs are welcome!
 
+Come join us on Gitter Chat - https://gitter.im/SharpQ3/community
+
 ### Conversion progress (estimated)
 ![](https://us-central1-progress-markdown.cloudfunctions.net/progress/6)
 
