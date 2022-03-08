@@ -20,6 +20,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine;
+using System;
+using System.Linq;
+
 namespace SharpQ3.Engine.qcommon
 {
 	public static class cm_test
@@ -30,38 +34,37 @@ namespace SharpQ3.Engine.qcommon
 
 		==================
 		*/
-		int CM_PointLeafnum_r( const vec3_t p, int num ) {
+		public static int CM_PointLeafnum_r( vec3_t p, int num ) 
+		{
 			float		d;
-			cNode_t		*node;
-			cplane_t	*plane;
 
 			while (num >= 0)
 			{
-				node = cm.nodes + num;
-				plane = node->plane;
+				var node = cm_local.cm.nodes[num];
+				var plane = node.plane;
 				
-				if (plane->type < 3)
-					d = p[plane->type] - plane->dist;
+				if (plane.type < 3)
+					d = p[plane.type] - plane.dist;
 				else
-					d = DotProduct (plane->normal, p) - plane->dist;
+					d = q_shared.DotProduct (plane.normal, p) - plane.dist;
 				if (d < 0)
-					num = node->children[1];
+					num = node.children[1];
 				else
-					num = node->children[0];
+					num = node.children[0];
 			}
 
-			c_pointcontents++;		// optimize counter
+			cm_local.c_pointcontents++;		// optimize counter
 
 			return -1 - num;
 		}
 
-		int CM_PointLeafnum( const vec3_t p ) {
-			if ( !cm.numNodes ) {	// map not loaded
+		public static int CM_PointLeafnum( vec3_t p ) 
+		{
+			if ( cm_local.cm.numNodes  == 0 )	// map not loaded
 				return 0;
-			}
+
 			return CM_PointLeafnum_r (p, 0);
 		}
-
 
 		/*
 		======================================================================
@@ -72,54 +75,64 @@ namespace SharpQ3.Engine.qcommon
 		*/
 
 
-		void CM_StoreLeafs( leafList_t *ll, int nodenum ) {
+		public static void CM_StoreLeafs( leafList_t ll, int nodenum ) 
+		{
 			int		leafNum;
 
 			leafNum = -1 - nodenum;
 
 			// store the lastLeaf even if the list is overflowed
-			if ( cm.leafs[ leafNum ].cluster != -1 ) {
-				ll->lastLeaf = leafNum;
+			if ( cm_local.cm.leafs[leafNum].cluster != -1 ) {
+				ll.lastLeaf = leafNum;
 			}
 
-			if ( ll->count >= ll->maxcount) {
-				ll->overflowed = true;
+			if ( ll.count >= ll.maxcount) 
+			{
+				ll.overflowed = true;
 				return;
 			}
-			ll->list[ ll->count++ ] = leafNum;
+			ll.list[ll.count++] = leafNum;
 		}
 
-		void CM_StoreBrushes( leafList_t *ll, int nodenum ) {
+		public static void CM_StoreBrushes( leafList_t ll, int nodenum ) 
+		{
 			int			i, k;
 			int			leafnum;
 			int			brushnum;
-			cLeaf_t		*leaf;
-			cbrush_t	*b;
 
 			leafnum = -1 - nodenum;
 
-			leaf = &cm.leafs[leafnum];
+			var leaf = cm_local.cm.leafs[leafnum];
 
-			for ( k = 0 ; k < leaf->numLeafBrushes ; k++ ) {
-				brushnum = cm.leafbrushes[leaf->firstLeafBrush+k];
-				b = &cm.brushes[brushnum];
-				if ( b->checkcount == cm.checkcount ) {
+			for ( k = 0 ; k < leaf.numLeafBrushes ; k++ ) 
+			{
+				brushnum = cm_local.cm.leafbrushes[leaf.firstLeafBrush+k];
+				var b = cm_local.cm.brushes[brushnum];
+
+				if ( b.checkcount == cm_local.cm.checkcount )
 					continue;	// already checked this brush in another leaf
-				}
-				b->checkcount = cm.checkcount;
-				for ( i = 0 ; i < 3 ; i++ ) {
-					if ( b->bounds[0][i] >= ll->bounds[1][i] || b->bounds[1][i] <= ll->bounds[0][i] ) {
+
+				b.checkcount = cm_local.cm.checkcount;
+
+				for ( i = 0 ; i < 3 ; i++ ) 
+				{
+					if ( b.bounds[0][i] >= ll.bounds[1][i] || b.bounds[1][i] <= ll.bounds[0][i] ) {
 						break;
 					}
 				}
-				if ( i != 3 ) {
+
+				if ( i != 3 )
 					continue;
-				}
-				if ( ll->count >= ll->maxcount) {
-					ll->overflowed = true;
+
+				if ( ll.count >= ll.maxcount) 
+				{
+					ll.overflowed = true;
 					return;
 				}
-				((cbrush_t **)ll->list)[ ll->count++ ] = b;
+				var bytes = qcommon.StructureToBytes( ref b );
+				// optimus-code - TODO - IS THIS RIGHT??
+				Buffer.BlockCopy( bytes, 0, ll.list, ll.count * sizeof( int ), bytes.Length );
+				//((cbrush_t **)ll.list[ ll.count++ ] = b;
 			}
 		}
 
@@ -130,28 +143,36 @@ namespace SharpQ3.Engine.qcommon
 		Fills in a list of all the leafs touched
 		=============
 		*/
-		void CM_BoxLeafnums_r( leafList_t *ll, int nodenum ) {
-			cplane_t	*plane;
-			cNode_t		*node;
+		public static void CM_BoxLeafnums_r( leafList_t ll, int nodenum ) 
+		{
+			cplane_t	plane;
+			cNode_t		node;
 			int			s;
 
-			while (1) {
-				if (nodenum < 0) {
-					ll->storeLeafs( ll, nodenum );
+			while ( true ) 
+			{
+				if ( nodenum < 0 ) 
+				{
+					ll.storeLeafs( ll, nodenum );
 					return;
 				}
 			
-				node = &cm.nodes[nodenum];
-				plane = node->plane;
-				s = BoxOnPlaneSide( ll->bounds[0], ll->bounds[1], plane );
-				if (s == 1) {
-					nodenum = node->children[0];
-				} else if (s == 2) {
-					nodenum = node->children[1];
-				} else {
+				node = cm_local.cm.nodes[nodenum];
+				plane = node.plane;
+				s = q_math.BoxOnPlaneSide( ll.bounds[0], ll.bounds[1], plane );
+				if ( s == 1 ) 
+				{
+					nodenum = node.children[0];
+				} 
+				else if (s == 2) 
+				{
+					nodenum = node.children[1];
+				} 
+				else 
+				{
 					// go down both
-					CM_BoxLeafnums_r( ll, node->children[0] );
-					nodenum = node->children[1];
+					CM_BoxLeafnums_r( ll, node.children[0] );
+					nodenum = node.children[1];
 				}
 
 			}
@@ -162,13 +183,14 @@ namespace SharpQ3.Engine.qcommon
 		CM_BoxLeafnums
 		==================
 		*/
-		int	CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastLeaf) {
-			leafList_t	ll;
+		public static int CM_BoxLeafnums( vec3_t mins, vec3_t maxs, int[] list, int listsize, out int lastLeaf ) 
+		{
+			leafList_t	ll = new leafList_t();
 
-			cm.checkcount++;
+			cm_local.cm.checkcount++;
 
-			VectorCopy( mins, ll.bounds[0] );
-			VectorCopy( maxs, ll.bounds[1] );
+			q_shared.VectorCopy( mins, out ll.bounds[0] );
+			q_shared.VectorCopy( maxs, out ll.bounds[1] );
 			ll.count = 0;
 			ll.maxcount = listsize;
 			ll.list = list;
@@ -176,9 +198,9 @@ namespace SharpQ3.Engine.qcommon
 			ll.lastLeaf = 0;
 			ll.overflowed = false;
 
-			CM_BoxLeafnums_r( &ll, 0 );
+			CM_BoxLeafnums_r( ll, 0 );
 
-			*lastLeaf = ll.lastLeaf;
+			lastLeaf = ll.lastLeaf;
 			return ll.count;
 		}
 
@@ -187,13 +209,14 @@ namespace SharpQ3.Engine.qcommon
 		CM_BoxBrushes
 		==================
 		*/
-		int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize ) {
-			leafList_t	ll;
+		public static int CM_BoxBrushes( vec3_t mins, vec3_t maxs, cbrush_t **list, int listsize )
+		{
+			leafList_t ll = new leafList_t( );
 
-			cm.checkcount++;
+			cm_local.cm.checkcount++;
 
-			VectorCopy( mins, ll.bounds[0] );
-			VectorCopy( maxs, ll.bounds[1] );
+			q_shared.VectorCopy( mins, out ll.bounds[0] );
+			q_shared.VectorCopy( maxs, out ll.bounds[1] );
 			ll.count = 0;
 			ll.maxcount = listsize;
 			ll.list = (int*) (void *)list;
@@ -201,7 +224,7 @@ namespace SharpQ3.Engine.qcommon
 			ll.lastLeaf = 0;
 			ll.overflowed = false;
 			
-			CM_BoxLeafnums_r( &ll, 0 );
+			CM_BoxLeafnums_r( ll, 0 );
 
 			return ll.count;
 		}
@@ -216,45 +239,47 @@ namespace SharpQ3.Engine.qcommon
 
 		==================
 		*/
-		int CM_PointContents( const vec3_t p, clipHandle_t model ) {
+		public static int CM_PointContents( vec3_t p, clipHandle_t model ) 
+		{
 			int			leafnum;
 			int			i, k;
 			int			brushnum;
-			cLeaf_t		*leaf;
-			cbrush_t	*b;
+			cLeaf_t		leaf;
 			int			contents;
 			float		d;
-			cmodel_t	*clipm;
+			cmodel_t	clipm;
 
-			if (!cm.numNodes) {	// map not loaded
+			if (cm_local.cm.numNodes == 0) 	// map not loaded
 				return 0;
-			}
 
-			if ( model ) {
-				clipm = CM_ClipHandleToModel( model );
-				leaf = &clipm->leaf;
-			} else {
+			if ( model.ID != 0 ) 
+			{
+				clipm = cm_load.CM_ClipHandleToModel( model );
+				leaf = clipm.leaf;
+			} 
+			else 
+			{
 				leafnum = CM_PointLeafnum_r (p, 0);
-				leaf = &cm.leafs[leafnum];
+				leaf = cm_local.cm.leafs[leafnum];
 			}
 
 			contents = 0;
-			for (k=0 ; k<leaf->numLeafBrushes ; k++) {
-				brushnum = cm.leafbrushes[leaf->firstLeafBrush+k];
-				b = &cm.brushes[brushnum];
+			for (k=0 ; k<leaf.numLeafBrushes ; k++) {
+				brushnum = cm_local.cm.leafbrushes[leaf.firstLeafBrush+k];
+				var b = cm_local.cm.brushes[brushnum];
 
 				// see if the point is in the brush
-				for ( i = 0 ; i < b->numsides ; i++ ) {
-					d = DotProduct( p, b->sides[i].plane->normal );
-		// FIXME test for Cash
-		//			if ( d >= b->sides[i].plane->dist ) {
-					if ( d > b->sides[i].plane->dist ) {
+				for ( i = 0 ; i < b.numsides ; i++ ) {
+					d = q_shared.DotProduct( p, b.sides[i].plane.normal );
+					// FIXME test for Cash
+					//	if ( d >= b.sides[i].plane.dist ) {
+					if ( d > b.sides[i].plane.dist ) {
 						break;
 					}
 				}
 
-				if ( i == b->numsides ) {
-					contents |= b->contents;
+				if ( i == b.numsides ) {
+					contents |= b.contents;
 				}
 			}
 
@@ -269,30 +294,24 @@ namespace SharpQ3.Engine.qcommon
 		rotating entities
 		==================
 		*/
-		int	CM_TransformedPointContents( const vec3_t p, clipHandle_t model, const vec3_t origin, const vec3_t angles) {
-			vec3_t		p_l;
-			vec3_t		temp;
-			vec3_t		forward, right, up;
-
+		public static int CM_TransformedPointContents( vec3_t p, clipHandle_t model, vec3_t origin, vec3_t angles ) 
+		{
 			// subtract origin offset
-			VectorSubtract (p, origin, p_l);
+			q_shared.VectorSubtract (p, origin, out vec3_t p_l);
 
 			// rotate start and end into the models frame of reference
-			if ( model != BOX_MODEL_HANDLE && 
-			(angles[0] || angles[1] || angles[2]) )
+			if ( model.ID != cm_local.BOX_MODEL_HANDLE && (angles[0] != 0 || angles[1] != 0 || angles[2] != 0 ) )
 			{
-				AngleVectors (angles, forward, right, up);
+				q_math.AngleVectors (angles, out var forward, out var right, out var up);
 
-				VectorCopy (p_l, temp);
-				p_l[0] = DotProduct (temp, forward);
-				p_l[1] = -DotProduct (temp, right);
-				p_l[2] = DotProduct (temp, up);
+				q_shared.VectorCopy (p_l, out vec3_t temp );
+				p_l[0] = q_shared.DotProduct (temp, forward);
+				p_l[1] = -q_shared.DotProduct (temp, right);
+				p_l[2] = q_shared.DotProduct (temp, up);
 			}
 
 			return CM_PointContents( p_l, model );
 		}
-
-
 
 		/*
 		===============================================================================
@@ -302,15 +321,15 @@ namespace SharpQ3.Engine.qcommon
 		===============================================================================
 		*/
 
-		byte	*CM_ClusterPVS (int cluster) {
-			if (cluster < 0 || cluster >= cm.numClusters || !cm.vised ) {
-				return cm.visibility;
-			}
+		public static byte[] CM_ClusterPVS (int cluster)
+		{
+			if (cluster < 0 || cluster >= cm_local.cm.numClusters || !cm_local.cm.vised )
+				return cm_local.cm.visibility;
 
-			return cm.visibility + cluster * cm.clusterBytes;
+			var index = cluster * cm_local.cm.clusterBytes;
+			// optimus-code - TODO - IS THIS RIGHT??
+			return cm_local.cm.visibility.ToList().GetRange( index, cm_local.cm.clusterBytes ).ToArray();
 		}
-
-
 
 		/*
 		===============================================================================
@@ -320,23 +339,28 @@ namespace SharpQ3.Engine.qcommon
 		===============================================================================
 		*/
 
-		void CM_FloodArea_r( int areaNum, int floodnum) {
-			int		i;
-			cArea_t *area;
-			int		*con;
+		public static void CM_FloodArea_r( int areaNum, int floodnum) 
+		{
+			int i;
+			int[] con;
 
-			area = &cm.areas[ areaNum ];
+			var area = cm_local.cm.areas[ areaNum ];
 
-			if ( area->floodvalid == cm.floodvalid ) {
-				if (area->floodnum == floodnum)
+			if ( area.floodvalid == cm_local.cm.floodvalid )
+			{
+				if (area.floodnum == floodnum)
 					return;
-				Com_Error (ERR_DROP, "FloodArea_r: reflooded");
+				common.Com_Error (errorParm_t.ERR_DROP, "FloodArea_r: reflooded");
 			}
 
-			area->floodnum = floodnum;
-			area->floodvalid = cm.floodvalid;
-			con = cm.areaPortals + areaNum * cm.numAreas;
-			for ( i=0 ; i < cm.numAreas  ; i++ ) {
+			area.floodnum = floodnum;
+			area.floodvalid = cm_local.cm.floodvalid;
+			//con = cm_local.cm.areaPortals + areaNum * cm_local.cm.numAreas;
+			var index = areaNum * cm_local.cm.numAreas;
+			// optimus-code - TODO - IS THIS RIGHT??
+			con = cm_local.cm.areaPortals.ToList( ).GetRange( index, cm_local.cm.areaPortals.Length - index ).ToArray();
+
+			for ( i=0 ; i < cm_local.cm.numAreas  ; i++ ) {
 				if ( con[i] > 0 ) {
 					CM_FloodArea_r( i, floodnum );
 				}
@@ -349,24 +373,26 @@ namespace SharpQ3.Engine.qcommon
 
 		====================
 		*/
-		void	CM_FloodAreaConnections( void ) {
+		public static void	CM_FloodAreaConnections( ) 
+		{
 			int		i;
-			cArea_t	*area;
+			cArea_t	area;
 			int		floodnum;
 
 			// all current floods are now invalid
-			cm.floodvalid++;
+			cm_local.cm.floodvalid++;
 			floodnum = 0;
 
-			for (i = 0 ; i < cm.numAreas ; i++) {
-				area = &cm.areas[i];
-				if (area->floodvalid == cm.floodvalid) {
+			for (i = 0 ; i < cm_local.cm.numAreas ; i++)
+			{
+				area = cm_local.cm.areas[i];
+
+				if (area.floodvalid == cm_local.cm.floodvalid)
 					continue;		// already flooded into
-				}
+
 				floodnum++;
 				CM_FloodArea_r (i, floodnum);
 			}
-
 		}
 
 		/*
@@ -375,23 +401,27 @@ namespace SharpQ3.Engine.qcommon
 
 		====================
 		*/
-		void	CM_AdjustAreaPortalState( int area1, int area2, bool open ) {
+		public static void	CM_AdjustAreaPortalState( int area1, int area2, bool open ) 
+		{
 			if ( area1 < 0 || area2 < 0 ) {
 				return;
 			}
 
-			if ( area1 >= cm.numAreas || area2 >= cm.numAreas ) {
-				Com_Error (ERR_DROP, "CM_ChangeAreaPortalState: bad area number");
-			}
+			if ( area1 >= cm_local.cm.numAreas || area2 >= cm_local.cm.numAreas )
+				common.Com_Error (errorParm_t.ERR_DROP, "CM_ChangeAreaPortalState: bad area number");
 
-			if ( open ) {
-				cm.areaPortals[ area1 * cm.numAreas + area2 ]++;
-				cm.areaPortals[ area2 * cm.numAreas + area1 ]++;
-			} else {
-				cm.areaPortals[ area1 * cm.numAreas + area2 ]--;
-				cm.areaPortals[ area2 * cm.numAreas + area1 ]--;
-				if ( cm.areaPortals[ area2 * cm.numAreas + area1 ] < 0 ) {
-					Com_Error (ERR_DROP, "CM_AdjustAreaPortalState: negative reference count");
+			if ( open ) 
+			{
+				cm_local.cm.areaPortals[ area1 * cm_local.cm.numAreas + area2 ]++;
+				cm_local.cm.areaPortals[ area2 * cm_local.cm.numAreas + area1 ]++;
+			} 
+			else 
+			{
+				cm_local.cm.areaPortals[ area1 * cm_local.cm.numAreas + area2 ]--;
+				cm_local.cm.areaPortals[ area2 * cm_local.cm.numAreas + area1 ]--;
+				if ( cm_local.cm.areaPortals[ area2 * cm_local.cm.numAreas + area1 ] < 0 )
+				{
+					common.Com_Error ( errorParm_t.ERR_DROP, "CM_AdjustAreaPortalState: negative reference count");
 				}
 			}
 
@@ -404,22 +434,20 @@ namespace SharpQ3.Engine.qcommon
 
 		====================
 		*/
-		bool	CM_AreasConnected( int area1, int area2 ) {
-			if ( cm_noAreas->integer ) {
+		public static bool	CM_AreasConnected( int area1, int area2 ) 
+		{
+			if ( cm_local.cm_noAreas.integer == 1 )
 				return true;
-			}
 
-			if ( area1 < 0 || area2 < 0 ) {
+			if ( area1 < 0 || area2 < 0 )
 				return false;
-			}
 
-			if (area1 >= cm.numAreas || area2 >= cm.numAreas) {
-				Com_Error (ERR_DROP, "area >= cm.numAreas");
-			}
+			if (area1 >= cm_local.cm.numAreas || area2 >= cm_local.cm.numAreas)
+				common.Com_Error (errorParm_t.ERR_DROP, "area >= cm.numAreas");
 
-			if (cm.areas[area1].floodnum == cm.areas[area2].floodnum) {
+			if ( cm_local.cm.areas[area1].floodnum == cm_local.cm.areas[area2].floodnum)
 				return true;
-			}
+
 			return false;
 		}
 
@@ -438,25 +466,25 @@ namespace SharpQ3.Engine.qcommon
 		This is used to cull non-visible entities from snapshots
 		=================
 		*/
-		int CM_WriteAreaBits (byte *buffer, int area)
+		public static int CM_WriteAreaBits (ref byte[] buffer, int area)
 		{
 			int		i;
 			int		floodnum;
 			int		bytes;
 
-			bytes = (cm.numAreas+7)>>3;
+			bytes = ( cm_local.cm.numAreas+7)>>3;
 
-			if (cm_noAreas->integer || area == -1)
+			if ( cm_local.cm_noAreas.integer == 1 || area == -1)
 			{	// for debugging, send everything
-				Com_Memset (buffer, 255, bytes);
+				common.Com_Memset (buffer, 255, bytes);
 			}
 			else
 			{
-				floodnum = cm.areas[area].floodnum;
-				for (i=0 ; i<cm.numAreas ; i++)
+				floodnum = cm_local.cm.areas[area].floodnum;
+				for (i=0 ; i< cm_local.cm.numAreas ; i++)
 				{
-					if (cm.areas[i].floodnum == floodnum || area == -1)
-						buffer[i>>3] |= 1<<(i&7);
+					if ( cm_local.cm.areas[i].floodnum == floodnum || area == -1)
+						buffer[i>>3] |= ( byte ) ( 1<<(i&7) );
 				}
 			}
 

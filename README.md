@@ -7,8 +7,8 @@
 
 SharpQ3 is a C# port of the Kenny Edition of Quake III Arena. This is a huge undertaking and far from complete. If you have C++ and C# experience and would like to get involved let me know! PRs are welcome!
 
-### Conversion progress (Rough estimates)
-![](https://us-central1-progress-markdown.cloudfunctions.net/progress/4)
+### Conversion progress (estimated)
+![](https://us-central1-progress-markdown.cloudfunctions.net/progress/6)
 
 Initial work is starting with code in QCommon as it is obviously the code that would be most useful to port at this point.
 
@@ -93,20 +93,20 @@ Initial work is starting with code in QCommon as it is obviously the code that w
 - [ ] Engine
 	- [ ] QCommon 
 		- [ ] cm_load.cs - 1%
-		- [ ] cm_local.cs - 1%
-		- [ ] cm_patch.cs - 1%
-		- [ ] cm_polylib.cs - 29%
-		- [ ] cm_test.cs - 1%
+		- [x] cm_local.cs - 100%
+		- [x] cm_patch.cs - 100%
+		- [ ] cm_polylib.cs - 66%
+		- [ ] cm_test.cs - 99%
 		- [ ] cm_trace.cs - 31%
 		- [x] cmd.cs - 100%
-		- [ ] common.cs - 63%
+		- [ ] common.cs - 74%
 		- [x] cvar.cs - 100%
-		- [ ] files.cs - 35%
+		- [ ] files.cs - 88%
 		- [ ] huffman.cs - 1%
 		- [ ] md4.cs - 1%
 		- [ ] msg.cs - 1%
 		- [ ] net_chan.cs - 1%
-		- [ ] q_shared.cs - 89.7%
+		- [ ] q_shared.cs - 99.9%
 		- [ ] qcommon.cs - 97%
 		- [ ] qfiles.cs - 98%
 		- [ ] vm.cs - 1%

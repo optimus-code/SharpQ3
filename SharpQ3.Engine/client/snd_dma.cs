@@ -652,7 +652,7 @@ namespace SharpQ3.Engine.client
 		so sound doesn't stutter.
 		==================
 		*/
-		void S_ClearSoundBuffer( void ) {
+		public static void S_ClearSoundBuffer( ) {
 			int		clear;
 				
 			if (!s_soundStarted)

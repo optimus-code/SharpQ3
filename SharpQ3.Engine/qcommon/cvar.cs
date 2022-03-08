@@ -901,14 +901,14 @@ namespace SharpQ3.Engine.qcommon
 		*/
         static string Cvar_InfoString( int bit )
         {
-            string info = null;
+            string info = "";
             cvar_t var;
 
             for ( var = cvar_vars; var != null; var = var.next )
             {
                 if ( var.flags.HasFlag( ( CVAR ) bit ) )
                 {
-                    q_shared.Info_SetValueForKey( out info, var.name, var.@string );
+                    q_shared.Info_SetValueForKey( ref info, var.name, var.@string );
                 }
             }
 
@@ -924,14 +924,14 @@ namespace SharpQ3.Engine.qcommon
 		*/
         static string Cvar_InfoString_Big( int bit )
         {
-            string info = null;
+            string info = "";
             cvar_t var;
 
             for ( var = cvar_vars; var != null; var = var.next )
             {
                 if ( var.flags.HasFlag( ( CVAR ) bit ) )
                 {
-                    q_shared.Info_SetValueForKey_Big( out info, var.name, var.@string );
+                    q_shared.Info_SetValueForKey_Big( ref info, var.name, var.@string );
                 }
             }
 

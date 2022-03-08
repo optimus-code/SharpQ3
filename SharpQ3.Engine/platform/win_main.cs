@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine;
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.platform
 {
 	// win_main.c
@@ -572,11 +575,12 @@ namespace SharpQ3.Engine.platform
 		void Sys_BeginStreamedFile( fileHandle_t f, int readAhead ) {
 		}
 
-		void Sys_EndStreamedFile( fileHandle_t f ) {
+		public static void Sys_EndStreamedFile( fileHandle_t f ) {
 		}
 
-		int Sys_StreamedRead( void *buffer, int size, int count, fileHandle_t f ) {
-		   return FS_Read( buffer, size * count, f );
+		public static int Sys_StreamedRead( byte[] buffer, int size, int count, fileHandle_t f ) 
+		{
+		   return files.FS_Read( buffer, size * count, f );
 		}
 
 		void Sys_StreamSeek( fileHandle_t f, int offset, int origin ) {

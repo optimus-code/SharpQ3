@@ -616,9 +616,9 @@ namespace SharpQ3.Engine.renderer
 		// in memory representation
 		//
 
-		#define	SIDE_FRONT	0
-		#define	SIDE_BACK	1
-		#define	SIDE_ON		2
+		public const int SIDE_FRONT = 0;
+		public const int SIDE_BACK = 1;
+		public const int SIDE_ON = 2;
 
 		typedef struct msurface_s {
 			int					viewCount;		// if == tr.viewCount, already added

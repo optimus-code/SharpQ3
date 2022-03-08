@@ -48,7 +48,7 @@ namespace SharpQ3.Engine.qcommon
 
 
 	private static FileStream debuglogfile;
-	private static int logfile;
+	private static fileHandle_t logfile;
 	public static int com_journalFile;            // events are written here
 	public static int com_journalDataFile;        // config files are written here
 
@@ -162,7 +162,7 @@ namespace SharpQ3.Engine.qcommon
 		{
 		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
 		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
-			if ( logfile == 0 && files.FS_Initialized() && !opening_qconsole) 
+			if ( logfile.ID == 0 && files.FS_Initialized() && !opening_qconsole) 
 			{
 				opening_qconsole = true;
 
@@ -179,9 +179,9 @@ namespace SharpQ3.Engine.qcommon
 
 				opening_qconsole = false;
 			}
-			if ( logfile > 0 && files.FS_Initialized()) 
+			if ( logfile.ID > 0 && files.FS_Initialized()) 
 			{
-				files.FS_Write(msg, msg.Length, logfile);
+				files.FS_Write(Encoding.ASCII.GetBytes( msg ), msg.Length, logfile);
 			}
 		}
 	}
@@ -220,7 +220,7 @@ namespace SharpQ3.Engine.qcommon
 
 		// when we are running automated scripts, make sure we
 		// know if anything failed
-		if ( com_buildScript != null && com_buildScript.integer ) 
+		if ( com_buildScript != null && com_buildScript.integer == 1) 
 		{
 			code = errorParm_t.ERR_FATAL;
 		}
@@ -741,286 +741,287 @@ namespace SharpQ3.Engine.qcommon
 		return Z_AvailableZoneMemory( mainzone );
 	}
 
-	/*
-	========================
-	Z_Free
-	========================
-	*/
-	private static void Z_Free( void *ptr ) {
-		memblock_t	*block, *other;
-		memzone_t *zone;
+	///*
+	/// We we leave it to GC and Dispose for C#
+	//========================
+	//Z_Free
+	//========================
+	//*/
+	//private static void Z_Free( void *ptr ) {
+	//	memblock_t	*block, *other;
+	//	memzone_t *zone;
 	
-		if (!ptr) {
-			Com_Error( errorParm_t.ERR_DROP, "Z_Free: NULL pointer" );
-		}
+	//	if (!ptr) {
+	//		Com_Error( errorParm_t.ERR_DROP, "Z_Free: NULL pointer" );
+	//	}
 
-		block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
-		if (block.id != ZONEID) {
-			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a pointer without ZONEID" );
-		}
-		if (block.tag == 0) {
-			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a freed pointer" );
-		}
-		// if static memory
-		if (block.tag == TAG_STATIC) {
-			return;
-		}
+	//	block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
+	//	if (block.id != ZONEID) {
+	//		Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a pointer without ZONEID" );
+	//	}
+	//	if (block.tag == 0) {
+	//		Com_Error( errorParm_t.ERR_FATAL, "Z_Free: freed a freed pointer" );
+	//	}
+	//	// if static memory
+	//	if (block.tag == TAG_STATIC) {
+	//		return;
+	//	}
 
-		// check the memory trash tester
-		if ( *(int *)((byte *)block + block.size - 4 ) != ZONEID ) {
-			Com_Error( errorParm_t.ERR_FATAL, "Z_Free: memory block wrote past end" );
-		}
+	//	// check the memory trash tester
+	//	if ( *(int *)((byte *)block + block.size - 4 ) != ZONEID ) {
+	//		Com_Error( errorParm_t.ERR_FATAL, "Z_Free: memory block wrote past end" );
+	//	}
 
-		if (block.tag == TAG_SMALL) {
-			zone = smallzone;
-		}
-		else {
-			zone = mainzone;
-		}
+	//	if (block.tag == TAG_SMALL) {
+	//		zone = smallzone;
+	//	}
+	//	else {
+	//		zone = mainzone;
+	//	}
 
-		zone.used -= block.size;
-		// set the block to something that should cause problems
-		// if it is referenced...
-		Com_Memset( ptr, 0xaa, block.size - sizeof( *block ) );
+	//	zone.used -= block.size;
+	//	// set the block to something that should cause problems
+	//	// if it is referenced...
+	//	Com_Memset( ptr, 0xaa, block.size - sizeof( *block ) );
 
-		block.tag = 0;		// mark as free
+	//	block.tag = 0;		// mark as free
 	
-		other = block.prev;
-		if (!other.tag) {
-			// merge with previous free block
-			other.size += block.size;
-			other.next = block.next;
-			other.next.prev = other;
-			if (block == zone.rover) {
-				zone.rover = other;
-			}
-			block = other;
-		}
+	//	other = block.prev;
+	//	if (!other.tag) {
+	//		// merge with previous free block
+	//		other.size += block.size;
+	//		other.next = block.next;
+	//		other.next.prev = other;
+	//		if (block == zone.rover) {
+	//			zone.rover = other;
+	//		}
+	//		block = other;
+	//	}
 
-		zone.rover = block;
+	//	zone.rover = block;
 
-		other = block.next;
-		if ( !other.tag ) {
-			// merge the next free block onto the end
-			block.size += other.size;
-			block.next = other.next;
-			block.next.prev = block;
-			if (other == zone.rover) {
-				zone.rover = block;
-			}
-		}
-	}
-
-
-	/*
-	================
-	Z_FreeTags
-	================
-	*/
-	private static void Z_FreeTags( int tag ) {
-		int			count;
-		memzone_t	*zone;
-
-		if ( tag == TAG_SMALL ) {
-			zone = smallzone;
-		}
-		else {
-			zone = mainzone;
-		}
-		count = 0;
-		// use the rover as our pointer, because
-		// Z_Free automatically adjusts it
-		zone.rover = zone.blocklist.next;
-		do {
-			if ( zone.rover.tag == tag ) {
-				count++;
-				Z_Free( (void *)(zone.rover + 1) );
-				continue;
-			}
-			zone.rover = zone.rover.next;
-		} while ( zone.rover != &zone.blocklist );
-	}
+	//	other = block.next;
+	//	if ( !other.tag ) {
+	//		// merge the next free block onto the end
+	//		block.size += other.size;
+	//		block.next = other.next;
+	//		block.next.prev = block;
+	//		if (other == zone.rover) {
+	//			zone.rover = block;
+	//		}
+	//	}
+	//}
 
 
-	/*
-	================
-	Z_TagMalloc
-	================
-	*/
-	private static void *Z_TagMalloc( int size, int tag ) {
-		int		extra, allocSize;
-		memblock_t	*start, *rover, *newBlock, *base;
-		memzone_t *zone;
+	///*
+	//================
+	//Z_FreeTags
+	//================
+	//*/
+	//private static void Z_FreeTags( int tag ) {
+	//	int			count;
+	//	memzone_t	*zone;
 
-		if (!tag) {
-			Com_Error( errorParm_t.ERR_FATAL, "Z_TagMalloc: tried to use a 0 tag" );
-		}
+	//	if ( tag == TAG_SMALL ) {
+	//		zone = smallzone;
+	//	}
+	//	else {
+	//		zone = mainzone;
+	//	}
+	//	count = 0;
+	//	// use the rover as our pointer, because
+	//	// Z_Free automatically adjusts it
+	//	zone.rover = zone.blocklist.next;
+	//	do {
+	//		if ( zone.rover.tag == tag ) {
+	//			count++;
+	//			Z_Free( (void *)(zone.rover + 1) );
+	//			continue;
+	//		}
+	//		zone.rover = zone.rover.next;
+	//	} while ( zone.rover != &zone.blocklist );
+	//}
 
-		if ( tag == TAG_SMALL ) {
-			zone = smallzone;
-		}
-		else {
-			zone = mainzone;
-		}
 
-		allocSize = size;
-		//
-		// scan through the block list looking for the first free block
-		// of sufficient size
-		//
-		size += sizeof(memblock_t);	// account for size of block header
-		size += 4;					// space for memory trash tester
-		size = (size + 3) & ~3;		// align to 32 bit boundary
+	///*
+	//================
+	//Z_TagMalloc
+	//================
+	//*/
+	//private static void *Z_TagMalloc( int size, int tag ) {
+	//	int		extra, allocSize;
+	//	memblock_t	*start, *rover, *newBlock, *base;
+	//	memzone_t *zone;
+
+	//	if (!tag) {
+	//		Com_Error( errorParm_t.ERR_FATAL, "Z_TagMalloc: tried to use a 0 tag" );
+	//	}
+
+	//	if ( tag == TAG_SMALL ) {
+	//		zone = smallzone;
+	//	}
+	//	else {
+	//		zone = mainzone;
+	//	}
+
+	//	allocSize = size;
+	//	//
+	//	// scan through the block list looking for the first free block
+	//	// of sufficient size
+	//	//
+	//	size += sizeof(memblock_t);	// account for size of block header
+	//	size += 4;					// space for memory trash tester
+	//	size = (size + 3) & ~3;		// align to 32 bit boundary
 	
-		base = rover = zone.rover;
-		start = base.prev;
+	//	base = rover = zone.rover;
+	//	start = base.prev;
 	
-		do {
-			if (rover == start)	{
-				// scaned all the way around the list
-				Com_Error( errorParm_t.ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
-									size, zone == smallzone ? "small" : "main");
-				return NULL;
-			}
-			if (rover.tag) {
-				base = rover = rover.next;
-			} else {
-				rover = rover.next;
-			}
-		} while (base.tag || base.size < size);
+	//	do {
+	//		if (rover == start)	{
+	//			// scaned all the way around the list
+	//			Com_Error( errorParm_t.ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
+	//								size, zone == smallzone ? "small" : "main");
+	//			return NULL;
+	//		}
+	//		if (rover.tag) {
+	//			base = rover = rover.next;
+	//		} else {
+	//			rover = rover.next;
+	//		}
+	//	} while (base.tag || base.size < size);
 	
-		//
-		// found a block big enough
-		//
-		extra = base.size - size;
-		if (extra > MINFRAGMENT) {
-			// there will be a free fragment after the allocated block
-			newBlock = (memblock_t *)((byte *)base + size);
-			newBlock.size = extra;
-			newBlock.tag = 0;			// free block
-			newBlock.prev = base;
-			newBlock.id = ZONEID;
-			newBlock.next = base.next;
-			newBlock.next.prev = newBlock;
-			base.next = newBlock;
-			base.size = size;
-		}
+	//	//
+	//	// found a block big enough
+	//	//
+	//	extra = base.size - size;
+	//	if (extra > MINFRAGMENT) {
+	//		// there will be a free fragment after the allocated block
+	//		newBlock = (memblock_t *)((byte *)base + size);
+	//		newBlock.size = extra;
+	//		newBlock.tag = 0;			// free block
+	//		newBlock.prev = base;
+	//		newBlock.id = ZONEID;
+	//		newBlock.next = base.next;
+	//		newBlock.next.prev = newBlock;
+	//		base.next = newBlock;
+	//		base.size = size;
+	//	}
 	
-		base.tag = tag;			// no longer a free block
+	//	base.tag = tag;			// no longer a free block
 	
-		zone.rover = base.next;	// next allocation will start looking here
-		zone.used += base.size;	//
+	//	zone.rover = base.next;	// next allocation will start looking here
+	//	zone.used += base.size;	//
 	
-		base.id = ZONEID;
+	//	base.id = ZONEID;
 
-		// marker for memory trash testing
-		*(int *)((byte *)base + base.size - 4) = ZONEID;
+	//	// marker for memory trash testing
+	//	*(int *)((byte *)base + base.size - 4) = ZONEID;
 
-		return (void *) ((byte *)base + sizeof(memblock_t));
-	}
+	//	return (void *) ((byte *)base + sizeof(memblock_t));
+	//}
 
-	/*
-	========================
-	Z_Malloc
-	========================
-	*/
-	private static void *Z_Malloc( int size ) {
-		void	*buf;
+	///*
+	//========================
+	//Z_Malloc
+	//========================
+	//*/
+	//private static void *Z_Malloc( int size ) {
+	//	void	*buf;
 	
-	  //Z_CheckHeap ();	// DEBUG
+	//  //Z_CheckHeap ();	// DEBUG
 
-		buf = Z_TagMalloc( size, TAG_GENERAL );
-		Com_Memset( buf, 0, size );
+	//	buf = Z_TagMalloc( size, TAG_GENERAL );
+	//	Com_Memset( buf, 0, size );
 
-		return buf;
-	}
+	//	return buf;
+	//}
 
-	private static void *S_Malloc( int size ) {
-		return Z_TagMalloc( size, TAG_SMALL );
-	}
+	//private static void *S_Malloc( int size ) {
+	//	return Z_TagMalloc( size, TAG_SMALL );
+	//}
 
-	/*
-	========================
-	Z_CheckHeap
-	========================
-	*/
-	private static void Z_CheckHeap( void ) {
-		memblock_t	*block;
+	///*
+	//========================
+	//Z_CheckHeap
+	//========================
+	//*/
+	//private static void Z_CheckHeap( void ) {
+	//	memblock_t	*block;
 	
-		for (block = mainzone.blocklist.next ; ; block = block.next) {
-			if (block.next == &mainzone.blocklist) {
-				break;			// all blocks have been hit
-			}
-			if ( (byte *)block + block.size != (byte *)block.next)
-				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: block size does not touch the next block\n" );
-			if ( block.next.prev != block) {
-				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: next block doesn't have proper back link\n" );
-			}
-			if ( !block.tag && !block.next.tag ) {
-				Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: two consecutive free blocks\n" );
-			}
-		}
-	}
+	//	for (block = mainzone.blocklist.next ; ; block = block.next) {
+	//		if (block.next == &mainzone.blocklist) {
+	//			break;			// all blocks have been hit
+	//		}
+	//		if ( (byte *)block + block.size != (byte *)block.next)
+	//			Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: block size does not touch the next block\n" );
+	//		if ( block.next.prev != block) {
+	//			Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: next block doesn't have proper back link\n" );
+	//		}
+	//		if ( !block.tag && !block.next.tag ) {
+	//			Com_Error( errorParm_t.ERR_FATAL, "Z_CheckHeap: two consecutive free blocks\n" );
+	//		}
+	//	}
+	//}
 
-	/*
-	========================
-	Z_LogZoneHeap
-	========================
-	*/
-	private static void Z_LogZoneHeap( memzone_t *zone, char *name ) {
-		memblock_t	*block;
-		char		buf[4096];
-		int size, allocSize, numBlocks;
+	///*
+	//========================
+	//Z_LogZoneHeap
+	//========================
+	//*/
+	//private static void Z_LogZoneHeap( memzone_t *zone, char *name ) {
+	//	memblock_t	*block;
+	//	char		buf[4096];
+	//	int size, allocSize, numBlocks;
 
-		if (!logfile || !files.FS_Initialized())
-			return;
-		size = allocSize = numBlocks = 0;
-		Com_sprintf(buf, sizeof(buf), "\r\n================\r\n%s log\r\n================\r\n", name);
-		files.FS_Write(buf, (int)strlen(buf), logfile);
-		for (block = zone.blocklist.next ; block.next != &zone.blocklist; block = block.next) {
-			if (block.tag) {
-				size += block.size;
-				numBlocks++;
-			}
-		}
-		allocSize = numBlocks * sizeof(memblock_t); // + 32 bit alignment
-		Com_sprintf(buf, sizeof(buf), "%d %s memory in %d blocks\r\n", size, name, numBlocks);
-		files.FS_Write(buf, (int)strlen(buf), logfile);
-		Com_sprintf(buf, sizeof(buf), "%d %s memory overhead\r\n", size - allocSize, name);
-		files.FS_Write(buf, (int)strlen(buf), logfile);
-	}
+	//	if (!logfile || !files.FS_Initialized())
+	//		return;
+	//	size = allocSize = numBlocks = 0;
+	//	Com_sprintf(buf, sizeof(buf), "\r\n================\r\n%s log\r\n================\r\n", name);
+	//	files.FS_Write(buf, (int)strlen(buf), logfile);
+	//	for (block = zone.blocklist.next ; block.next != &zone.blocklist; block = block.next) {
+	//		if (block.tag) {
+	//			size += block.size;
+	//			numBlocks++;
+	//		}
+	//	}
+	//	allocSize = numBlocks * sizeof(memblock_t); // + 32 bit alignment
+	//	Com_sprintf(buf, sizeof(buf), "%d %s memory in %d blocks\r\n", size, name, numBlocks);
+	//	files.FS_Write(buf, (int)strlen(buf), logfile);
+	//	Com_sprintf(buf, sizeof(buf), "%d %s memory overhead\r\n", size - allocSize, name);
+	//	files.FS_Write(buf, (int)strlen(buf), logfile);
+	//}
 
-	/*
-	========================
-	Z_LogHeap
-	========================
-	*/
-	private static void Z_LogHeap( void ) {
-		Z_LogZoneHeap( mainzone, "MAIN" );
-		Z_LogZoneHeap( smallzone, "SMALL" );
-	}
+	///*
+	//========================
+	//Z_LogHeap
+	//========================
+	//*/
+	//private static void Z_LogHeap( void ) {
+	//	Z_LogZoneHeap( mainzone, "MAIN" );
+	//	Z_LogZoneHeap( smallzone, "SMALL" );
+	//}
 
-	// static mem blocks to reduce a lot of small zone overhead
-	typedef struct memstatic_s {
-		memblock_t b;
-		byte mem[2];
-	} memstatic_t;
+	//// static mem blocks to reduce a lot of small zone overhead
+	//typedef struct memstatic_s {
+	//	memblock_t b;
+	//	byte mem[2];
+	//} memstatic_t;
 
-	// bk001204 - initializer brackets
-	memstatic_t emptystring =
-		{ {(sizeof(memblock_t)+2 + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'\0', '\0'} };
-	memstatic_t numberstring[] = {
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'0', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'1', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'2', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'3', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'4', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'5', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'6', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'7', '\0'} },
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'8', '\0'} }, 
-		{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'9', '\0'} }
-	};
+	//// bk001204 - initializer brackets
+	//memstatic_t emptystring =
+	//	{ {(sizeof(memblock_t)+2 + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'\0', '\0'} };
+	//memstatic_t numberstring[] = {
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'0', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'1', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'2', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'3', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'4', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'5', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'6', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'7', '\0'} },
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'8', '\0'} }, 
+	//	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'9', '\0'} }
+	//};
 
 	/*
 	========================
@@ -1030,7 +1031,8 @@ namespace SharpQ3.Engine.qcommon
 			memory from a memstatic_t might be returned
 	========================
 	*/
-	private static string CopyString( string input ) {
+	public static string CopyString( string input ) 
+	{
 		return new string( input );
 	}
 
@@ -2147,7 +2149,7 @@ namespace SharpQ3.Engine.qcommon
 		Com_StartupVariable( null );
 
 	  // get dedicated here for proper hunk megs initialization
-	#ifdef DEDICATED
+	#if DEDICATED
 		com_dedicated = Cvar.Cvar_Get ("dedicated", "1", CVAR.ROM);
 	#else
 		com_dedicated = Cvar.Cvar_Get ("dedicated", "0", CVAR.LATCH);

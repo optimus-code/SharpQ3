@@ -24,15 +24,158 @@ using System.Runtime.InteropServices;
 
 namespace SharpQ3.Engine.qcommon
 {
+	public struct lump_t
+	{
+		int fileofs, filelen;
+	}
+
+	public struct dheader_t
+	{
+		int ident;
+		int version;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = qfiles.HEADER_LUMPS )]
+		lump_t[] lumps;
+	}
+
+	public struct dmodel_t
+	{
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		float[] mins;
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		float[] maxs;
+		int firstSurface, numSurfaces;
+		int firstBrush, numBrushes;
+	}
+
+	public struct dshader_t
+	{
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_QPATH )]
+		char[] shader;
+		int surfaceFlags;
+		int contentFlags;
+	}
+
+	// planes x^1 is allways the opposite of plane x
+
+	public struct dplane_t
+	{
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		float[] normal;
+		float dist;
+	}
+
+	public struct dnode_t
+	{
+		int planeNum;
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+		int[] children;   // negative numbers are -(leafs+1), not nodes
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		int[] mins;       // for frustom culling
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		int[] maxs;
+	}
+
+	public struct dleaf_t
+	{
+		int cluster;            // -1 = opaque cluster (do I still store these?)
+		int area;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		int[] mins;            // for frustum culling
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		int[] maxs;
+
+		int firstLeafSurface;
+		int numLeafSurfaces;
+
+		int firstLeafBrush;
+		int numLeafBrushes;
+	}
+
+	public struct dbrushside_t
+	{
+		int planeNum;           // positive plane side faces out of the leaf
+		int shaderNum;
+	}
+
+	public struct dbrush_t
+	{
+		int firstSide;
+		int numSides;
+		int shaderNum;      // the shader that determines the contents flags
+	}
+
+	public struct dfog_t
+	{
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_QPATH )]
+		char[] shader;
+		int brushNum;
+		int visibleSide;    // the brush side that ray tests need to clip against (-1 == none)
+	}
+
+	public struct drawVert_t
+	{
+		vec3_t xyz;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+		float[] st;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+		float[] lightmap;
+
+		vec3_t normal;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 4 )]
+		byte[] color;
+	}
+
+	public enum mapSurfaceType_t
+	{
+		MST_BAD,
+		MST_PLANAR,
+		MST_PATCH,
+		MST_TRIANGLE_SOUP,
+		MST_FLARE
+	}
+
+	public struct dsurface_t
+	{
+		int shaderNum;
+		int fogNum;
+		int surfaceType;
+
+		int firstVert;
+		int numVerts;
+
+		int firstIndex;
+		int numIndexes;
+
+		int lightmapNum;
+		int lightmapX, lightmapY;
+		int lightmapWidth, lightmapHeight;
+
+		vec3_t lightmapOrigin;
+
+		[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
+		vec3_t[] lightmapVecs;  // for patches, [0] and [1] are lodbounds
+
+		int patchWidth;
+		int patchHeight;
+	}
+
 	// qfiles.h: quake file formats
 	public static class qfiles
 	{
 		// surface geometry should not exceed these limits
-		const int SHADER_MAX_VERTEXES = 1000;
-		const int SHADER_MAX_INDEXES = 6 * SHADER_MAX_VERTEXES;
+		public const int SHADER_MAX_VERTEXES = 1000;
+		public const int SHADER_MAX_INDEXES = 6 * SHADER_MAX_VERTEXES;
 
 		// the maximum size of game relative pathnames
-		const int MAX_QPATH = 64;
+		public const int MAX_QPATH = 64;
 
 		/*
 		========================================================================
@@ -42,7 +185,7 @@ namespace SharpQ3.Engine.qcommon
 		========================================================================
 		*/
 
-		const int VM_MAGIC = 0x12721444;
+		public const int VM_MAGIC = 0x12721444;
 
 		private struct vmHeader_t 
 		{
@@ -359,208 +502,65 @@ namespace SharpQ3.Engine.qcommon
 
 		// there shouldn't be any problem with increasing these values at the
 		// expense of more memory allocation in the utilities
-		const int MAX_MAP_MODELS = 0x400;
-		const int MAX_MAP_BRUSHES = 0x8000;
-		const int MAX_MAP_ENTITIES = 0x800;
-		const int MAX_MAP_ENTSTRING = 0x40000;
-		const int MAX_MAP_SHADERS = 0x400;
+		public const int MAX_MAP_MODELS = 0x400;
+		public const int MAX_MAP_BRUSHES = 0x8000;
+		public const int MAX_MAP_ENTITIES = 0x800;
+		public const int MAX_MAP_ENTSTRING = 0x40000;
+		public const int MAX_MAP_SHADERS = 0x400;
 
-		const int MAX_MAP_AREAS = 0x100;	// MAX_MAP_AREA_BYTES in q_shared must match!
-		const int MAX_MAP_FOGS = 0x100;
-		const int MAX_MAP_PLANES = 0x20000;
-		const int MAX_MAP_NODES = 0x20000;
-		const int MAX_MAP_BRUSHSIDES = 0x20000;
-		const int MAX_MAP_LEAFS = 0x20000;
-		const int MAX_MAP_LEAFFACES = 0x20000;
-		const int MAX_MAP_LEAFBRUSHES = 0x40000;
-		const int MAX_MAP_PORTALS = 0x20000;
-		const int MAX_MAP_LIGHTING = 0x800000;
-		const int MAX_MAP_LIGHTGRID = 0x800000;
-		const int MAX_MAP_VISIBILITY = 0x200000;
+		public const int MAX_MAP_AREAS = 0x100; // MAX_MAP_AREA_BYTES in q_shared must match!
+		public const int MAX_MAP_FOGS = 0x100;
+		public const int MAX_MAP_PLANES = 0x20000;
+		public const int MAX_MAP_NODES = 0x20000;
+		public const int MAX_MAP_BRUSHSIDES = 0x20000;
+		public const int MAX_MAP_LEAFS = 0x20000;
+		public const int MAX_MAP_LEAFFACES = 0x20000;
+		public const int MAX_MAP_LEAFBRUSHES = 0x40000;
+		public const int MAX_MAP_PORTALS = 0x20000;
+		public const int MAX_MAP_LIGHTING = 0x800000;
+		public const int MAX_MAP_LIGHTGRID = 0x800000;
+		public const int MAX_MAP_VISIBILITY = 0x200000;
 
-		const int MAX_MAP_DRAW_SURFS = 0x20000;
-		const int MAX_MAP_DRAW_VERTS = 0x80000;
-		const int MAX_MAP_DRAW_INDEXES = 0x80000;
+		public const int MAX_MAP_DRAW_SURFS = 0x20000;
+		public const int MAX_MAP_DRAW_VERTS = 0x80000;
+		public const int MAX_MAP_DRAW_INDEXES = 0x80000;
 
 
 		// key / value pair sizes in the entities lump
-		const int MAX_KEY = 32;
-		const int MAX_VALUE = 1024;
+		public const int MAX_KEY = 32;
+		public const int MAX_VALUE = 1024;
 
 		// the editor uses these predefined yaw angles to orient entities up or down
-		const int ANGLE_UP = -1;
-		const int ANGLE_DOWN = -2;
+		public const int ANGLE_UP = -1;
+		public const int ANGLE_DOWN = -2;
 
-		const int LIGHTMAP_WIDTH = 128;
-		const int LIGHTMAP_HEIGHT = 128;
+		public const int LIGHTMAP_WIDTH = 128;
+		public const int LIGHTMAP_HEIGHT = 128;
 
-		const int MAX_WORLD_COORD = 128*1024;
-		const int MIN_WORLD_COORD = -128*1024;
-		const int WORLD_SIZE = qfiles.MAX_WORLD_COORD - qfiles.MIN_WORLD_COORD;
+		public const int MAX_WORLD_COORD = 128*1024;
+		public const int MIN_WORLD_COORD = -128*1024;
+		public const int WORLD_SIZE = qfiles.MAX_WORLD_COORD - qfiles.MIN_WORLD_COORD;
 
 		//=============================================================================
 
 
-		private struct lump_t 
-		{
-			int		fileofs, filelen;
-		}
-
-		const int LUMP_ENTITIES = 0;
-		const int LUMP_SHADERS = 1;
-		const int LUMP_PLANES = 2;
-		const int LUMP_NODES = 3;
-		const int LUMP_LEAFS = 4;
-		const int LUMP_LEAFSURFACES = 5;
-		const int LUMP_LEAFBRUSHES = 6;
-		const int LUMP_MODELS = 7;
-		const int LUMP_BRUSHES = 8;
-		const int LUMP_BRUSHSIDES = 9;
-		const int LUMP_DRAWVERTS = 10;
-		const int LUMP_DRAWINDEXES = 11;
-		const int LUMP_FOGS = 12;
-		const int LUMP_SURFACES = 13;
-		const int LUMP_LIGHTMAPS = 14;
-		const int LUMP_LIGHTGRID = 15;
-		const int LUMP_VISIBILITY = 16;
-		const int HEADER_LUMPS = 17;
-
-		private struct dheader_t 
-		{
-			int			ident;
-			int			version;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = HEADER_LUMPS )]
-			lump_t[]	lumps;
-		}
-
-		private struct dmodel_t
-		{
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			float[]		mins;
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			float[]		maxs;
-			int			firstSurface, numSurfaces;
-			int			firstBrush, numBrushes;
-		}
-
-		private struct dshader_t
-		{
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
-			char[]		shader;
-			int			surfaceFlags;
-			int			contentFlags;
-		}
-
-		// planes x^1 is allways the opposite of plane x
-
-		private struct dplane_t
-		{
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			float[]		normal;
-			float		dist;
-		}
-
-		private struct dnode_t 
-		{
-			int			planeNum;
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
-			int[]		children;   // negative numbers are -(leafs+1), not nodes
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			int[]		mins;       // for frustom culling
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			int[]		maxs;
-		}
-
-		private struct dleaf_t 
-		{
-			int			cluster;			// -1 = opaque cluster (do I still store these?)
-			int			area;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			int[]		mins;            // for frustum culling
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			int[]		maxs;
-
-			int			firstLeafSurface;
-			int			numLeafSurfaces;
-
-			int			firstLeafBrush;
-			int			numLeafBrushes;
-		}
-
-		private struct dbrushside_t 
-		{
-			int			planeNum;			// positive plane side faces out of the leaf
-			int			shaderNum;
-		}
-
-		private struct dbrush_t 
-		{
-			int			firstSide;
-			int			numSides;
-			int			shaderNum;		// the shader that determines the contents flags
-		}
-
-		private struct dfog_t
-		{
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = MAX_QPATH )]
-			char[]		shader;
-			int			brushNum;
-			int			visibleSide;	// the brush side that ray tests need to clip against (-1 == none)
-		}
-
-		private struct drawVert_t 
-		{
-			vec3_t		xyz;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
-			float[]		st;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
-			float[]		lightmap;
-
-			vec3_t		normal;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 4 )]
-			byte[]		color;
-		}
-
-		private enum mapSurfaceType_t 
-		{
-			MST_BAD,
-			MST_PLANAR,
-			MST_PATCH,
-			MST_TRIANGLE_SOUP,
-			MST_FLARE
-		}
-
-		private struct dsurface_t 
-		{
-			int			shaderNum;
-			int			fogNum;
-			int			surfaceType;
-
-			int			firstVert;
-			int			numVerts;
-
-			int			firstIndex;
-			int			numIndexes;
-
-			int			lightmapNum;
-			int			lightmapX, lightmapY;
-			int			lightmapWidth, lightmapHeight;
-
-			vec3_t		lightmapOrigin;
-
-			[MarshalAs( UnmanagedType.ByValArray, SizeConst = 3 )]
-			vec3_t[]		lightmapVecs;	// for patches, [0] and [1] are lodbounds
-
-			int			patchWidth;
-			int			patchHeight;
-		}
+		public const int LUMP_ENTITIES = 0;
+		public const int LUMP_SHADERS = 1;
+		public const int LUMP_PLANES = 2;
+		public const int LUMP_NODES = 3;
+		public const int LUMP_LEAFS = 4;
+		public const int LUMP_LEAFSURFACES = 5;
+		public const int LUMP_LEAFBRUSHES = 6;
+		public const int LUMP_MODELS = 7;
+		public const int LUMP_BRUSHES = 8;
+		public const int LUMP_BRUSHSIDES = 9;
+		public const int LUMP_DRAWVERTS = 10;
+		public const int LUMP_DRAWINDEXES = 11;
+		public const int LUMP_FOGS = 12;
+		public const int LUMP_SURFACES = 13;
+		public const int LUMP_LIGHTMAPS = 14;
+		public const int LUMP_LIGHTGRID = 15;
+		public const int LUMP_VISIBILITY = 16;
+		public const int HEADER_LUMPS = 17;
 	}
 }

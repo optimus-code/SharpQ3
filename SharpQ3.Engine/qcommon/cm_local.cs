@@ -20,177 +20,182 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using System;
+using System.Runtime.InteropServices;
+
 namespace SharpQ3.Engine.qcommon
 {
-	public static class cm_local
-	{
-		#define	MAX_SUBMODELS			256
-		#define	BOX_MODEL_HANDLE		255
-		#define CAPSULE_MODEL_HANDLE	254
+    public struct leafList_t
+    {
+        public int count;
+        public int maxcount;
+        public bool overflowed;
+        public int[] list;
 
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+        public vec3_t[] bounds;
 
-		typedef struct {
-			cplane_t	*plane;
-			int			children[2];		// negative numbers are leafs
-		} cNode_t;
+        public int lastLeaf;       // for overflows where each leaf can't be stored individually
+        public Action<leafList_t, int> storeLeafs;// void (* storeLeafs) ( struct leafList_s *ll, int nodenum );
+    }
 
-		typedef struct {
-			int			cluster;
-			int			area;
+    public struct cNode_t
+    {
+        public cplane_t plane;
 
-			int			firstLeafBrush;
-			int			numLeafBrushes;
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+        public int[] children;      // negative numbers are leafs
+    }
 
-			int			firstLeafSurface;
-			int			numLeafSurfaces;
-		} cLeaf_t;
+    public struct cLeaf_t
+    {
+        public int cluster;
+        public int area;
 
-		typedef struct cmodel_s {
-			vec3_t		mins, maxs;
-			cLeaf_t		leaf;			// submodels don't reference the main tree
-		} cmodel_t;
+        public int firstLeafBrush;
+        public int numLeafBrushes;
 
-		typedef struct {
-			cplane_t	*plane;
-			int			surfaceFlags;
-			int			shaderNum;
-		} cbrushside_t;
+        public int firstLeafSurface;
+        public int numLeafSurfaces;
+    }
 
-		typedef struct {
-			int			shaderNum;		// the shader that determined the contents
-			int			contents;
-			vec3_t		bounds[2];
-			int			numsides;
-			cbrushside_t	*sides;
-			int			checkcount;		// to avoid repeated testings
-		} cbrush_t;
+    public struct cmodel_t
+    {
+        public vec3_t mins, maxs;
+        public cLeaf_t leaf;            // submodels don't reference the main tree
+    }
 
+    public struct cbrushside_t
+    {
+        public cplane_t plane;
+        public int surfaceFlags;
+        public int shaderNum;
+    }
 
-		typedef struct {
-			int			checkcount;				// to avoid repeated testings
-			int			surfaceFlags;
-			int			contents;
-			struct patchCollide_s	*pc;
-		} cPatch_t;
+    public struct cbrush_t
+    {
+        public int shaderNum;       // the shader that determined the contents
+        public int contents;
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2)]
+        public vec3_t[] bounds;
+        public int numsides;
+        public cbrushside_t[] sides;
+        public int checkcount;      // to avoid repeated testings
+    }
 
+    public struct cPatch_t
+    {
+        public int checkcount;              // to avoid repeated testings
+        public int surfaceFlags;
+        public int contents;
+        public patchCollide_t pc;
+    }
 
-		typedef struct {
-			int			floodnum;
-			int			floodvalid;
-		} cArea_t;
+    public struct cArea_t
+    {
+        public int floodnum;
+        public int floodvalid;
+    }
 
-		typedef struct {
-			char		name[MAX_QPATH];
+    public struct clipMap_t
+    {
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = q_shared.MAX_QPATH )]
+        public byte[] name;
 
-			int			numShaders;
-			dshader_t	*shaders;
+        public int numShaders;
+        public dshader_t[] shaders;
 
-			int			numBrushSides;
-			cbrushside_t *brushsides;
+        public int numBrushSides;
+        public cbrushside_t[] brushsides;
 
-			int			numPlanes;
-			cplane_t	*planes;
+        public int numPlanes;
+        public cplane_t[] planes;
 
-			int			numNodes;
-			cNode_t		*nodes;
+        public int numNodes;
+        public cNode_t[] nodes;
 
-			int			numLeafs;
-			cLeaf_t		*leafs;
+        public int numLeafs;
+        public cLeaf_t[] leafs;
 
-			int			numLeafBrushes;
-			int			*leafbrushes;
+        public int numLeafBrushes;
+        public int[] leafbrushes;
 
-			int			numLeafSurfaces;
-			int			*leafsurfaces;
+        public int numLeafSurfaces;
+        public int[] leafsurfaces;
 
-			int			numSubModels;
-			cmodel_t	*cmodels;
+        public int numSubModels;
+        public cmodel_t[] cmodels;
 
-			int			numBrushes;
-			cbrush_t	*brushes;
+        public int numBrushes;
+        public cbrush_t[] brushes;
 
-			int			numClusters;
-			int			clusterBytes;
-			byte		*visibility;
-			bool	vised;			// if false, visibility is just a single cluster of ffs
+        public int numClusters;
+        public int clusterBytes;
+        public byte[] visibility;
+        public bool vised;          // if false, visibility is just a single cluster of ffs
 
-			int			numEntityChars;
-			char		*entityString;
+        public int numEntityChars;
+        public byte[] entityString;
 
-			int			numAreas;
-			cArea_t		*areas;
-			int			*areaPortals;	// [ numAreas*numAreas ] reference counts
+        public int numAreas;
+        public cArea_t[] areas;
+        public int[] areaPortals;   // [ numAreas*numAreas ] reference counts
 
-			int			numSurfaces;
-			cPatch_t	**surfaces;			// non-patches will be NULL
+        public int numSurfaces;
+        public cPatch_t[][] surfaces;           // non-patches will be NULL
 
-			int			floodvalid;
-			int			checkcount;					// incremented on each trace
-		} clipMap_t;
+        public int floodvalid;
+        public int checkcount;                  // incremented on each trace
+    }
 
+    // Used for oriented capsule collision detection
+    public struct sphere_t
+    {
+        public bool use;
+        public float radius;
+        public float halfheight;
+        public vec3_t offset;
+    }
 
-		// keep 1/8 unit away to keep the position valid before network snapping
-		// and to avoid various numeric issues
-		#define	SURFACE_CLIP_EPSILON	(0.125)
+    public struct traceWork_t
+    {
+        public vec3_t start;
+        public vec3_t end;
 
-		extern	clipMap_t	cm;
-		extern	int			c_pointcontents;
-		extern	int			c_traces, c_brush_traces, c_patch_traces;
-		extern	cvar_t		*cm_noAreas;
-		extern	cvar_t		*cm_noCurves;
-		extern	cvar_t		*cm_playerCurveClip;
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+        public vec3_t[] size;  // size of the box being swept through the model
 
-		// cm_test.c
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+        public vec3_t[] offsets;   // [signbits][x] = either size[0][x] or size[1][x]
 
-		// Used for oriented capsule collision detection
-		typedef struct
-		{
-			bool	use;
-			float		radius;
-			float		halfheight;
-			vec3_t		offset;
-		} sphere_t;
+        public float maxOffset; // longest corner length from origin
+        public vec3_t extents;  // greatest of abs(size[0]) and abs(size[1])
 
-		typedef struct {
-			vec3_t		start;
-			vec3_t		end;
-			vec3_t		size[2];	// size of the box being swept through the model
-			vec3_t		offsets[8];	// [signbits][x] = either size[0][x] or size[1][x]
-			float		maxOffset;	// longest corner length from origin
-			vec3_t		extents;	// greatest of abs(size[0]) and abs(size[1])
-			vec3_t		bounds[2];	// enclosing box of start and end surrounding by size
-			vec3_t		modelOrigin;// origin of the model tracing through
-			int			contents;	// ored contents of the model tracing through
-			bool	isPoint;	// optimized case
-			trace_t		trace;		// returned from trace call
-			sphere_t	sphere;		// sphere for oriendted capsule collision
-		} traceWork_t;
+        [MarshalAs( UnmanagedType.ByValArray, SizeConst = 2 )]
+        public vec3_t[] bounds;    // enclosing box of start and end surrounding by size
 
-		typedef struct leafList_s {
-			int		count;
-			int		maxcount;
-			bool	overflowed;
-			int		*list;
-			vec3_t	bounds[2];
-			int		lastLeaf;		// for overflows where each leaf can't be stored individually
-			void	(*storeLeafs)( struct leafList_s *ll, int nodenum );
-		} leafList_t;
+        public vec3_t modelOrigin;// origin of the model tracing through
+        public int contents;    // ored contents of the model tracing through
+        public bool isPoint;    // optimized case
+        public trace_t trace;       // returned from trace call
+        public sphere_t sphere;        // sphere for oriendted capsule collision
+    }
 
+    public static class cm_local
+    {
+        public const int MAX_SUBMODELS = 256;
+        public const int BOX_MODEL_HANDLE = 255;
+        public const int CAPSULE_MODEL_HANDLE = 254;
 
-		int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
+        // keep 1/8 unit away to keep the position valid before network snapping
+        // and to avoid various numeric issues
+        public const float SURFACE_CLIP_EPSILON = 0.125f;
 
-		void CM_StoreLeafs( leafList_t *ll, int nodenum );
-		void CM_StoreBrushes( leafList_t *ll, int nodenum );
-
-		void CM_BoxLeafnums_r( leafList_t *ll, int nodenum );
-
-		cmodel_t	*CM_ClipHandleToModel( clipHandle_t handle );
-
-		// cm_patch.c
-
-		struct patchCollide_s	*CM_GeneratePatchCollide( int width, int height, vec3_t *points );
-		void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
-		bool CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
-		void CM_ClearLevelPatches( void );
-	}
+        public static clipMap_t cm;
+        public static int c_pointcontents;
+        public static int c_traces, c_brush_traces, c_patch_traces;
+        public static cvar_t cm_noAreas;
+        public static cvar_t cm_noCurves;
+        public static cvar_t cm_playerCurveClip;
+    }
 }

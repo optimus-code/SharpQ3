@@ -23,11 +23,49 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 namespace SharpQ3.Engine.qcommon
 {
 	using SprintfNET;
-	using System.Runtime.InteropServices;
+    using System;
+    using System.Runtime.InteropServices;
 
 	// qcommon.h -- definitions common between client and server, but not game.or ref modules
 	public static class qcommon
 	{
+		// Credits to SharpQuake project
+		public static T BytesToStructure<T>( Byte[] src, Int32 startIndex )
+		{
+			var handle = GCHandle.Alloc( src, GCHandleType.Pinned );
+
+			try
+			{
+				var ptr = handle.AddrOfPinnedObject( );
+				if ( startIndex != 0 )
+				{
+					var ptr2 = ptr.ToInt64( ) + startIndex;
+					ptr = new IntPtr( ptr2 );
+				}
+				return ( T ) Marshal.PtrToStructure( ptr, typeof( T ) );
+			}
+			finally
+			{
+				handle.Free( );
+			}
+		}
+
+		public static Byte[] StructureToBytes<T>( ref T src )
+		{
+			var buf = new Byte[Marshal.SizeOf( typeof( T ) )];
+			var handle = GCHandle.Alloc( buf, GCHandleType.Pinned );
+
+			try
+			{
+				Marshal.StructureToPtr( src, handle.AddrOfPinnedObject( ), true );
+			}
+			finally
+			{
+				handle.Free( );
+			}
+
+			return buf;
+		}
 		//
 		// msg.c
 		//

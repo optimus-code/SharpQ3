@@ -112,6 +112,11 @@ namespace SharpQ3.Engine
 			this.z = z;
 		}
 
+		public float[] ToArray()
+        {
+			return new[] { x, y, z };
+        }
+
 		public float this[int i]
         {
 			get
@@ -145,7 +150,13 @@ namespace SharpQ3.Engine
 			}
         }
 
-		public static vec3_t zero = new vec3_t( );
+		public readonly static vec3_t zero = new vec3_t( );
+
+
+		public static implicit operator vec3_t( vec4_t v )
+		{
+			return new vec3_t( v.x, v.y, v.z );
+		}
 
 		public static bool operator ==( vec3_t a, vec3_t b )
 		{
@@ -172,7 +183,50 @@ namespace SharpQ3.Engine
 	{
 		public float x, y, z, w;
 
-		public static vec4_t zero = new vec4_t( );
+		public readonly static vec4_t zero = new vec4_t( );
+
+		public float[] ToArray( )
+		{
+			return new[] { x, y, z, w };
+		}
+
+		public float this[int i]
+		{
+			get
+			{
+				switch ( i )
+				{
+					case 0:
+						return x;
+					case 1:
+						return y;
+					case 2:
+						return z;
+					case 3:
+						return w;
+				}
+
+				return 0f;
+			}
+			set
+			{
+				switch ( i )
+				{
+					case 0:
+						x = value;
+						break;
+					case 1:
+						y = value;
+						break;
+					case 2:
+						z = value;
+						break;
+					case 3:
+						w = value;
+						break;
+				}
+			}
+		}
 
 		public vec3_t xyz
         {
@@ -194,6 +248,11 @@ namespace SharpQ3.Engine
 			this.y = y;
 			this.z = z;
 			this.w = w;
+		}
+
+		public static implicit operator vec4_t( vec3_t v )
+		{
+			return new vec4_t( v.x, v.y, v.z, 0f );
 		}
 
 		public static bool operator ==( vec4_t a, vec4_t b )
@@ -320,6 +379,41 @@ namespace SharpQ3.Engine
 		}
 	}
 
+
+
+	public struct bounds_t
+	{
+		public vec3_t min, max;
+
+		public bounds_t( vec3_t min, vec3_t max )
+		{
+			this.min = min;
+			this.max = max;
+		}
+
+		public static bounds_t zero = new bounds_t( );
+
+		public static bool operator ==( bounds_t a, bounds_t b )
+		{
+			return a.Equals( b );
+		}
+
+		public static bool operator !=( bounds_t a, bounds_t b )
+		{
+			return !a.Equals( b );
+		}
+
+		public override Boolean Equals( Object obj )
+		{
+			if ( obj is bounds_t v )
+			{
+				return min == v.min && max == v.max;
+			}
+			else
+				return false;
+		}
+	}
+
 	// plane_t structure
 	// !!! if this is changed, it must be changed in asm code too !!!
 	public struct cplane_t
@@ -362,6 +456,45 @@ namespace SharpQ3.Engine
 		public vec3_t axis;
 	}
 
+	public struct qhandle_t
+	{
+		public int ID;
+
+		public qhandle_t( int id )
+        {
+			ID = id;
+        }
+	}
+
+	public struct sfxHandle_t
+	{
+		public int ID;
+
+		public sfxHandle_t( int id )
+		{
+			ID = id;
+		}
+	}
+
+	public struct fileHandle_t
+	{
+		public int ID;
+
+		public fileHandle_t( int id )
+		{
+			ID = id;
+		}
+	}
+
+	public struct clipHandle_t
+	{
+		public int ID;
+
+		public clipHandle_t( int id )
+		{
+			ID = id;
+		}
+	}
 	// q_shared.h -- included first by ALL program modules.
 	public static class q_shared
 	{
@@ -407,12 +540,6 @@ namespace SharpQ3.Engine
 
 
 		public const char PATH_SEP = '\\';
-
-		//typedef int qhandle_t;
-		//typedef int sfxHandle_t;
-		//typedef int fileHandle_t;
-		//typedef int clipHandle_t;
-
 
 		public const int MAX_QINT = 0x7fffffff;
 		public const int MIN_QINT = ( -MAX_QINT - 1 );
@@ -605,6 +732,15 @@ namespace SharpQ3.Engine
 				z = a.z - b.z,
 			};
 		}
+		public static void VectorSubtract( vec3_t a, vec3_t b, out vec4_t c )
+		{
+			c = new vec4_t
+			{
+				x = a.x - b.x,
+				y = a.y - b.y,
+				z = a.z - b.z,
+			};
+		}
 
 		public static void VectorAdd( vec3_t a, vec3_t b, out vec3_t c )
 		{
@@ -616,9 +752,27 @@ namespace SharpQ3.Engine
 			};
 		}
 
+		public static void VectorAdd( vec3_t a, vec3_t b, out vec4_t c )
+		{
+			c = new vec4_t
+			{
+				x = a.x + b.x,
+				y = a.y + b.y,
+				z = a.z + b.z,
+			};
+		}
+
 		public static void VectorCopy( vec3_t a, out vec3_t b )
 		{
 			b = new vec3_t( );
+			b.x = a.x;
+			b.y = a.y;
+			b.z = a.z;
+		}
+
+		public static void VectorCopy( vec3_t a, out vec4_t b )
+		{
+			b = new vec4_t( );
 			b.x = a.x;
 			b.y = a.y;
 			b.z = a.z;
@@ -645,11 +799,24 @@ namespace SharpQ3.Engine
 			a.x = a.y = a.z = 0;
 		}
 
+		public static void VectorClear( ref vec4_t a )
+		{
+			a.x = a.y = a.z = a.w = 0;
+		}
+
 		public static void VectorNegate( vec3_t a, out vec3_t b )
 		{
 			b.x = -a.x;
 			b.y = -a.y;
 			b.z = -a.z;
+		}
+
+		public static void VectorNegate( vec4_t a, out vec4_t b )
+		{
+			b.x = -a.x;
+			b.y = -a.y;
+			b.z = -a.z;
+			b.w = -a.w;
 		}
 
 		public static void VectorSet( out vec3_t v, float x, float y, float z )
@@ -660,6 +827,14 @@ namespace SharpQ3.Engine
 			v.z = z;
 		}
 
+		public static void Vector4Copy( vec4_t a, out vec4_t b )
+		{
+			b = new vec4_t( );
+			b.x = a.x;
+			b.y = a.y;
+			b.z = a.z;
+			b.w = a.w;
+		}
 		//#define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
 		//#define SnapVector(v) {v[0]=((int)(v[0]));v[1]=((int)(v[1]));v[2]=((int)(v[2]));}
@@ -1311,13 +1486,13 @@ namespace SharpQ3.Engine
 		COM_DefaultExtension
 		==================
 		*/
-		public static void COM_DefaultExtension( string path, int maxSize, string extension ) 
+		public static void COM_DefaultExtension( ref string path, int maxSize, string extension ) 
 		{
 			//
 			// if path doesn't have a .EXT, append extension
 			// (extension should include the .)
 			//
-			if ( !System.IO.Path.HasExtension( path ) )
+			if ( !Path.HasExtension( path ) )
 				path += extension;
 		}
 
@@ -1978,14 +2153,18 @@ namespace SharpQ3.Engine
 		}
 
 		// never goes past bounds or leaves without a terminating 0
-		public static void Q_strcat( ref string dest, int size, string src ) {
-			int		l1;
+		public static void Q_strcat( ref string dest, int size, string src ) 
+		{
+			if ( dest == null )
+				dest = "";
 
-			l1 = (int) dest.Length;
-			if ( l1 >= size ) {
+			if ( dest.Length >= size )
+			{
 				common.Com_Error( errorParm_t.ERR_FATAL, "Q_strcat: already overflowed" );
+				dest += src.Substring( 0, size );
 			}
-			q_shared.Q_strncpyz( dest + l1, src, size - l1 );
+			else
+				dest += src;
 		}
 
 

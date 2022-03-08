@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+using SharpQ3.Engine;
+using SharpQ3.Engine.qcommon;
+
 namespace SharpQ3.Engine.qcommon
 {
 	// cm_load.c -- model loading
@@ -27,33 +30,33 @@ namespace SharpQ3.Engine.qcommon
 	{
 		// to allow boxes to be treated as brush models, we allocate
 		// some extra indexes along with those needed by the map
-		const int BOX_BRUSHES = 1;
-		const int BOX_SIDES = 6;
-		const int BOX_LEAFS = 2;
-		const int BOX_PLANES = 12;
+		public const int BOX_BRUSHES = 1;
+		public const int BOX_SIDES = 6;
+		public const int BOX_LEAFS = 2;
+		public const int BOX_PLANES = 12;
 
 		#define LL(x) x=LittleLong(x)
 
 
-		clipMap_t	cm;
-		int			c_pointcontents;
-		int			c_traces, c_brush_traces, c_patch_traces;
+		public static clipMap_t	cm;
+		public static int c_pointcontents;
+		public static int c_traces, c_brush_traces, c_patch_traces;
 
 
-		byte		*cmod_base;
+		public static byte* cmod_base;
 
-		cvar_t		cm_noAreas;
-		cvar_t		cm_noCurves;
-		cvar_t		cm_playerCurveClip;
+		public static cvar_t cm_noAreas;
+		public static cvar_t cm_noCurves;
+		public static cvar_t		cm_playerCurveClip;
 
-		cmodel_t	box_model;
-		cplane_t	*box_planes;
-		cbrush_t	*box_brush;
+		public static cmodel_t	box_model;
+		public static cplane_t[] box_planes;
+		public static cbrush_t box_brush;
 
 
 
-		void	CM_InitBoxHull (void);
-		void	CM_FloodAreaConnections (void);
+		//void	CM_InitBoxHull (void);
+		//void	CM_FloodAreaConnections (void);
 
 
 		/*
@@ -69,7 +72,8 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadShaders
 		=================
 		*/
-		void CMod_LoadShaders( lump_t *l ) {
+		static void CMod_LoadShaders( lump_t *l ) 
+		{
 			dshader_t	*in, *out;
 			int			i, count;
 
@@ -82,12 +86,12 @@ namespace SharpQ3.Engine.qcommon
 			if (count < 1) {
 				common.Com_Error (errorParm_t.ERR_DROP, "Map with no shaders");
 			}
-			cm.shaders = (dshader_t*) Hunk_Alloc( count * sizeof( *cm.shaders ), h_high );
-			cm.numShaders = count;
+			cm_local.cm.shaders = (dshader_t*) Hunk_Alloc( count * sizeof( *cm_local.cm.shaders ), h_high );
+			cm_local.cm.numShaders = count;
 
-			Com_Memcpy( cm.shaders, in, count * sizeof( *cm.shaders ) );
+			Com_Memcpy( cm_local.cm.shaders, in, count * sizeof( *cm_local.cm.shaders ) );
 
-			out = cm.shaders;
+			out = cm_local.cm.shaders;
 			for ( i=0 ; i<count ; i++, in++, out++ ) {
 				out.contentFlags = LittleLong( out.contentFlags );
 				out.surfaceFlags = LittleLong( out.surfaceFlags );
@@ -100,7 +104,8 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadSubmodels
 		=================
 		*/
-		void CMod_LoadSubmodels( lump_t *l ) {
+		static void CMod_LoadSubmodels( lump_t *l ) 
+		{
 			dmodel_t	*in;
 			cmodel_t	*out;
 			int			i, j, count;
@@ -113,8 +118,8 @@ namespace SharpQ3.Engine.qcommon
 
 			if (count < 1)
 				common.Com_Error (errorParm_t.ERR_DROP, "Map with no models");
-			cm.cmodels = (cmodel_t*) Hunk_Alloc( count * sizeof( *cm.cmodels ), h_high );
-			cm.numSubModels = count;
+			cm_local.cm.cmodels = (cmodel_t*) Hunk_Alloc( count * sizeof( *cm_local.cm.cmodels ), h_high );
+			cm_local.cm.numSubModels = count;
 
 			if ( count > MAX_SUBMODELS ) {
 				common.Com_Error( errorParm_t.ERR_DROP, "MAX_SUBMODELS exceeded" );
@@ -122,7 +127,7 @@ namespace SharpQ3.Engine.qcommon
 
 			for ( i=0 ; i<count ; i++, in++, out++)
 			{
-				out = &cm.cmodels[i];
+				out = &cm_local.cm.cmodels[i];
 
 				for (j=0 ; j<3 ; j++)
 				{	// spread the mins / maxs by a pixel
@@ -137,14 +142,14 @@ namespace SharpQ3.Engine.qcommon
 				// make a "leaf" just to hold the model's brushes and surfaces
 				out.leaf.numLeafBrushes = LittleLong( in.numBrushes );
 				indexes = (int*) Hunk_Alloc( out.leaf.numLeafBrushes * 4, h_high );
-				out.leaf.firstLeafBrush = indexes - cm.leafbrushes;
+				out.leaf.firstLeafBrush = indexes - cm_local.cm.leafbrushes;
 				for ( j = 0 ; j < out.leaf.numLeafBrushes ; j++ ) {
 					indexes[j] = LittleLong( in.firstBrush ) + j;
 				}
 
 				out.leaf.numLeafSurfaces = LittleLong( in.numSurfaces );
 				indexes = (int*) Hunk_Alloc( out.leaf.numLeafSurfaces * 4, h_high );
-				out.leaf.firstLeafSurface = indexes - cm.leafsurfaces;
+				out.leaf.firstLeafSurface = indexes - cm_local.cm.leafsurfaces;
 				for ( j = 0 ; j < out.leaf.numLeafSurfaces ; j++ ) {
 					indexes[j] = LittleLong( in.firstSurface ) + j;
 				}
@@ -158,7 +163,8 @@ namespace SharpQ3.Engine.qcommon
 
 		=================
 		*/
-		void CMod_LoadNodes( lump_t *l ) {
+		static void CMod_LoadNodes( lump_t *l ) 
+		{
 			dnode_t		*in;
 			int			child;
 			cNode_t		*out;
@@ -171,14 +177,14 @@ namespace SharpQ3.Engine.qcommon
 
 			if (count < 1)
 				common.Com_Error (errorParm_t.ERR_DROP, "Map has no nodes");
-			cm.nodes = (cNode_t*) Hunk_Alloc( count * sizeof( *cm.nodes ), h_high );
-			cm.numNodes = count;
+			cm_local.cm.nodes = (cNode_t*) Hunk_Alloc( count * sizeof( *cm_local.cm.nodes ), h_high );
+			cm_local.cm.numNodes = count;
 
-			out = cm.nodes;
+			out = cm_local.cm.nodes;
 
 			for (i=0 ; i<count ; i++, out++, in++)
 			{
-				out.plane = cm.planes + LittleLong( in.planeNum );
+				out.plane = cm_local.cm.planes + LittleLong( in.planeNum );
 				for (j=0 ; j<2 ; j++)
 				{
 					child = LittleLong (in.children[j]);
@@ -194,7 +200,8 @@ namespace SharpQ3.Engine.qcommon
 
 		=================
 		*/
-		void CM_BoundBrush( cbrush_t *b ) {
+		static void CM_BoundBrush( cbrush_t *b )
+		{
 			b.bounds[0][0] = -b.sides[0].plane.dist;
 			b.bounds[1][0] = b.sides[1].plane.dist;
 
@@ -212,7 +219,7 @@ namespace SharpQ3.Engine.qcommon
 
 		=================
 		*/
-		void CMod_LoadBrushes( lump_t *l ) {
+		static void CMod_LoadBrushes( lump_t *l ) {
 			dbrush_t	*in;
 			cbrush_t	*out;
 			int			i, count;
@@ -223,20 +230,20 @@ namespace SharpQ3.Engine.qcommon
 			}
 			count = l.filelen / sizeof(*in);
 
-			cm.brushes = (cbrush_t*) Hunk_Alloc( ( BOX_BRUSHES + count ) * sizeof( *cm.brushes ), h_high );
-			cm.numBrushes = count;
+			cm_local.cm.brushes = (cbrush_t*) Hunk_Alloc( ( BOX_BRUSHES + count ) * sizeof( *cm_local.cm.brushes ), h_high );
+			cm_local.cm.numBrushes = count;
 
-			out = cm.brushes;
+			out = cm_local.cm.brushes;
 
 			for ( i=0 ; i<count ; i++, out++, in++ ) {
-				out.sides = cm.brushsides + LittleLong(in.firstSide);
+				out.sides = cm_local.cm.brushsides + LittleLong(in.firstSide);
 				out.numsides = LittleLong(in.numSides);
 
 				out.shaderNum = LittleLong( in.shaderNum );
-				if ( out.shaderNum < 0 || out.shaderNum >= cm.numShaders ) {
+				if ( out.shaderNum < 0 || out.shaderNum >= cm_local.cm.numShaders ) {
 					common.Com_Error( errorParm_t.ERR_DROP, "CMod_LoadBrushes: bad shaderNum: %i", out.shaderNum );
 				}
-				out.contents = cm.shaders[out.shaderNum].contentFlags;
+				out.contents = cm_local.cm.shaders[out.shaderNum].contentFlags;
 
 				CM_BoundBrush( out );
 			}
@@ -248,7 +255,7 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadLeafs
 		=================
 		*/
-		void CMod_LoadLeafs (lump_t *l)
+		static void CMod_LoadLeafs (lump_t *l)
 		{
 			int			i;
 			cLeaf_t		*out;
@@ -263,10 +270,10 @@ namespace SharpQ3.Engine.qcommon
 			if (count < 1)
 				common.Com_Error (errorParm_t.ERR_DROP, "Map with no leafs");
 
-			cm.leafs = (cLeaf_t*) Hunk_Alloc( ( BOX_LEAFS + count ) * sizeof( *cm.leafs ), h_high );
-			cm.numLeafs = count;
+			cm_local.cm.leafs = (cLeaf_t*) Hunk_Alloc( ( BOX_LEAFS + count ) * sizeof( *cm_local.cm.leafs ), h_high );
+			cm_local.cm.numLeafs = count;
 
-			out = cm.leafs;	
+			out = cm_local.cm.leafs;	
 			for ( i=0 ; i<count ; i++, in++, out++)
 			{
 				out.cluster = LittleLong (in.cluster);
@@ -276,14 +283,14 @@ namespace SharpQ3.Engine.qcommon
 				out.firstLeafSurface = LittleLong (in.firstLeafSurface);
 				out.numLeafSurfaces = LittleLong (in.numLeafSurfaces);
 
-				if (out.cluster >= cm.numClusters)
-					cm.numClusters = out.cluster + 1;
-				if (out.area >= cm.numAreas)
-					cm.numAreas = out.area + 1;
+				if (out.cluster >= cm_local.cm.numClusters)
+					cm_local.cm.numClusters = out.cluster + 1;
+				if (out.area >= cm_local.cm.numAreas)
+					cm_local.cm.numAreas = out.area + 1;
 			}
 
-			cm.areas = (cArea_t*) Hunk_Alloc( cm.numAreas * sizeof( *cm.areas ), h_high );
-			cm.areaPortals = (int*) Hunk_Alloc( cm.numAreas * cm.numAreas * sizeof( *cm.areaPortals ), h_high );
+			cm_local.cm.areas = (cArea_t*) Hunk_Alloc( cm_local.cm.numAreas * sizeof( *cm_local.cm.areas ), h_high );
+			cm_local.cm.areaPortals = (int*) Hunk_Alloc( cm_local.cm.numAreas * cm_local.cm.numAreas * sizeof( *cm_local.cm.areaPortals ), h_high );
 		}
 
 		/*
@@ -291,7 +298,7 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadPlanes
 		=================
 		*/
-		void CMod_LoadPlanes (lump_t *l)
+		static void CMod_LoadPlanes (lump_t *l)
 		{
 			int			i, j;
 			cplane_t	*out;
@@ -306,10 +313,10 @@ namespace SharpQ3.Engine.qcommon
 
 			if (count < 1)
 				common.Com_Error (errorParm_t.ERR_DROP, "Map with no planes");
-			cm.planes = (cplane_t*) Hunk_Alloc( ( BOX_PLANES + count ) * sizeof( *cm.planes ), h_high );
-			cm.numPlanes = count;
+			cm_local.cm.planes = (cplane_t*) Hunk_Alloc( ( BOX_PLANES + count ) * sizeof( *cm_local.cm.planes ), h_high );
+			cm_local.cm.numPlanes = count;
 
-			out = cm.planes;	
+			out = cm_local.cm.planes;	
 
 			for ( i=0 ; i<count ; i++, in++, out++)
 			{
@@ -332,7 +339,7 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadLeafBrushes
 		=================
 		*/
-		void CMod_LoadLeafBrushes (lump_t *l)
+		static void CMod_LoadLeafBrushes (lump_t *l)
 		{
 			int			i;
 			int			*out;
@@ -344,10 +351,10 @@ namespace SharpQ3.Engine.qcommon
 				common.Com_Error (errorParm_t.ERR_DROP, "MOD_LoadBmodel: funny lump size");
 			count = l.filelen / sizeof(*in);
 
-			cm.leafbrushes = (int*) Hunk_Alloc( (count + BOX_BRUSHES) * sizeof( *cm.leafbrushes ), h_high );
-			cm.numLeafBrushes = count;
+			cm_local.cm.leafbrushes = (int*) Hunk_Alloc( (count + BOX_BRUSHES) * sizeof( *cm_local.cm.leafbrushes ), h_high );
+			cm_local.cm.numLeafBrushes = count;
 
-			out = cm.leafbrushes;
+			out = cm_local.cm.leafbrushes;
 
 			for ( i=0 ; i<count ; i++, in++, out++) {
 				*out = LittleLong (*in);
@@ -359,7 +366,7 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadLeafSurfaces
 		=================
 		*/
-		void CMod_LoadLeafSurfaces( lump_t *l )
+		static void CMod_LoadLeafSurfaces( lump_t *l )
 		{
 			int			i;
 			int			*out;
@@ -371,10 +378,10 @@ namespace SharpQ3.Engine.qcommon
 				common.Com_Error (errorParm_t.ERR_DROP, "MOD_LoadBmodel: funny lump size");
 			count = l.filelen / sizeof(*in);
 
-			cm.leafsurfaces = (int*) Hunk_Alloc( count * sizeof( *cm.leafsurfaces ), h_high );
-			cm.numLeafSurfaces = count;
+			cm_local.cm.leafsurfaces = (int*) Hunk_Alloc( count * sizeof( *cm_local.cm.leafsurfaces ), h_high );
+			cm_local.cm.numLeafSurfaces = count;
 
-			out = cm.leafsurfaces;
+			out = cm_local.cm.leafsurfaces;
 
 			for ( i=0 ; i<count ; i++, in++, out++) {
 				*out = LittleLong (*in);
@@ -386,7 +393,7 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadBrushSides
 		=================
 		*/
-		void CMod_LoadBrushSides (lump_t *l)
+		static void CMod_LoadBrushSides (lump_t *l)
 		{
 			int				i;
 			cbrushside_t	*out;
@@ -400,19 +407,19 @@ namespace SharpQ3.Engine.qcommon
 			}
 			count = l.filelen / sizeof(*in);
 
-			cm.brushsides = (cbrushside_t*) Hunk_Alloc( ( BOX_SIDES + count ) * sizeof( *cm.brushsides ), h_high );
-			cm.numBrushSides = count;
+			cm_local.cm.brushsides = (cbrushside_t*) Hunk_Alloc( ( BOX_SIDES + count ) * sizeof( *cm_local.cm.brushsides ), h_high );
+			cm_local.cm.numBrushSides = count;
 
-			out = cm.brushsides;	
+			out = cm_local.cm.brushsides;	
 
 			for ( i=0 ; i<count ; i++, in++, out++) {
 				num = LittleLong( in.planeNum );
-				out.plane = &cm.planes[num];
+				out.plane = &cm_local.cm.planes[num];
 				out.shaderNum = LittleLong( in.shaderNum );
-				if ( out.shaderNum < 0 || out.shaderNum >= cm.numShaders ) {
+				if ( out.shaderNum < 0 || out.shaderNum >= cm_local.cm.numShaders ) {
 					common.Com_Error( errorParm_t.ERR_DROP, "CMod_LoadBrushSides: bad shaderNum: %i", out.shaderNum );
 				}
-				out.surfaceFlags = cm.shaders[out.shaderNum].surfaceFlags;
+				out.surfaceFlags = cm_local.cm.shaders[out.shaderNum].surfaceFlags;
 			}
 		}
 
@@ -422,10 +429,10 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadEntityString
 		=================
 		*/
-		void CMod_LoadEntityString( lump_t *l ) {
-			cm.entityString = (char*) Hunk_Alloc( l.filelen, h_high );
-			cm.numEntityChars = l.filelen;
-			Com_Memcpy (cm.entityString, cmod_base + l.fileofs, l.filelen);
+		static void CMod_LoadEntityString( lump_t *l ) {
+			cm_local.cm.entityString = (char*) Hunk_Alloc( l.filelen, h_high );
+			cm_local.cm.numEntityChars = l.filelen;
+			Com_Memcpy (cm_local.cm.entityString, cmod_base + l.fileofs, l.filelen);
 		}
 
 		/*
@@ -433,25 +440,25 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadVisibility
 		=================
 		*/
-		#define	VIS_HEADER	8
-		void CMod_LoadVisibility( lump_t *l ) {
+		const int VIS_HEADER = 8;
+		static void CMod_LoadVisibility( lump_t *l ) {
 			int		len;
 			byte	*buf;
 
 		    len = l.filelen;
 			if ( !len ) {
-				cm.clusterBytes = ( cm.numClusters + 31 ) & ~31;
-				cm.visibility = (byte*) Hunk_Alloc( cm.clusterBytes, h_high );
-				Com_Memset( cm.visibility, 255, cm.clusterBytes );
+				cm_local.cm.clusterBytes = ( cm_local.cm.numClusters + 31 ) & ~31;
+				cm_local.cm.visibility = (byte*) Hunk_Alloc( cm_local.cm.clusterBytes, h_high );
+				Com_Memset( cm_local.cm.visibility, 255, cm_local.cm.clusterBytes );
 				return;
 			}
 			buf = cmod_base + l.fileofs;
 
-			cm.vised = true;
-			cm.visibility = (byte*) Hunk_Alloc( len, h_high );
-			cm.numClusters = LittleLong( ((int *)buf)[0] );
-			cm.clusterBytes = LittleLong( ((int *)buf)[1] );
-			Com_Memcpy (cm.visibility, buf + VIS_HEADER, len - VIS_HEADER );
+			cm_local.cm.vised = true;
+			cm_local.cm.visibility = (byte*) Hunk_Alloc( len, h_high );
+			cm_local.cm.numClusters = LittleLong( ((int *)buf)[0] );
+			cm_local.cm.clusterBytes = LittleLong( ((int *)buf)[1] );
+			Com_Memcpy (cm_local.cm.visibility, buf + VIS_HEADER, len - VIS_HEADER );
 		}
 
 		//==================================================================
@@ -462,8 +469,8 @@ namespace SharpQ3.Engine.qcommon
 		CMod_LoadPatches
 		=================
 		*/
-		#define	MAX_PATCH_VERTS		1024
-		void CMod_LoadPatches( lump_t *surfs, lump_t *verts ) {
+		const int MAX_PATCH_VERTS = 1024;
+		static void CMod_LoadPatches( lump_t *surfs, lump_t *verts ) {
 			drawVert_t	*dv, *dv_p;
 			dsurface_t	*in;
 			int			count;
@@ -477,8 +484,8 @@ namespace SharpQ3.Engine.qcommon
 			in = (dsurface_t*) (void *)(cmod_base + surfs.fileofs);
 			if (surfs.filelen % sizeof(*in))
 				common.Com_Error (errorParm_t.ERR_DROP, "MOD_LoadBmodel: funny lump size");
-			cm.numSurfaces = count = surfs.filelen / sizeof(*in);
-			cm.surfaces = (cPatch_t**) Hunk_Alloc( cm.numSurfaces * sizeof( cm.surfaces[0] ), h_high );
+			cm_local.cm.numSurfaces = count = surfs.filelen / sizeof(*in);
+			cm_local.cm.surfaces = (cPatch_t**) Hunk_Alloc( cm_local.cm.numSurfaces * sizeof( cm_local.cm.surfaces[0] ), h_high );
 
 			dv = (drawVert_t*) (void *)(cmod_base + verts.fileofs);
 			if (verts.filelen % sizeof(*dv))
@@ -492,7 +499,7 @@ namespace SharpQ3.Engine.qcommon
 				}
 				// FIXME: check for non-colliding patches
 
-				cm.surfaces[ i ] = patch = (cPatch_t*) Hunk_Alloc( sizeof( *patch ), h_high );
+				cm_local.cm.surfaces[ i ] = patch = (cPatch_t*) Hunk_Alloc( sizeof( *patch ), h_high );
 
 				// load the full drawverts onto the stack
 				width = LittleLong( in.patchWidth );
@@ -510,8 +517,8 @@ namespace SharpQ3.Engine.qcommon
 				}
 
 				shaderNum = LittleLong( in.shaderNum );
-				patch.contents = cm.shaders[shaderNum].contentFlags;
-				patch.surfaceFlags = cm.shaders[shaderNum].surfaceFlags;
+				patch.contents = cm_local.cm.shaders[shaderNum].contentFlags;
+				patch.surfaceFlags = cm_local.cm.shaders[shaderNum].surfaceFlags;
 
 				// create the internal facet structure
 				patch.pc = CM_GeneratePatchCollide( width, height, points );
@@ -520,11 +527,11 @@ namespace SharpQ3.Engine.qcommon
 
 		//==================================================================
 
-		unsigned CM_LumpChecksum(lump_t *lump) {
+		static unsigned CM_LumpChecksum(lump_t *lump) {
 			return LittleLong (Com_BlockChecksum (cmod_base + lump.fileofs, lump.filelen));
 		}
 
-		unsigned CM_Checksum(dheader_t *header) {
+		static unsigned CM_Checksum(dheader_t *header) {
 			unsigned checksums[16];
 			checksums[0] = CM_LumpChecksum(&header.lumps[LUMP_SHADERS]);
 			checksums[1] = CM_LumpChecksum(&header.lumps[LUMP_LEAFS]);
@@ -548,7 +555,7 @@ namespace SharpQ3.Engine.qcommon
 		Loads in the map and all submodels
 		==================
 		*/
-		void CM_LoadMap( const char *name, bool clientload, int *checksum ) {
+		static void CM_LoadMap( const char *name, bool clientload, int *checksum ) {
 			int				*buf;
 			int				i;
 			dheader_t		header;
@@ -564,7 +571,7 @@ namespace SharpQ3.Engine.qcommon
 			cm_playerCurveClip = Cvar_Get ("cm_playerCurveClip", "1", CVAR_ARCHIVE|CVAR_CHEAT );
 			Com_DPrintf( "CM_LoadMap( %s, %i )\n", name, clientload );
 
-			if ( !strcmp( cm.name, name ) && clientload ) {
+			if ( !strcmp( cm_local.cm.name, name ) && clientload ) {
 				*checksum = last_checksum;
 				return;
 			}
@@ -574,10 +581,10 @@ namespace SharpQ3.Engine.qcommon
 			CM_ClearLevelPatches();
 
 			if ( !name[0] ) {
-				cm.numLeafs = 1;
-				cm.numClusters = 1;
-				cm.numAreas = 1;
-				cm.cmodels = (cmodel_t*) Hunk_Alloc( sizeof( *cm.cmodels ), h_high );
+				cm_local.cm.numLeafs = 1;
+				cm_local.cm.numClusters = 1;
+				cm_local.cm.numAreas = 1;
+				cm_local.cm.cmodels = (cmodel_t*) Hunk_Alloc( sizeof( *cm_local.cm.cmodels ), h_high );
 				*checksum = 0;
 				return;
 			}
@@ -629,7 +636,7 @@ namespace SharpQ3.Engine.qcommon
 
 			// allow this to be cached if it is loaded by the server
 			if ( !clientload ) {
-				Q_strncpyz( cm.name, name, sizeof( cm.name ) );
+				Q_strncpyz( cm_local.cm.name, name, sizeof( cm_local.cm.name ) );
 			}
 		}
 
@@ -638,7 +645,8 @@ namespace SharpQ3.Engine.qcommon
 		CM_ClearMap
 		==================
 		*/
-		void CM_ClearMap( void ) {
+		public static void CM_ClearMap( ) 
+		{
 			Com_Memset( &cm, 0, sizeof( cm ) );
 			CM_ClearLevelPatches();
 		}
@@ -648,23 +656,28 @@ namespace SharpQ3.Engine.qcommon
 		CM_ClipHandleToModel
 		==================
 		*/
-		cmodel_t	*CM_ClipHandleToModel( clipHandle_t handle ) {
-			if ( handle < 0 ) {
+		public static cmodel_t?	CM_ClipHandleToModel( clipHandle_t handle ) 
+		{
+			if ( handle.ID < 0 ) 
+			{
 				common.Com_Error( errorParm_t.ERR_DROP, "CM_ClipHandleToModel: bad handle %i", handle );
 			}
-			if ( handle < cm.numSubModels ) {
-				return &cm.cmodels[handle];
+			if ( handle.ID < cm_local.cm.numSubModels ) 
+			{
+				return cm_local.cm.cmodels[handle.ID];
 			}
-			if ( handle == BOX_MODEL_HANDLE ) {
-				return &box_model;
-			}
-			if ( handle < MAX_SUBMODELS ) {
-				common.Com_Error( errorParm_t.ERR_DROP, "CM_ClipHandleToModel: bad handle %i < %i < %i", 
-					cm.numSubModels, handle, MAX_SUBMODELS );
-			}
-			common.Com_Error( errorParm_t.ERR_DROP, "CM_ClipHandleToModel: bad handle %i", handle + MAX_SUBMODELS );
+			if ( handle.ID == cm_local.BOX_MODEL_HANDLE )
+				return box_model;
 
-			return NULL;
+			if ( handle.ID < cm_local.MAX_SUBMODELS ) 
+			{
+				common.Com_Error( errorParm_t.ERR_DROP, "CM_ClipHandleToModel: bad handle %i < %i < %i",
+					cm_local.cm.numSubModels, handle, cm_local.MAX_SUBMODELS );
+			}
+
+			common.Com_Error( errorParm_t.ERR_DROP, "CM_ClipHandleToModel: bad handle %i", handle.ID + cm_local.MAX_SUBMODELS );
+
+			return null;
 
 		}
 
@@ -673,37 +686,42 @@ namespace SharpQ3.Engine.qcommon
 		CM_InlineModel
 		==================
 		*/
-		clipHandle_t	CM_InlineModel( int index ) {
-			if ( index < 0 || index >= cm.numSubModels ) {
+		static clipHandle_t	CM_InlineModel( int index ) {
+			if ( index < 0 || index >= cm_local.cm.numSubModels ) {
 				common.Com_Error (errorParm_t.ERR_DROP, "CM_InlineModel: bad number");
 			}
 			return index;
 		}
 
-		int		CM_NumClusters( void ) {
-			return cm.numClusters;
+		static int CM_NumClusters( ) 
+{
+			return cm_local.cm.numClusters;
 		}
 
-		int		CM_NumInlineModels( void ) {
-			return cm.numSubModels;
+		static int CM_NumInlineModels( )
+		{
+			return cm_local.cm.numSubModels;
 		}
 
-		char	*CM_EntityString( void ) {
-			return cm.entityString;
+		static string CM_EntityString( ) 
+		{
+			return cm_local.cm.entityString;
 		}
 
-		int		CM_LeafCluster( int leafnum ) {
-			if (leafnum < 0 || leafnum >= cm.numLeafs) {
+		static int CM_LeafCluster( int leafnum )
+{
+			if (leafnum < 0 || leafnum >= cm_local.cm.numLeafs) {
 				common.Com_Error (errorParm_t.ERR_DROP, "CM_LeafCluster: bad number");
 			}
-			return cm.leafs[leafnum].cluster;
+			return cm_local.cm.leafs[leafnum].cluster;
 		}
 
-		int		CM_LeafArea( int leafnum ) {
-			if ( leafnum < 0 || leafnum >= cm.numLeafs ) {
+		static int CM_LeafArea( int leafnum ) 
+{
+			if ( leafnum < 0 || leafnum >= cm_local.cm.numLeafs ) {
 				common.Com_Error (errorParm_t.ERR_DROP, "CM_LeafArea: bad number");
 			}
-			return cm.leafs[leafnum].area;
+			return cm_local.cm.leafs[leafnum].area;
 		}
 
 		//=======================================================================
@@ -717,48 +735,48 @@ namespace SharpQ3.Engine.qcommon
 		can just be stored out and get a proper clipping hull structure.
 		===================
 		*/
-		void CM_InitBoxHull (void)
+		static void CM_InitBoxHull ()
 		{
 			int			i;
 			int			side;
-			cplane_t	*p;
-			cbrushside_t	*s;
+			cplane_t	p;
+			cbrushside_t	s;
 
-			box_planes = &cm.planes[cm.numPlanes];
+			cm_load.box_planes = cm_local.cm.planes[cm_local.cm.numPlanes];
 
-			box_brush = &cm.brushes[cm.numBrushes];
-			box_brush.numsides = 6;
-			box_brush.sides = cm.brushsides + cm.numBrushSides;
-			box_brush.contents = CONTENTS_BODY;
+			cm_load.box_brush = cm_local.cm.brushes[cm_local.cm.numBrushes];
+			cm_load.box_brush.numsides = 6;
+			cm_load.box_brush.sides = cm_local.cm.brushsides + cm_local.cm.numBrushSides;
+			cm_load.box_brush.contents = CONTENTS_BODY;
 
-			box_model.leaf.numLeafBrushes = 1;
-		//	box_model.leaf.firstLeafBrush = cm.numBrushes;
-			box_model.leaf.firstLeafBrush = cm.numLeafBrushes;
-			cm.leafbrushes[cm.numLeafBrushes] = cm.numBrushes;
+			cm_load.box_model.leaf.numLeafBrushes = 1;
+		//	box_model.leaf.firstLeafBrush = cm_local.cm.numBrushes;
+			cm_load.box_model.leaf.firstLeafBrush = cm_local.cm.numLeafBrushes;
+			cm_local.cm.leafbrushes[cm_local.cm.numLeafBrushes] = cm_local.cm.numBrushes;
 
 			for (i=0 ; i<6 ; i++)
 			{
 				side = i&1;
 
 				// brush sides
-				s = &cm.brushsides[cm.numBrushSides+i];
-				s.plane = 	cm.planes + (cm.numPlanes+i*2+side);
+				s = cm_local.cm.brushsides[cm_local.cm.numBrushSides+i];
+				s.plane = 	cm_local.cm.planes + (cm_local.cm.numPlanes+i*2+side);
 				s.surfaceFlags = 0;
 
 				// planes
-				p = &box_planes[i*2];
+				p = cm_load.box_planes[i*2];
 				p.type = i>>1;
 				p.signbits = 0;
-				VectorClear (p.normal);
+				q_shared.VectorClear (ref p.normal);
 				p.normal[i>>1] = 1;
 
-				p = &box_planes[i*2+1];
+				p = cm_load.box_planes[i*2+1];
 				p.type = 3 + (i>>1);
 				p.signbits = 0;
-				VectorClear (p.normal);
+				q_shared.VectorClear (ref p.normal);
 				p.normal[i>>1] = -1;
 
-				SetPlaneSignbits( p );
+				q_math.SetPlaneSignbits( ref p );
 			}	
 		}
 
@@ -771,32 +789,31 @@ namespace SharpQ3.Engine.qcommon
 		Capsules are handled differently though.
 		===================
 		*/
-		clipHandle_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, int capsule ) {
+		static clipHandle_t CM_TempBoxModel( vec3_t mins, vec3_t maxs, int capsule ) 
+		{
+			q_shared.VectorCopy( mins, out cm_load.box_model.mins );
+			q_shared.VectorCopy( maxs, out cm_load.box_model.maxs );
 
-			VectorCopy( mins, box_model.mins );
-			VectorCopy( maxs, box_model.maxs );
+			if ( capsule != 0 )
+				return new clipHandle_t( cm_local.CAPSULE_MODEL_HANDLE );
 
-			if ( capsule ) {
-				return CAPSULE_MODEL_HANDLE;
-			}
+			cm_load.box_planes[0].dist = maxs[0];
+			cm_load.box_planes[1].dist = -maxs[0];
+			cm_load.box_planes[2].dist = mins[0];
+			cm_load.box_planes[3].dist = -mins[0];
+			cm_load.box_planes[4].dist = maxs[1];
+			cm_load.box_planes[5].dist = -maxs[1];
+			cm_load.box_planes[6].dist = mins[1];
+			cm_load.box_planes[7].dist = -mins[1];
+			cm_load.box_planes[8].dist = maxs[2];
+			cm_load.box_planes[9].dist = -maxs[2];
+			cm_load.box_planes[10].dist = mins[2];
+			cm_load.box_planes[11].dist = -mins[2];
 
-			box_planes[0].dist = maxs[0];
-			box_planes[1].dist = -maxs[0];
-			box_planes[2].dist = mins[0];
-			box_planes[3].dist = -mins[0];
-			box_planes[4].dist = maxs[1];
-			box_planes[5].dist = -maxs[1];
-			box_planes[6].dist = mins[1];
-			box_planes[7].dist = -mins[1];
-			box_planes[8].dist = maxs[2];
-			box_planes[9].dist = -maxs[2];
-			box_planes[10].dist = mins[2];
-			box_planes[11].dist = -mins[2];
+			q_shared.VectorCopy( mins, out cm_load.box_brush.bounds[0] );
+			q_shared.VectorCopy( maxs, out cm_load.box_brush.bounds[1] );
 
-			VectorCopy( mins, box_brush.bounds[0] );
-			VectorCopy( maxs, box_brush.bounds[1] );
-
-			return BOX_MODEL_HANDLE;
+			return new clipHandle_t( cm_local.BOX_MODEL_HANDLE );
 		}
 
 		/*
@@ -804,12 +821,15 @@ namespace SharpQ3.Engine.qcommon
 		CM_ModelBounds
 		===================
 		*/
-		void CM_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs ) {
-			cmodel_t	*cmod;
+		static void CM_ModelBounds( clipHandle_t model, out vec3_t mins, out vec3_t maxs ) 
+		{
+			var cmod = CM_ClipHandleToModel( model );
 
-			cmod = CM_ClipHandleToModel( model );
-			VectorCopy( cmod.mins, mins );
-			VectorCopy( cmod.maxs, maxs );
+			if ( !cmod.HasValue )
+				common.Com_Error( errorParm_t.ERR_DROP, "Model has a null value in CL_ModelBounds");
+
+			q_shared.VectorCopy( cmod.Value.mins, out mins );
+			q_shared.VectorCopy( cmod.Value.maxs, out maxs );
 		}
 	}
 }

@@ -250,7 +250,7 @@ namespace SharpQ3.Engine.qcommon
             }
 
             Q_strncpyz( out var filename, Cmd_Argv( 1 ), MAX_QPATH );
-            COM_DefaultExtension( filename, MAX_QPATH, ".cfg" );
+            COM_DefaultExtension( ref filename, MAX_QPATH, ".cfg" );
             var len = files.FS_ReadFile( filename, out var f, out var h );
             if ( f == null )
             {
@@ -595,7 +595,7 @@ namespace SharpQ3.Engine.qcommon
 		Cmd_RemoveCommand
 		============
 		*/
-        private static void Cmd_RemoveCommand( string cmd_name )
+        public static void Cmd_RemoveCommand( string cmd_name )
         {
             var back = cmd_functions;
             cmd_function_t forward = null;

@@ -27,20 +27,20 @@ namespace SharpQ3.Engine
     // q_math.c -- stateless support routines that are included in each code module
     public static class q_math
     {
-        static vec3_t vec3_origin = new vec3_t { x = 0, y = 0, z = 0 };
-        static vec3_t[] axisDefault = new vec3_t[3] { new vec3_t { x = 1, y = 0, z = 0 }, new vec3_t { x = 0, y = 1, z = 0 }, new vec3_t { x = 0, y = 0, z = 1 } };
+        public readonly static vec3_t vec3_origin = new vec3_t { x = 0, y = 0, z = 0 };
+        public readonly static vec3_t[] axisDefault = new vec3_t[3] { new vec3_t { x = 1, y = 0, z = 0 }, new vec3_t { x = 0, y = 1, z = 0 }, new vec3_t { x = 0, y = 0, z = 1 } };
 
-        static vec4_t colorBlack = new vec4_t { x = 0, y = 0, z = 0, w = 1 };
-        static vec4_t colorRed = new vec4_t { x = 1, y = 0, z = 0, w = 1 };
-        static vec4_t colorGreen = new vec4_t { x = 0, y = 1, z = 0, w = 1 };
-        static vec4_t colorBlue = new vec4_t { x = 0, y = 0, z = 1, w = 1 };
-        static vec4_t colorYellow = new vec4_t { x = 1, y = 1, z = 0, w = 1 };
-        static vec4_t colorMagenta = new vec4_t { x = 1, y = 0, z = 1, w = 1 };
-        static vec4_t colorCyan = new vec4_t { x = 0, y = 1, z = 1, w = 1 };
-        static vec4_t colorWhite = new vec4_t { x = 1, y = 1, z = 1, w = 1 };
-        static vec4_t colorLtGrey = new vec4_t { x = 0.75f, y = 0.75f, z = 0.75f, w = 1 };
-        static vec4_t colorMdGrey = new vec4_t { x = 0.5f, y = 0.5f, z = 0.5f, w = 1 };
-        static vec4_t colorDkGrey = new vec4_t { x = 0.25f, y = 0.25f, z = 0.25f, w = 1 };
+        public readonly static vec4_t colorBlack = new vec4_t { x = 0, y = 0, z = 0, w = 1 };
+        public readonly static vec4_t colorRed = new vec4_t { x = 1, y = 0, z = 0, w = 1 };
+        public readonly static vec4_t colorGreen = new vec4_t { x = 0, y = 1, z = 0, w = 1 };
+        public readonly static vec4_t colorBlue = new vec4_t { x = 0, y = 0, z = 1, w = 1 };
+        public readonly static vec4_t colorYellow = new vec4_t { x = 1, y = 1, z = 0, w = 1 };
+        public readonly static vec4_t colorMagenta = new vec4_t { x = 1, y = 0, z = 1, w = 1 };
+        public readonly static vec4_t colorCyan = new vec4_t { x = 0, y = 1, z = 1, w = 1 };
+        public readonly static vec4_t colorWhite = new vec4_t { x = 1, y = 1, z = 1, w = 1 };
+        public readonly static vec4_t colorLtGrey = new vec4_t { x = 0.75f, y = 0.75f, z = 0.75f, w = 1 };
+        public readonly static vec4_t colorMdGrey = new vec4_t { x = 0.5f, y = 0.5f, z = 0.5f, w = 1 };
+        public readonly static vec4_t colorDkGrey = new vec4_t { x = 0.25f, y = 0.25f, z = 0.25f, w = 1 };
 
         static vec4_t[] g_color_table = new vec4_t[8]
         {
@@ -874,36 +874,26 @@ namespace SharpQ3.Engine
             maxs.x = maxs.y = maxs.z = -99999;
         }
 
-        public static void AddPointToBounds( vec3_t v, vec3_t mins, vec3_t maxs )
+        public static void AddPointToBounds( vec3_t v, ref vec3_t mins, ref vec3_t maxs )
         {
-            if ( v[0] < mins[0] )
-            {
-                mins[0] = v[0];
-            }
-            if ( v[0] > maxs[0] )
-            {
-                maxs[0] = v[0];
-            }
+            if ( v.x < mins.x )
+                mins.x = v.x;
 
-            if ( v[1] < mins[1] )
-            {
-                mins[1] = v[1];
-            }
-            if ( v[1] > maxs[1] )
-            {
-                maxs[1] = v[1];
-            }
+            if ( v.x > maxs.x )
+                maxs.x = v.x;
 
-            if ( v[2] < mins[2] )
-            {
-                mins[2] = v[2];
-            }
-            if ( v[2] > maxs[2] )
-            {
-                maxs[2] = v[2];
-            }
+            if ( v.y < mins.y )
+                mins.y = v.y;
+
+            if ( v.y > maxs.y )
+                maxs.y = v.y;
+
+            if ( v.z < mins.z )
+                mins.z = v.z;
+
+            if ( v.z > maxs.z )
+                maxs.z = v.z;
         }
-
 
         public static float VectorNormalize( ref vec3_t v )
         {
@@ -919,6 +909,26 @@ namespace SharpQ3.Engine
                 v.x *= ilength;
                 v.y *= ilength;
                 v.z *= ilength;
+            }
+
+            return length;
+        }
+
+        public static float VectorNormalize( ref vec4_t v )
+        {
+            // NOTE: TTimo - Apple G4 altivec source uses double?
+            float length, ilength;
+
+            length = v.x * v.x + v.y * v.y + v.z * v.z;
+            length = ( float ) Math.Sqrt( length );
+
+            if ( length > 0 )
+            {
+                ilength = 1 / length;
+                v.x *= ilength;
+                v.y *= ilength;
+                v.z *= ilength;
+                v.w *= ilength;
             }
 
             return length;

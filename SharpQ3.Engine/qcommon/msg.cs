@@ -47,52 +47,52 @@ namespace SharpQ3.Engine.qcommon
 			if (!msgInit) {
 				MSG_initHuffman();
 			}
-			Com_Memset (buf, 0, sizeof(*buf));
-			buf->data = data;
-			buf->maxsize = length;
+			common.Com_Memset (buf, 0, sizeof(*buf));
+			buf.data = data;
+			buf.maxsize = length;
 		}
 
 		void MSG_InitOOB( msg_t *buf, byte *data, int length ) {
 			if (!msgInit) {
 				MSG_initHuffman();
 			}
-			Com_Memset (buf, 0, sizeof(*buf));
-			buf->data = data;
-			buf->maxsize = length;
-			buf->oob = true;
+			common.Com_Memset (buf, 0, sizeof(*buf));
+			buf.data = data;
+			buf.maxsize = length;
+			buf.oob = true;
 		}
 
 		void MSG_Clear( msg_t *buf ) {
-			buf->cursize = 0;
-			buf->overflowed = false;
-			buf->bit = 0;					//<- in bits
+			buf.cursize = 0;
+			buf.overflowed = false;
+			buf.bit = 0;					//<- in bits
 		}
 
 
 		void MSG_Bitstream( msg_t *buf ) {
-			buf->oob = false;
+			buf.oob = false;
 		}
 
 		void MSG_BeginReading( msg_t *msg ) {
-			msg->readcount = 0;
-			msg->bit = 0;
-			msg->oob = false;
+			msg.readcount = 0;
+			msg.bit = 0;
+			msg.oob = false;
 		}
 
 		void MSG_BeginReadingOOB( msg_t *msg ) {
-			msg->readcount = 0;
-			msg->bit = 0;
-			msg->oob = true;
+			msg.readcount = 0;
+			msg.bit = 0;
+			msg.oob = true;
 		}
 
 		void MSG_Copy(msg_t *buf, byte *data, int length, msg_t *src)
 		{
-			if (length<src->cursize) {
-				Com_Error( ERR_DROP, "MSG_Copy: can't copy into a smaller msg_t buffer");
+			if (length<src.cursize) {
+				common.Com_Error( ERR_DROP, "MSG_Copy: can't copy into a smaller msg_t buffer");
 			}
-			Com_Memcpy(buf, src, sizeof(msg_t));
-			buf->data = data;
-			Com_Memcpy(buf->data, src->data, src->cursize);
+			common.Com_Memcpy(buf, src, sizeof(msg_t));
+			buf.data = data;
+			common.Com_Memcpy(buf.data, src.data, src.cursize);
 		}
 
 		/*
@@ -113,13 +113,13 @@ namespace SharpQ3.Engine.qcommon
 			oldsize += bits;
 
 			// this isn't an exact overflow check, but close enough
-			if ( msg->maxsize - msg->cursize < 4 ) {
-				msg->overflowed = true;
+			if ( msg.maxsize - msg.cursize < 4 ) {
+				msg.overflowed = true;
 				return;
 			}
 
 			if ( bits == 0 || bits < -31 || bits > 32 ) {
-				Com_Error( ERR_DROP, "MSG_WriteBits: bad bits %i", bits );
+				common.Com_Error( ERR_DROP, "MSG_WriteBits: bad bits %i", bits );
 			}
 
 			// check for overflows
@@ -141,23 +141,23 @@ namespace SharpQ3.Engine.qcommon
 			if ( bits < 0 ) {
 				bits = -bits;
 			}
-			if (msg->oob) {
+			if (msg.oob) {
 				if (bits==8) {
-					msg->data[msg->cursize] = value;
-					msg->cursize += 1;
-					msg->bit += 8;
+					msg.data[msg.cursize] = value;
+					msg.cursize += 1;
+					msg.bit += 8;
 				} else if (bits==16) {
-					unsigned short *sp = (unsigned short *)&msg->data[msg->cursize];
+					unsigned short *sp = (unsigned short *)&msg.data[msg.cursize];
 					*sp = LittleShort(value);
-					msg->cursize += 2;
-					msg->bit += 16;
+					msg.cursize += 2;
+					msg.bit += 16;
 				} else if (bits==32) {
-					unsigned int *ip = (unsigned int *)&msg->data[msg->cursize];
+					unsigned int *ip = (unsigned int *)&msg.data[msg.cursize];
 					*ip = LittleLong(value);
-					msg->cursize += 4;
-					msg->bit += 8;
+					msg.cursize += 4;
+					msg.bit += 8;
 				} else {
-					Com_Error(ERR_DROP, "can't read %d bits\n", bits);
+					common.Com_Error(ERR_DROP, "can't read %d bits\n", bits);
 				}
 			} else {
 		//		fp = fopen("c:\\netchan.bin", "a");
@@ -166,7 +166,7 @@ namespace SharpQ3.Engine.qcommon
 					int nbits;
 					nbits = bits&7;
 					for(i=0;i<nbits;i++) {
-						Huff_putBit((value&1), msg->data, &msg->bit);
+						Huff_putBit((value&1), msg.data, &msg.bit);
 						value = (value>>1);
 					}
 					bits = bits - nbits;
@@ -174,11 +174,11 @@ namespace SharpQ3.Engine.qcommon
 				if (bits) {
 					for(i=0;i<bits;i+=8) {
 		//				fwrite(bp, 1, 1, fp);
-						Huff_offsetTransmit (&msgHuff.compressor, (value&0xff), msg->data, &msg->bit);
+						Huff_offsetTransmit (&msgHuff.compressor, (value&0xff), msg.data, &msg.bit);
 						value = (value>>8);
 					}
 				}
-				msg->cursize = (msg->bit>>3)+1;
+				msg.cursize = (msg.bit>>3)+1;
 		//		fclose(fp);
 			}
 		}
@@ -199,43 +199,43 @@ namespace SharpQ3.Engine.qcommon
 				sgn = false;
 			}
 
-			if (msg->oob) {
+			if (msg.oob) {
 				if (bits==8) {
-					value = msg->data[msg->readcount];
-					msg->readcount += 1;
-					msg->bit += 8;
+					value = msg.data[msg.readcount];
+					msg.readcount += 1;
+					msg.bit += 8;
 				} else if (bits==16) {
-					unsigned short *sp = (unsigned short *)&msg->data[msg->readcount];
+					unsigned short *sp = (unsigned short *)&msg.data[msg.readcount];
 					value = LittleShort(*sp);
-					msg->readcount += 2;
-					msg->bit += 16;
+					msg.readcount += 2;
+					msg.bit += 16;
 				} else if (bits==32) {
-					unsigned int *ip = (unsigned int *)&msg->data[msg->readcount];
+					unsigned int *ip = (unsigned int *)&msg.data[msg.readcount];
 					value = LittleLong(*ip);
-					msg->readcount += 4;
-					msg->bit += 32;
+					msg.readcount += 4;
+					msg.bit += 32;
 				} else {
-					Com_Error(ERR_DROP, "can't read %d bits\n", bits);
+					common.Com_Error(ERR_DROP, "can't read %d bits\n", bits);
 				}
 			} else {
 				nbits = 0;
 				if (bits&7) {
 					nbits = bits&7;
 					for(i=0;i<nbits;i++) {
-						value |= (Huff_getBit(msg->data, &msg->bit)<<i);
+						value |= (Huff_getBit(msg.data, &msg.bit)<<i);
 					}
 					bits = bits - nbits;
 				}
 				if (bits) {
 		//			fp = fopen("c:\\netchan.bin", "a");
 					for(i=0;i<bits;i+=8) {
-						Huff_offsetReceive (msgHuff.decompressor.tree, &get, msg->data, &msg->bit);
+						Huff_offsetReceive (msgHuff.decompressor.tree, &get, msg.data, &msg.bit);
 		//				fwrite(&get, 1, 1, fp);
 						value |= (get<<(i+nbits));
 					}
 		//			fclose(fp);
 				}
-				msg->readcount = (msg->bit>>3)+1;
+				msg.readcount = (msg.bit>>3)+1;
 			}
 			if ( sgn ) {
 				if ( value & ( 1 << ( bits - 1 ) ) ) {
@@ -296,11 +296,11 @@ namespace SharpQ3.Engine.qcommon
 
 				l = (int)strlen( s );
 				if ( l >= MAX_STRING_CHARS ) {
-					Com_Printf( "MSG_WriteString: MAX_STRING_CHARS" );
+					common.Com_Printf( "MSG_WriteString: MAX_STRING_CHARS" );
 					MSG_WriteData (sb, "", 1);
 					return;
 				}
-				Q_strncpyz( string, s, sizeof( string ) );
+				q_shared.Q_strncpyz( string, s, sizeof( string ) );
 
 				// get rid of 0xff chars, because old clients don't like them
 				for ( i = 0 ; i < l ; i++ ) {
@@ -322,7 +322,7 @@ namespace SharpQ3.Engine.qcommon
 
 				l = (int)strlen( s );
 				if ( l >= BIG_INFO_STRING ) {
-					Com_Printf( "MSG_WriteString: BIG_INFO_STRING" );
+					common.Com_Printf( "MSG_WriteString: BIG_INFO_STRING" );
 					MSG_WriteData (sb, "", 1);
 					return;
 				}
@@ -359,7 +359,7 @@ namespace SharpQ3.Engine.qcommon
 			int	c;
 			
 			c = (signed char)MSG_ReadBits( msg, 8 );
-			if ( msg->readcount > msg->cursize ) {
+			if ( msg.readcount > msg.cursize ) {
 				c = -1;
 			}	
 			
@@ -370,7 +370,7 @@ namespace SharpQ3.Engine.qcommon
 			int	c;
 			
 			c = (unsigned char)MSG_ReadBits( msg, 8 );
-			if ( msg->readcount > msg->cursize ) {
+			if ( msg.readcount > msg.cursize ) {
 				c = -1;
 			}	
 			return c;
@@ -380,7 +380,7 @@ namespace SharpQ3.Engine.qcommon
 			int	c;
 			
 			c = (short)MSG_ReadBits( msg, 16 );
-			if ( msg->readcount > msg->cursize ) {
+			if ( msg.readcount > msg.cursize ) {
 				c = -1;
 			}	
 
@@ -391,7 +391,7 @@ namespace SharpQ3.Engine.qcommon
 			int	c;
 			
 			c = MSG_ReadBits( msg, 32 );
-			if ( msg->readcount > msg->cursize ) {
+			if ( msg.readcount > msg.cursize ) {
 				c = -1;
 			}	
 			
@@ -406,7 +406,7 @@ namespace SharpQ3.Engine.qcommon
 			} dat;
 			
 			dat.l = MSG_ReadBits( msg, 32 );
-			if ( msg->readcount > msg->cursize ) {
+			if ( msg.readcount > msg.cursize ) {
 				dat.f = -1;
 			}	
 			
@@ -511,7 +511,7 @@ namespace SharpQ3.Engine.qcommon
 
 		extern cvar_t *cl_shownet;
 
-		#define	LOG(x) if( cl_shownet->integer == 4 ) { Com_Printf("%s ", x ); };
+		#define	LOG(x) if( cl_shownet.integer == 4 ) { common.Com_Printf("%s ", x ); };
 
 		void MSG_WriteDelta( msg_t *msg, int oldV, int newV, int bits ) {
 			if ( oldV == newV ) {
@@ -627,21 +627,21 @@ namespace SharpQ3.Engine.qcommon
 		=====================
 		*/
 		void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to ) {
-			if ( to->serverTime - from->serverTime < 256 ) {
+			if ( to.serverTime - from.serverTime < 256 ) {
 				MSG_WriteBits( msg, 1, 1 );
-				MSG_WriteBits( msg, to->serverTime - from->serverTime, 8 );
+				MSG_WriteBits( msg, to.serverTime - from.serverTime, 8 );
 			} else {
 				MSG_WriteBits( msg, 0, 1 );
-				MSG_WriteBits( msg, to->serverTime, 32 );
+				MSG_WriteBits( msg, to.serverTime, 32 );
 			}
-			MSG_WriteDelta( msg, from->angles[0], to->angles[0], 16 );
-			MSG_WriteDelta( msg, from->angles[1], to->angles[1], 16 );
-			MSG_WriteDelta( msg, from->angles[2], to->angles[2], 16 );
-			MSG_WriteDelta( msg, from->forwardmove, to->forwardmove, 8 );
-			MSG_WriteDelta( msg, from->rightmove, to->rightmove, 8 );
-			MSG_WriteDelta( msg, from->upmove, to->upmove, 8 );
-			MSG_WriteDelta( msg, from->buttons, to->buttons, 16 );
-			MSG_WriteDelta( msg, from->weapon, to->weapon, 8 );
+			MSG_WriteDelta( msg, from.angles[0], to.angles[0], 16 );
+			MSG_WriteDelta( msg, from.angles[1], to.angles[1], 16 );
+			MSG_WriteDelta( msg, from.angles[2], to.angles[2], 16 );
+			MSG_WriteDelta( msg, from.forwardmove, to.forwardmove, 8 );
+			MSG_WriteDelta( msg, from.rightmove, to.rightmove, 8 );
+			MSG_WriteDelta( msg, from.upmove, to.upmove, 8 );
+			MSG_WriteDelta( msg, from.buttons, to.buttons, 16 );
+			MSG_WriteDelta( msg, from.weapon, to.weapon, 8 );
 		}
 
 
@@ -652,18 +652,18 @@ namespace SharpQ3.Engine.qcommon
 		*/
 		void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to ) {
 			if ( MSG_ReadBits( msg, 1 ) ) {
-				to->serverTime = from->serverTime + MSG_ReadBits( msg, 8 );
+				to.serverTime = from.serverTime + MSG_ReadBits( msg, 8 );
 			} else {
-				to->serverTime = MSG_ReadBits( msg, 32 );
+				to.serverTime = MSG_ReadBits( msg, 32 );
 			}
-			to->angles[0] = MSG_ReadDelta( msg, from->angles[0], 16);
-			to->angles[1] = MSG_ReadDelta( msg, from->angles[1], 16);
-			to->angles[2] = MSG_ReadDelta( msg, from->angles[2], 16);
-			to->forwardmove = MSG_ReadDelta( msg, from->forwardmove, 8);
-			to->rightmove = MSG_ReadDelta( msg, from->rightmove, 8);
-			to->upmove = MSG_ReadDelta( msg, from->upmove, 8);
-			to->buttons = MSG_ReadDelta( msg, from->buttons, 16);
-			to->weapon = MSG_ReadDelta( msg, from->weapon, 8);
+			to.angles[0] = MSG_ReadDelta( msg, from.angles[0], 16);
+			to.angles[1] = MSG_ReadDelta( msg, from.angles[1], 16);
+			to.angles[2] = MSG_ReadDelta( msg, from.angles[2], 16);
+			to.forwardmove = MSG_ReadDelta( msg, from.forwardmove, 8);
+			to.rightmove = MSG_ReadDelta( msg, from.rightmove, 8);
+			to.upmove = MSG_ReadDelta( msg, from.upmove, 8);
+			to.buttons = MSG_ReadDelta( msg, from.buttons, 16);
+			to.weapon = MSG_ReadDelta( msg, from.weapon, 8);
 		}
 
 		/*
@@ -672,35 +672,35 @@ namespace SharpQ3.Engine.qcommon
 		=====================
 		*/
 		void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to ) {
-			if ( to->serverTime - from->serverTime < 256 ) {
+			if ( to.serverTime - from.serverTime < 256 ) {
 				MSG_WriteBits( msg, 1, 1 );
-				MSG_WriteBits( msg, to->serverTime - from->serverTime, 8 );
+				MSG_WriteBits( msg, to.serverTime - from.serverTime, 8 );
 			} else {
 				MSG_WriteBits( msg, 0, 1 );
-				MSG_WriteBits( msg, to->serverTime, 32 );
+				MSG_WriteBits( msg, to.serverTime, 32 );
 			}
-			if (from->angles[0] == to->angles[0] &&
-				from->angles[1] == to->angles[1] &&
-				from->angles[2] == to->angles[2] &&
-				from->forwardmove == to->forwardmove &&
-				from->rightmove == to->rightmove &&
-				from->upmove == to->upmove &&
-				from->buttons == to->buttons &&
-				from->weapon == to->weapon) {
+			if (from.angles[0] == to.angles[0] &&
+				from.angles[1] == to.angles[1] &&
+				from.angles[2] == to.angles[2] &&
+				from.forwardmove == to.forwardmove &&
+				from.rightmove == to.rightmove &&
+				from.upmove == to.upmove &&
+				from.buttons == to.buttons &&
+				from.weapon == to.weapon) {
 					MSG_WriteBits( msg, 0, 1 );				// no change
 					oldsize += 7;
 					return;
 			}
-			key ^= to->serverTime;
+			key ^= to.serverTime;
 			MSG_WriteBits( msg, 1, 1 );
-			MSG_WriteDeltaKey( msg, key, from->angles[0], to->angles[0], 16 );
-			MSG_WriteDeltaKey( msg, key, from->angles[1], to->angles[1], 16 );
-			MSG_WriteDeltaKey( msg, key, from->angles[2], to->angles[2], 16 );
-			MSG_WriteDeltaKey( msg, key, from->forwardmove, to->forwardmove, 8 );
-			MSG_WriteDeltaKey( msg, key, from->rightmove, to->rightmove, 8 );
-			MSG_WriteDeltaKey( msg, key, from->upmove, to->upmove, 8 );
-			MSG_WriteDeltaKey( msg, key, from->buttons, to->buttons, 16 );
-			MSG_WriteDeltaKey( msg, key, from->weapon, to->weapon, 8 );
+			MSG_WriteDeltaKey( msg, key, from.angles[0], to.angles[0], 16 );
+			MSG_WriteDeltaKey( msg, key, from.angles[1], to.angles[1], 16 );
+			MSG_WriteDeltaKey( msg, key, from.angles[2], to.angles[2], 16 );
+			MSG_WriteDeltaKey( msg, key, from.forwardmove, to.forwardmove, 8 );
+			MSG_WriteDeltaKey( msg, key, from.rightmove, to.rightmove, 8 );
+			MSG_WriteDeltaKey( msg, key, from.upmove, to.upmove, 8 );
+			MSG_WriteDeltaKey( msg, key, from.buttons, to.buttons, 16 );
+			MSG_WriteDeltaKey( msg, key, from.weapon, to.weapon, 8 );
 		}
 
 
@@ -711,29 +711,29 @@ namespace SharpQ3.Engine.qcommon
 		*/
 		void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to ) {
 			if ( MSG_ReadBits( msg, 1 ) ) {
-				to->serverTime = from->serverTime + MSG_ReadBits( msg, 8 );
+				to.serverTime = from.serverTime + MSG_ReadBits( msg, 8 );
 			} else {
-				to->serverTime = MSG_ReadBits( msg, 32 );
+				to.serverTime = MSG_ReadBits( msg, 32 );
 			}
 			if ( MSG_ReadBits( msg, 1 ) ) {
-				key ^= to->serverTime;
-				to->angles[0] = MSG_ReadDeltaKey( msg, key, from->angles[0], 16);
-				to->angles[1] = MSG_ReadDeltaKey( msg, key, from->angles[1], 16);
-				to->angles[2] = MSG_ReadDeltaKey( msg, key, from->angles[2], 16);
-				to->forwardmove = MSG_ReadDeltaKey( msg, key, from->forwardmove, 8);
-				to->rightmove = MSG_ReadDeltaKey( msg, key, from->rightmove, 8);
-				to->upmove = MSG_ReadDeltaKey( msg, key, from->upmove, 8);
-				to->buttons = MSG_ReadDeltaKey( msg, key, from->buttons, 16);
-				to->weapon = MSG_ReadDeltaKey( msg, key, from->weapon, 8);
+				key ^= to.serverTime;
+				to.angles[0] = MSG_ReadDeltaKey( msg, key, from.angles[0], 16);
+				to.angles[1] = MSG_ReadDeltaKey( msg, key, from.angles[1], 16);
+				to.angles[2] = MSG_ReadDeltaKey( msg, key, from.angles[2], 16);
+				to.forwardmove = MSG_ReadDeltaKey( msg, key, from.forwardmove, 8);
+				to.rightmove = MSG_ReadDeltaKey( msg, key, from.rightmove, 8);
+				to.upmove = MSG_ReadDeltaKey( msg, key, from.upmove, 8);
+				to.buttons = MSG_ReadDeltaKey( msg, key, from.buttons, 16);
+				to.weapon = MSG_ReadDeltaKey( msg, key, from.weapon, 8);
 			} else {
-				to->angles[0] = from->angles[0];
-				to->angles[1] = from->angles[1];
-				to->angles[2] = from->angles[2];
-				to->forwardmove = from->forwardmove;
-				to->rightmove = from->rightmove;
-				to->upmove = from->upmove;
-				to->buttons = from->buttons;
-				to->weapon = from->weapon;
+				to.angles[0] = from.angles[0];
+				to.angles[1] = from.angles[1];
+				to.angles[2] = from.angles[2];
+				to.forwardmove = from.forwardmove;
+				to.rightmove = from.rightmove;
+				to.upmove = from.upmove;
+				to.buttons = from.buttons;
+				to.weapon = from.weapon;
 			}
 		}
 
@@ -756,7 +756,7 @@ namespace SharpQ3.Engine.qcommon
 			int i;
 			for(i=0;i<256;i++) {
 				if (pcount[i]) {
-					Com_Printf("%d used %d\n", i, pcount[i]);
+					common.Com_Printf("%d used %d\n", i, pcount[i]);
 				}
 			}
 		}
@@ -768,7 +768,7 @@ namespace SharpQ3.Engine.qcommon
 		} netField_t;
 
 		// using the stringizing operator to save typing...
-		#define	NETF(x) #x,(int)(intptr_t)&((entityState_t*)0)->x
+		#define	NETF(x) #x,(int)(intptr_t)&((entityState_t*)0).x
 
 		netField_t	entityStateFields[] = 
 		{
@@ -864,20 +864,20 @@ namespace SharpQ3.Engine.qcommon
 				if ( from == NULL ) {
 					return;
 				}
-				MSG_WriteBits( msg, from->number, GENTITYNUM_BITS );
+				MSG_WriteBits( msg, from.number, GENTITYNUM_BITS );
 				MSG_WriteBits( msg, 1, 1 );
 				return;
 			}
 
-			if ( to->number < 0 || to->number >= MAX_GENTITIES ) {
-				Com_Error (ERR_FATAL, "MSG_WriteDeltaEntity: Bad entity number: %i", to->number );
+			if ( to.number < 0 || to.number >= MAX_GENTITIES ) {
+				common.Com_Error (ERR_FATAL, "MSG_WriteDeltaEntity: Bad entity number: %i", to.number );
 			}
 
 			lc = 0;
 			// build the change vector as bytes so it is endien independent
 			for ( i = 0, field = entityStateFields ; i < numFields ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 				if ( *fromF != *toF ) {
 					lc = i+1;
 				}
@@ -889,13 +889,13 @@ namespace SharpQ3.Engine.qcommon
 					return;		// nothing at all
 				}
 				// write two bits for no change
-				MSG_WriteBits( msg, to->number, GENTITYNUM_BITS );
+				MSG_WriteBits( msg, to.number, GENTITYNUM_BITS );
 				MSG_WriteBits( msg, 0, 1 );		// not removed
 				MSG_WriteBits( msg, 0, 1 );		// no delta
 				return;
 			}
 
-			MSG_WriteBits( msg, to->number, GENTITYNUM_BITS );
+			MSG_WriteBits( msg, to.number, GENTITYNUM_BITS );
 			MSG_WriteBits( msg, 0, 1 );			// not removed
 			MSG_WriteBits( msg, 1, 1 );			// we have a delta
 
@@ -904,8 +904,8 @@ namespace SharpQ3.Engine.qcommon
 			oldsize += numFields;
 
 			for ( i = 0, field = entityStateFields ; i < lc ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 
 				if ( *fromF == *toF ) {
 					MSG_WriteBits( msg, 0, 1 );	// no change
@@ -914,7 +914,7 @@ namespace SharpQ3.Engine.qcommon
 
 				MSG_WriteBits( msg, 1, 1 );	// changed
 
-				if ( field->bits == 0 ) {
+				if ( field.bits == 0 ) {
 					// float
 					fullFloat = *(float *)toF;
 					trunc = (int)fullFloat;
@@ -941,7 +941,7 @@ namespace SharpQ3.Engine.qcommon
 					} else {
 						MSG_WriteBits( msg, 1, 1 );
 						// integer
-						MSG_WriteBits( msg, *toF, field->bits );
+						MSG_WriteBits( msg, *toF, field.bits );
 					}
 				}
 			}
@@ -954,7 +954,7 @@ namespace SharpQ3.Engine.qcommon
 		The entity number has already been read from the message, which
 		is how the from state is identified.
 
-		If the delta removes the entity, entityState_t->number will be set to MAX_GENTITIES-1
+		If the delta removes the entity, entityState_t.number will be set to MAX_GENTITIES-1
 
 		Can go from either a baseline or a previous packet_entity
 		==================
@@ -972,21 +972,21 @@ namespace SharpQ3.Engine.qcommon
 			int			startBit, endBit;
 
 			if ( number < 0 || number >= MAX_GENTITIES) {
-				Com_Error( ERR_DROP, "Bad delta entity number: %i", number );
+				common.Com_Error( ERR_DROP, "Bad delta entity number: %i", number );
 			}
 
-			if ( msg->bit == 0 ) {
-				startBit = msg->readcount * 8 - GENTITYNUM_BITS;
+			if ( msg.bit == 0 ) {
+				startBit = msg.readcount * 8 - GENTITYNUM_BITS;
 			} else {
-				startBit = ( msg->readcount - 1 ) * 8 + msg->bit - GENTITYNUM_BITS;
+				startBit = ( msg.readcount - 1 ) * 8 + msg.bit - GENTITYNUM_BITS;
 			}
 
 			// check for a remove
 			if ( MSG_ReadBits( msg, 1 ) == 1 ) {
-				Com_Memset( to, 0, sizeof( *to ) );	
-				to->number = MAX_GENTITIES - 1;
-				if ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) {
-					Com_Printf( "%3i: #%-3i remove\n", msg->readcount, number );
+				common.Com_Memset( to, 0, sizeof( *to ) );	
+				to.number = MAX_GENTITIES - 1;
+				if ( cl_shownet.integer >= 2 || cl_shownet.integer == -1 ) {
+					common.Com_Printf( "%3i: #%-3i remove\n", msg.readcount, number );
 				}
 				return;
 			}
@@ -994,7 +994,7 @@ namespace SharpQ3.Engine.qcommon
 			// check for no delta
 			if ( MSG_ReadBits( msg, 1 ) == 0 ) {
 				*to = *from;
-				to->number = number;
+				to.number = number;
 				return;
 			}
 
@@ -1003,24 +1003,24 @@ namespace SharpQ3.Engine.qcommon
 
 			// shownet 2/3 will interleave with other printed info, -1 will
 			// just print the delta records`
-			if ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) {
+			if ( cl_shownet.integer >= 2 || cl_shownet.integer == -1 ) {
 				print = 1;
-				Com_Printf( "%3i: #%-3i ", msg->readcount, to->number );
+				common.Com_Printf( "%3i: #%-3i ", msg.readcount, to.number );
 			} else {
 				print = 0;
 			}
 
-			to->number = number;
+			to.number = number;
 
 			for ( i = 0, field = entityStateFields ; i < lc ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 
 				if ( ! MSG_ReadBits( msg, 1 ) ) {
 					// no change
 					*toF = *fromF;
 				} else {
-					if ( field->bits == 0 ) {
+					if ( field.bits == 0 ) {
 						// float
 						if ( MSG_ReadBits( msg, 1 ) == 0 ) {
 								*(float *)toF = 0.0f; 
@@ -1032,13 +1032,13 @@ namespace SharpQ3.Engine.qcommon
 								trunc -= FLOAT_INT_BIAS;
 								*(float *)toF = trunc; 
 								if ( print ) {
-									Com_Printf( "%s:%i ", field->name, trunc );
+									common.Com_Printf( "%s:%i ", field.name, trunc );
 								}
 							} else {
 								// full floating point value
 								*toF = MSG_ReadBits( msg, 32 );
 								if ( print ) {
-									Com_Printf( "%s:%f ", field->name, *(float *)toF );
+									common.Com_Printf( "%s:%f ", field.name, *(float *)toF );
 								}
 							}
 						}
@@ -1047,9 +1047,9 @@ namespace SharpQ3.Engine.qcommon
 							*toF = 0;
 						} else {
 							// integer
-							*toF = MSG_ReadBits( msg, field->bits );
+							*toF = MSG_ReadBits( msg, field.bits );
 							if ( print ) {
-								Com_Printf( "%s:%i ", field->name, *toF );
+								common.Com_Printf( "%s:%i ", field.name, *toF );
 							}
 						}
 					}
@@ -1057,19 +1057,19 @@ namespace SharpQ3.Engine.qcommon
 				}
 			}
 			for ( i = lc, field = &entityStateFields[lc] ; i < numFields ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 				// no change
 				*toF = *fromF;
 			}
 
 			if ( print ) {
-				if ( msg->bit == 0 ) {
-					endBit = msg->readcount * 8 - GENTITYNUM_BITS;
+				if ( msg.bit == 0 ) {
+					endBit = msg.readcount * 8 - GENTITYNUM_BITS;
 				} else {
-					endBit = ( msg->readcount - 1 ) * 8 + msg->bit - GENTITYNUM_BITS;
+					endBit = ( msg.readcount - 1 ) * 8 + msg.bit - GENTITYNUM_BITS;
 				}
-				Com_Printf( " (%i bits)\n", endBit - startBit  );
+				common.Com_Printf( " (%i bits)\n", endBit - startBit  );
 			}
 		}
 
@@ -1083,7 +1083,7 @@ namespace SharpQ3.Engine.qcommon
 		*/
 
 		// using the stringizing operator to save typing...
-		#define	PSF(x) #x,(int)(intptr_t)&((playerState_t*)0)->x
+		#define	PSF(x) #x,(int)(intptr_t)&((playerState_t*)0).x
 
 		netField_t	playerStateFields[] = 
 		{
@@ -1159,17 +1159,17 @@ namespace SharpQ3.Engine.qcommon
 
 			if (!from) {
 				from = &dummy;
-				Com_Memset (&dummy, 0, sizeof(dummy));
+				common.Com_Memset (&dummy, 0, sizeof(dummy));
 			}
 
-			c = msg->cursize;
+			c = msg.cursize;
 
 			numFields = sizeof( playerStateFields ) / sizeof( playerStateFields[0] );
 
 			lc = 0;
 			for ( i = 0, field = playerStateFields ; i < numFields ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 				if ( *fromF != *toF ) {
 					lc = i+1;
 				}
@@ -1180,8 +1180,8 @@ namespace SharpQ3.Engine.qcommon
 			oldsize += numFields - lc;
 
 			for ( i = 0, field = playerStateFields ; i < lc ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 
 				if ( *fromF == *toF ) {
 					MSG_WriteBits( msg, 0, 1 );	// no change
@@ -1191,7 +1191,7 @@ namespace SharpQ3.Engine.qcommon
 				MSG_WriteBits( msg, 1, 1 );	// changed
 		//		pcount[i]++;
 
-				if ( field->bits == 0 ) {
+				if ( field.bits == 0 ) {
 					// float
 					fullFloat = *(float *)toF;
 					trunc = (int)fullFloat;
@@ -1208,10 +1208,10 @@ namespace SharpQ3.Engine.qcommon
 					}
 				} else {
 					// integer
-					MSG_WriteBits( msg, *toF, field->bits );
+					MSG_WriteBits( msg, *toF, field.bits );
 				}
 			}
-			c = msg->cursize - c;
+			c = msg.cursize - c;
 
 
 			//
@@ -1219,25 +1219,25 @@ namespace SharpQ3.Engine.qcommon
 			//
 			statsbits = 0;
 			for (i=0 ; i<16 ; i++) {
-				if (to->stats[i] != from->stats[i]) {
+				if (to.stats[i] != from.stats[i]) {
 					statsbits |= 1<<i;
 				}
 			}
 			persistantbits = 0;
 			for (i=0 ; i<16 ; i++) {
-				if (to->persistant[i] != from->persistant[i]) {
+				if (to.persistant[i] != from.persistant[i]) {
 					persistantbits |= 1<<i;
 				}
 			}
 			ammobits = 0;
 			for (i=0 ; i<16 ; i++) {
-				if (to->ammo[i] != from->ammo[i]) {
+				if (to.ammo[i] != from.ammo[i]) {
 					ammobits |= 1<<i;
 				}
 			}
 			powerupbits = 0;
 			for (i=0 ; i<16 ; i++) {
-				if (to->powerups[i] != from->powerups[i]) {
+				if (to.powerups[i] != from.powerups[i]) {
 					powerupbits |= 1<<i;
 				}
 			}
@@ -1254,7 +1254,7 @@ namespace SharpQ3.Engine.qcommon
 				MSG_WriteShort( msg, statsbits );
 				for (i=0 ; i<16 ; i++)
 					if (statsbits & (1<<i) )
-						MSG_WriteShort (msg, to->stats[i]);
+						MSG_WriteShort (msg, to.stats[i]);
 			} else {
 				MSG_WriteBits( msg, 0, 1 );	// no change
 			}
@@ -1265,7 +1265,7 @@ namespace SharpQ3.Engine.qcommon
 				MSG_WriteShort( msg, persistantbits );
 				for (i=0 ; i<16 ; i++)
 					if (persistantbits & (1<<i) )
-						MSG_WriteShort (msg, to->persistant[i]);
+						MSG_WriteShort (msg, to.persistant[i]);
 			} else {
 				MSG_WriteBits( msg, 0, 1 );	// no change
 			}
@@ -1276,7 +1276,7 @@ namespace SharpQ3.Engine.qcommon
 				MSG_WriteShort( msg, ammobits );
 				for (i=0 ; i<16 ; i++)
 					if (ammobits & (1<<i) )
-						MSG_WriteShort (msg, to->ammo[i]);
+						MSG_WriteShort (msg, to.ammo[i]);
 			} else {
 				MSG_WriteBits( msg, 0, 1 );	// no change
 			}
@@ -1287,7 +1287,7 @@ namespace SharpQ3.Engine.qcommon
 				MSG_WriteShort( msg, powerupbits );
 				for (i=0 ; i<16 ; i++)
 					if (powerupbits & (1<<i) )
-						MSG_WriteLong( msg, to->powerups[i] );
+						MSG_WriteLong( msg, to.powerups[i] );
 			} else {
 				MSG_WriteBits( msg, 0, 1 );	// no change
 			}
@@ -1312,21 +1312,21 @@ namespace SharpQ3.Engine.qcommon
 
 			if ( !from ) {
 				from = &dummy;
-				Com_Memset( &dummy, 0, sizeof( dummy ) );
+				common.Com_Memset( &dummy, 0, sizeof( dummy ) );
 			}
 			*to = *from;
 
-			if ( msg->bit == 0 ) {
-				startBit = msg->readcount * 8 - GENTITYNUM_BITS;
+			if ( msg.bit == 0 ) {
+				startBit = msg.readcount * 8 - GENTITYNUM_BITS;
 			} else {
-				startBit = ( msg->readcount - 1 ) * 8 + msg->bit - GENTITYNUM_BITS;
+				startBit = ( msg.readcount - 1 ) * 8 + msg.bit - GENTITYNUM_BITS;
 			}
 
 			// shownet 2/3 will interleave with other printed info, -2 will
 			// just print the delta records
-			if ( cl_shownet->integer >= 2 || cl_shownet->integer == -2 ) {
+			if ( cl_shownet.integer >= 2 || cl_shownet.integer == -2 ) {
 				print = 1;
-				Com_Printf( "%3i: playerstate ", msg->readcount );
+				common.Com_Printf( "%3i: playerstate ", msg.readcount );
 			} else {
 				print = 0;
 			}
@@ -1335,14 +1335,14 @@ namespace SharpQ3.Engine.qcommon
 			lc = MSG_ReadByte(msg);
 
 			for ( i = 0, field = playerStateFields ; i < lc ; i++, field++ ) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 
 				if ( ! MSG_ReadBits( msg, 1 ) ) {
 					// no change
 					*toF = *fromF;
 				} else {
-					if ( field->bits == 0 ) {
+					if ( field.bits == 0 ) {
 						// float
 						if ( MSG_ReadBits( msg, 1 ) == 0 ) {
 							// integral float
@@ -1351,27 +1351,27 @@ namespace SharpQ3.Engine.qcommon
 							trunc -= FLOAT_INT_BIAS;
 							*(float *)toF = trunc; 
 							if ( print ) {
-								Com_Printf( "%s:%i ", field->name, trunc );
+								common.Com_Printf( "%s:%i ", field.name, trunc );
 							}
 						} else {
 							// full floating point value
 							*toF = MSG_ReadBits( msg, 32 );
 							if ( print ) {
-								Com_Printf( "%s:%f ", field->name, *(float *)toF );
+								common.Com_Printf( "%s:%f ", field.name, *(float *)toF );
 							}
 						}
 					} else {
 						// integer
-						*toF = MSG_ReadBits( msg, field->bits );
+						*toF = MSG_ReadBits( msg, field.bits );
 						if ( print ) {
-							Com_Printf( "%s:%i ", field->name, *toF );
+							common.Com_Printf( "%s:%i ", field.name, *toF );
 						}
 					}
 				}
 			}
 			for ( i=lc,field = &playerStateFields[lc];i<numFields; i++, field++) {
-				fromF = (int *)( (byte *)from + field->offset );
-				toF = (int *)( (byte *)to + field->offset );
+				fromF = (int *)( (byte *)from + field.offset );
+				toF = (int *)( (byte *)to + field.offset );
 				// no change
 				*toF = *fromF;
 			}
@@ -1385,7 +1385,7 @@ namespace SharpQ3.Engine.qcommon
 					bits = MSG_ReadShort (msg);
 					for (i=0 ; i<16 ; i++) {
 						if (bits & (1<<i) ) {
-							to->stats[i] = MSG_ReadShort(msg);
+							to.stats[i] = MSG_ReadShort(msg);
 						}
 					}
 				}
@@ -1396,7 +1396,7 @@ namespace SharpQ3.Engine.qcommon
 					bits = MSG_ReadShort (msg);
 					for (i=0 ; i<16 ; i++) {
 						if (bits & (1<<i) ) {
-							to->persistant[i] = MSG_ReadShort(msg);
+							to.persistant[i] = MSG_ReadShort(msg);
 						}
 					}
 				}
@@ -1407,7 +1407,7 @@ namespace SharpQ3.Engine.qcommon
 					bits = MSG_ReadShort (msg);
 					for (i=0 ; i<16 ; i++) {
 						if (bits & (1<<i) ) {
-							to->ammo[i] = MSG_ReadShort(msg);
+							to.ammo[i] = MSG_ReadShort(msg);
 						}
 					}
 				}
@@ -1418,279 +1418,279 @@ namespace SharpQ3.Engine.qcommon
 					bits = MSG_ReadShort (msg);
 					for (i=0 ; i<16 ; i++) {
 						if (bits & (1<<i) ) {
-							to->powerups[i] = MSG_ReadLong(msg);
+							to.powerups[i] = MSG_ReadLong(msg);
 						}
 					}
 				}
 			}
 
 			if ( print ) {
-				if ( msg->bit == 0 ) {
-					endBit = msg->readcount * 8 - GENTITYNUM_BITS;
+				if ( msg.bit == 0 ) {
+					endBit = msg.readcount * 8 - GENTITYNUM_BITS;
 				} else {
-					endBit = ( msg->readcount - 1 ) * 8 + msg->bit - GENTITYNUM_BITS;
+					endBit = ( msg.readcount - 1 ) * 8 + msg.bit - GENTITYNUM_BITS;
 				}
-				Com_Printf( " (%i bits)\n", endBit - startBit  );
+				common.Com_Printf( " (%i bits)\n", endBit - startBit  );
 			}
 		}
 
-		int msg_hData[256] = {
-		250315,			// 0
-		41193,			// 1
-		6292,			// 2
-		7106,			// 3
-		3730,			// 4
-		3750,			// 5
-		6110,			// 6
-		23283,			// 7
-		33317,			// 8
-		6950,			// 9
-		7838,			// 10
-		9714,			// 11
-		9257,			// 12
-		17259,			// 13
-		3949,			// 14
-		1778,			// 15
-		8288,			// 16
-		1604,			// 17
-		1590,			// 18
-		1663,			// 19
-		1100,			// 20
-		1213,			// 21
-		1238,			// 22
-		1134,			// 23
-		1749,			// 24
-		1059,			// 25
-		1246,			// 26
-		1149,			// 27
-		1273,			// 28
-		4486,			// 29
-		2805,			// 30
-		3472,			// 31
-		21819,			// 32
-		1159,			// 33
-		1670,			// 34
-		1066,			// 35
-		1043,			// 36
-		1012,			// 37
-		1053,			// 38
-		1070,			// 39
-		1726,			// 40
-		888,			// 41
-		1180,			// 42
-		850,			// 43
-		960,			// 44
-		780,			// 45
-		1752,			// 46
-		3296,			// 47
-		10630,			// 48
-		4514,			// 49
-		5881,			// 50
-		2685,			// 51
-		4650,			// 52
-		3837,			// 53
-		2093,			// 54
-		1867,			// 55
-		2584,			// 56
-		1949,			// 57
-		1972,			// 58
-		940,			// 59
-		1134,			// 60
-		1788,			// 61
-		1670,			// 62
-		1206,			// 63
-		5719,			// 64
-		6128,			// 65
-		7222,			// 66
-		6654,			// 67
-		3710,			// 68
-		3795,			// 69
-		1492,			// 70
-		1524,			// 71
-		2215,			// 72
-		1140,			// 73
-		1355,			// 74
-		971,			// 75
-		2180,			// 76
-		1248,			// 77
-		1328,			// 78
-		1195,			// 79
-		1770,			// 80
-		1078,			// 81
-		1264,			// 82
-		1266,			// 83
-		1168,			// 84
-		965,			// 85
-		1155,			// 86
-		1186,			// 87
-		1347,			// 88
-		1228,			// 89
-		1529,			// 90
-		1600,			// 91
-		2617,			// 92
-		2048,			// 93
-		2546,			// 94
-		3275,			// 95
-		2410,			// 96
-		3585,			// 97
-		2504,			// 98
-		2800,			// 99
-		2675,			// 100
-		6146,			// 101
-		3663,			// 102
-		2840,			// 103
-		14253,			// 104
-		3164,			// 105
-		2221,			// 106
-		1687,			// 107
-		3208,			// 108
-		2739,			// 109
-		3512,			// 110
-		4796,			// 111
-		4091,			// 112
-		3515,			// 113
-		5288,			// 114
-		4016,			// 115
-		7937,			// 116
-		6031,			// 117
-		5360,			// 118
-		3924,			// 119
-		4892,			// 120
-		3743,			// 121
-		4566,			// 122
-		4807,			// 123
-		5852,			// 124
-		6400,			// 125
-		6225,			// 126
-		8291,			// 127
-		23243,			// 128
-		7838,			// 129
-		7073,			// 130
-		8935,			// 131
-		5437,			// 132
-		4483,			// 133
-		3641,			// 134
-		5256,			// 135
-		5312,			// 136
-		5328,			// 137
-		5370,			// 138
-		3492,			// 139
-		2458,			// 140
-		1694,			// 141
-		1821,			// 142
-		2121,			// 143
-		1916,			// 144
-		1149,			// 145
-		1516,			// 146
-		1367,			// 147
-		1236,			// 148
-		1029,			// 149
-		1258,			// 150
-		1104,			// 151
-		1245,			// 152
-		1006,			// 153
-		1149,			// 154
-		1025,			// 155
-		1241,			// 156
-		952,			// 157
-		1287,			// 158
-		997,			// 159
-		1713,			// 160
-		1009,			// 161
-		1187,			// 162
-		879,			// 163
-		1099,			// 164
-		929,			// 165
-		1078,			// 166
-		951,			// 167
-		1656,			// 168
-		930,			// 169
-		1153,			// 170
-		1030,			// 171
-		1262,			// 172
-		1062,			// 173
-		1214,			// 174
-		1060,			// 175
-		1621,			// 176
-		930,			// 177
-		1106,			// 178
-		912,			// 179
-		1034,			// 180
-		892,			// 181
-		1158,			// 182
-		990,			// 183
-		1175,			// 184
-		850,			// 185
-		1121,			// 186
-		903,			// 187
-		1087,			// 188
-		920,			// 189
-		1144,			// 190
-		1056,			// 191
-		3462,			// 192
-		2240,			// 193
-		4397,			// 194
-		12136,			// 195
-		7758,			// 196
-		1345,			// 197
-		1307,			// 198
-		3278,			// 199
-		1950,			// 200
-		886,			// 201
-		1023,			// 202
-		1112,			// 203
-		1077,			// 204
-		1042,			// 205
-		1061,			// 206
-		1071,			// 207
-		1484,			// 208
-		1001,			// 209
-		1096,			// 210
-		915,			// 211
-		1052,			// 212
-		995,			// 213
-		1070,			// 214
-		876,			// 215
-		1111,			// 216
-		851,			// 217
-		1059,			// 218
-		805,			// 219
-		1112,			// 220
-		923,			// 221
-		1103,			// 222
-		817,			// 223
-		1899,			// 224
-		1872,			// 225
-		976,			// 226
-		841,			// 227
-		1127,			// 228
-		956,			// 229
-		1159,			// 230
-		950,			// 231
-		7791,			// 232
-		954,			// 233
-		1289,			// 234
-		933,			// 235
-		1127,			// 236
-		3207,			// 237
-		1020,			// 238
-		927,			// 239
-		1355,			// 240
-		768,			// 241
-		1040,			// 242
-		745,			// 243
-		952,			// 244
-		805,			// 245
-		1073,			// 246
-		740,			// 247
-		1013,			// 248
-		805,			// 249
-		1008,			// 250
-		796,			// 251
-		996,			// 252
-		1057,			// 253
-		11457,			// 254
-		13504,			// 255
+		static int[] msg_hData = new int[256]{
+			250315,			// 0
+			41193,			// 1
+			6292,			// 2
+			7106,			// 3
+			3730,			// 4
+			3750,			// 5
+			6110,			// 6
+			23283,			// 7
+			33317,			// 8
+			6950,			// 9
+			7838,			// 10
+			9714,			// 11
+			9257,			// 12
+			17259,			// 13
+			3949,			// 14
+			1778,			// 15
+			8288,			// 16
+			1604,			// 17
+			1590,			// 18
+			1663,			// 19
+			1100,			// 20
+			1213,			// 21
+			1238,			// 22
+			1134,			// 23
+			1749,			// 24
+			1059,			// 25
+			1246,			// 26
+			1149,			// 27
+			1273,			// 28
+			4486,			// 29
+			2805,			// 30
+			3472,			// 31
+			21819,			// 32
+			1159,			// 33
+			1670,			// 34
+			1066,			// 35
+			1043,			// 36
+			1012,			// 37
+			1053,			// 38
+			1070,			// 39
+			1726,			// 40
+			888,			// 41
+			1180,			// 42
+			850,			// 43
+			960,			// 44
+			780,			// 45
+			1752,			// 46
+			3296,			// 47
+			10630,			// 48
+			4514,			// 49
+			5881,			// 50
+			2685,			// 51
+			4650,			// 52
+			3837,			// 53
+			2093,			// 54
+			1867,			// 55
+			2584,			// 56
+			1949,			// 57
+			1972,			// 58
+			940,			// 59
+			1134,			// 60
+			1788,			// 61
+			1670,			// 62
+			1206,			// 63
+			5719,			// 64
+			6128,			// 65
+			7222,			// 66
+			6654,			// 67
+			3710,			// 68
+			3795,			// 69
+			1492,			// 70
+			1524,			// 71
+			2215,			// 72
+			1140,			// 73
+			1355,			// 74
+			971,			// 75
+			2180,			// 76
+			1248,			// 77
+			1328,			// 78
+			1195,			// 79
+			1770,			// 80
+			1078,			// 81
+			1264,			// 82
+			1266,			// 83
+			1168,			// 84
+			965,			// 85
+			1155,			// 86
+			1186,			// 87
+			1347,			// 88
+			1228,			// 89
+			1529,			// 90
+			1600,			// 91
+			2617,			// 92
+			2048,			// 93
+			2546,			// 94
+			3275,			// 95
+			2410,			// 96
+			3585,			// 97
+			2504,			// 98
+			2800,			// 99
+			2675,			// 100
+			6146,			// 101
+			3663,			// 102
+			2840,			// 103
+			14253,			// 104
+			3164,			// 105
+			2221,			// 106
+			1687,			// 107
+			3208,			// 108
+			2739,			// 109
+			3512,			// 110
+			4796,			// 111
+			4091,			// 112
+			3515,			// 113
+			5288,			// 114
+			4016,			// 115
+			7937,			// 116
+			6031,			// 117
+			5360,			// 118
+			3924,			// 119
+			4892,			// 120
+			3743,			// 121
+			4566,			// 122
+			4807,			// 123
+			5852,			// 124
+			6400,			// 125
+			6225,			// 126
+			8291,			// 127
+			23243,			// 128
+			7838,			// 129
+			7073,			// 130
+			8935,			// 131
+			5437,			// 132
+			4483,			// 133
+			3641,			// 134
+			5256,			// 135
+			5312,			// 136
+			5328,			// 137
+			5370,			// 138
+			3492,			// 139
+			2458,			// 140
+			1694,			// 141
+			1821,			// 142
+			2121,			// 143
+			1916,			// 144
+			1149,			// 145
+			1516,			// 146
+			1367,			// 147
+			1236,			// 148
+			1029,			// 149
+			1258,			// 150
+			1104,			// 151
+			1245,			// 152
+			1006,			// 153
+			1149,			// 154
+			1025,			// 155
+			1241,			// 156
+			952,			// 157
+			1287,			// 158
+			997,			// 159
+			1713,			// 160
+			1009,			// 161
+			1187,			// 162
+			879,			// 163
+			1099,			// 164
+			929,			// 165
+			1078,			// 166
+			951,			// 167
+			1656,			// 168
+			930,			// 169
+			1153,			// 170
+			1030,			// 171
+			1262,			// 172
+			1062,			// 173
+			1214,			// 174
+			1060,			// 175
+			1621,			// 176
+			930,			// 177
+			1106,			// 178
+			912,			// 179
+			1034,			// 180
+			892,			// 181
+			1158,			// 182
+			990,			// 183
+			1175,			// 184
+			850,			// 185
+			1121,			// 186
+			903,			// 187
+			1087,			// 188
+			920,			// 189
+			1144,			// 190
+			1056,			// 191
+			3462,			// 192
+			2240,			// 193
+			4397,			// 194
+			12136,			// 195
+			7758,			// 196
+			1345,			// 197
+			1307,			// 198
+			3278,			// 199
+			1950,			// 200
+			886,			// 201
+			1023,			// 202
+			1112,			// 203
+			1077,			// 204
+			1042,			// 205
+			1061,			// 206
+			1071,			// 207
+			1484,			// 208
+			1001,			// 209
+			1096,			// 210
+			915,			// 211
+			1052,			// 212
+			995,			// 213
+			1070,			// 214
+			876,			// 215
+			1111,			// 216
+			851,			// 217
+			1059,			// 218
+			805,			// 219
+			1112,			// 220
+			923,			// 221
+			1103,			// 222
+			817,			// 223
+			1899,			// 224
+			1872,			// 225
+			976,			// 226
+			841,			// 227
+			1127,			// 228
+			956,			// 229
+			1159,			// 230
+			950,			// 231
+			7791,			// 232
+			954,			// 233
+			1289,			// 234
+			933,			// 235
+			1127,			// 236
+			3207,			// 237
+			1020,			// 238
+			927,			// 239
+			1355,			// 240
+			768,			// 241
+			1040,			// 242
+			745,			// 243
+			952,			// 244
+			805,			// 245
+			1073,			// 246
+			740,			// 247
+			1013,			// 248
+			805,			// 249
+			1008,			// 250
+			796,			// 251
+			996,			// 252
+			1057,			// 253
+			11457,			// 254
+			13504,			// 255
 		};
 
 		void MSG_initHuffman() {
@@ -1727,15 +1727,15 @@ namespace SharpQ3.Engine.qcommon
 				Huff_addRef(&msgHuff.decompressor,	ch);			// Do update
 				array[ch]++;
 			}
-			Com_Printf("msg_hData {\n");
+			common.Com_Printf("msg_hData {\n");
 			for(i=0;i<256;i++) {
 				if (array[i] == 0) {
 					Huff_addRef(&msgHuff.compressor,	i);			// Do update
 					Huff_addRef(&msgHuff.decompressor,	i);			// Do update
 				}
-				Com_Printf("%d,			// %d\n", array[i], i);
+				common.Com_Printf("%d,			// %d\n", array[i], i);
 			}
-			Com_Printf("};\n");
+			common.Com_Printf("};\n");
 			FS_FreeFile( data );
 			Cbuf_AddText( "condump dump.txt\n" );
 		}
